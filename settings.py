@@ -145,6 +145,7 @@ TEMPLATE_LOADERS = (
 
 
 MIDDLEWARE_CLASSES = (
+    'middleware.PrintMemoryInfo',
     'middleware.AmaraSecurityMiddleware',
     'caching.middleware.AmaraCachingMiddleware',
     'middleware.LogRequest',

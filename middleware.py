@@ -120,3 +120,16 @@ class LogRequest(object):
     def scrub_post_data(self, post_data):
         return dict((k, v if 'password' not in k else '*scrubbed')
                     for (k, v) in post_data.items())
+
+import objgraph
+class PrintMemoryInfo(object):
+    def process_response(self, request, response):
+        objgraph.show_most_common_types()
+        print()
+        objgraph.show_growth(limit=5)
+        return response
+
+    def process_exception(self, request, exception):
+        objgraph.show_most_common_types()
+        print()
+        objgraph.show_growth(limit=5)

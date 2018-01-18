@@ -9,6 +9,7 @@ South==0.7.4
 easy-thumbnails==1.4
 Pillow==2.6.0
 Babel==2.1.1
+objgraph==3.3.0
 vendor/django-registration.tar.gz
 vendor/python-openid-2.2.5.tar.gz
 vendor/python-yadis-1.1.0.tar.gz
