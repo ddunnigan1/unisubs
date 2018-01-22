@@ -121,7 +121,7 @@ if DEBUG:
 
         DEBUG_TOOLBAR_CONFIG = {
             'INTERCEPT_REDIRECTS': False,
-            'SHOW_TOOLBAR_CALLBACK': 'settings.custom_show_toolbar',
+            'SHOW_TOOLBAR_CALLBACK': 'dev_settings.custom_show_toolbar',
             'EXTRA_SIGNALS': [],
             'HIDE_DJANGO_SQL': False,
             'INSERT_BEFORE': '</body>',
