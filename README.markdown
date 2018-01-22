@@ -22,6 +22,9 @@ Amara uses [Docker](http://docker.io).  For ease of development, we use the dock
    - For PCF employees and others with access to our private repositories, use
      the ./checkout-submodules all
 
+**Note:** for either case, make sure that you have SSH access setup for github.
+(https://help.github.com/articles/connecting-to-github-with-ssh/)
+
 3. Install docker-compose (http://docs.docker.com/compose/install/)
 
 4. Build the Amara docker image:

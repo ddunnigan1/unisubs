@@ -573,6 +573,7 @@ class CreateTeamForm(forms.ModelForm):
         return slug
 
     def save(self, user):
+        self.instance.set_legacy_visibility(self.instance.is_visible)
         team = super(CreateTeamForm, self).save()
         TeamMember.objects.create_first_member(team=team, user=user)
         return team
@@ -813,6 +814,7 @@ class SettingsForm(forms.ModelForm):
 
     def save(self, user):
         with transaction.atomic():
+            self.instance.set_legacy_visibility(self.instance.is_visible)
             super(SettingsForm, self).save()
             self.instance.handle_settings_changes(user, self.initial_settings)
 

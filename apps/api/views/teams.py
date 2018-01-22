@@ -528,6 +528,13 @@ class TeamSerializer(serializers.ModelSerializer):
             'team_slug': team.slug,
         }, request=self.context['request'])
 
+    def save(self):
+        team = super(TeamSerializer, self).save()
+        if 'is_visible' in self.validated_data:
+            team.set_legacy_visibility(self.validated_data['is_visible'])
+            team.save()
+        return team
+
     class Meta:
         model = Team
         fields = ('name', 'slug', 'type', 'description', 'is_visible',

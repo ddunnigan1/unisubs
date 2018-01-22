@@ -59,6 +59,7 @@ from teams.signals import (member_leave, api_subtitles_approved,
                            api_subtitles_rejected, video_removed_from_team,
                            team_settings_changed)
 from utils import DEFAULT_PROTOCOL
+from utils import enum
 from utils import translation
 from utils.amazon import S3EnabledImageField, S3EnabledFileField
 from utils.panslugify import pan_slugify
@@ -163,6 +164,17 @@ class TeamManager(models.Manager):
             teamvideo__created__gt=models.F('last_notification_time'))
             .distinct())
 
+TeamVisibility = enum.Enum('TeamVisibility', [
+    ('PUBLIC', _(u'Public')),
+    ('UNLISTED', _(u'Unlisted')),
+    ('PRIVATE', _(u'Private')),
+])
+VideoVisibility = enum.Enum('VideoVisibility', [
+    ('PUBLIC', _(u'Public')),
+    ('UNLISTED', _(u'Unlisted')),
+    ('PRIVATE', _(u'Private')),
+])
+
 class Team(models.Model):
     APPLICATION = 1
     INVITATION_BY_MANAGER = 2
@@ -224,7 +236,13 @@ class Team(models.Model):
                                       default='', blank=True,
                                       legacy_filenames=False,
                                       thumb_sizes=[(100, 100), (48, 48), (40, 40), (30, 30)])
+    # Legacy field, soon to be removed
     is_visible = models.BooleanField(_(u'videos public?'), default=False)
+    # New fields
+    team_visibility = enum.EnumField(enum=TeamVisibility,
+                                     default=TeamVisibility.PRIVATE)
+    video_visibility = enum.EnumField(enum=VideoVisibility,
+                                       default=VideoVisibility.PRIVATE)
     sync_metadata = models.BooleanField(_(u'Sync metadata when available (Youtube)?'), default=False)
     videos = models.ManyToManyField(Video, through='TeamVideo',  verbose_name=_('videos'))
     users = models.ManyToManyField(User, through='TeamMember', related_name='teams', verbose_name=_('users'))
@@ -408,6 +426,20 @@ class Team(models.Model):
             Team.INVITATION_BY_ALL,
             Team.INVITATION_BY_ADMIN,
         )
+
+    def set_legacy_visibility(self, is_visible):
+        """
+        Update team_visibility and video_visibility together
+
+        Call this in places where you want to emulate the legacy behavior,
+        where is_visible controls both team visibility and video_visibility.
+        """
+        if is_visible:
+            self.team_visibility = TeamVisibility.PUBLIC
+            self.video_visibility = VideoVisibility.PUBLIC
+        else:
+            self.team_visibility = TeamVisibility.PRIVATE
+            self.video_visibility = VideoVisibility.PRIVATE
 
     def get_workflow(self):
         """Return the workflow for the given team.
