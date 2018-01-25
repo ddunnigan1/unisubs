@@ -891,20 +891,21 @@ class Video(models.Model):
         """
         if team and not team.prevent_duplicate_public_videos:
             return
-        try:
-            qs = VideoUrl.objects.filter(url=url)
-            if team:
-                qs = qs.filter(video__teamvideo__isnull=True)
-            else:
-                qs = qs.filter(
-                    video__teamvideo__team__prevent_duplicate_public_videos=True
-                )
-            video_url = qs[0:1][0]
-        except IndexError:
-            pass
-        except:
+
+        # get all existing VideoUrl objects with the same url
+        qs = VideoUrl.objects.filter(url=url)
+        if team:
+            # if being added to a team, get VideoUrls for existing public videos
+            qs = qs.filter(video__teamvideo__isnull=True)
+        else:
+            # if added to public space, get VideoUrls on teams with prevent duplicate flag
+            qs = qs.filter(
+                video__teamvideo__team__prevent_duplicate_public_videos=True
+            )
+        # if the new url already exists somewhere that conflicts with the prevent duplicate flag
+        if len(qs) > 0:
             raise Video.DuplicateUrlError(
-                video_url, from_prevent_duplicate_public_videos=True)
+                qs[0], from_prevent_duplicate_public_videos=True)
 
     def update_team(self, team):
         """Update the team for this video
