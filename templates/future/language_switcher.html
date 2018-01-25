@@ -4,12 +4,12 @@
       <div class="dialogHeader">
         <h4 class="dialogTitle">{% trans "Select your language" %}</h4>
       </div>
-      <form>
+      <form class="languageSwitcher">
         <div class="form-group searchbar searchbarFilter" data-target="languageChoice">
           <label class="sr-only">{% trans "Search languages" %}</label>
-          <input id="languageSearchBar" onkeyup="filterLanguages()" type="text" placeholder="{% trans "Search languages"%}">
+          <input id="languageSearchBar" class="languageSwitcher_searchBar" type="text" placeholder="{% trans "Search languages"%}">
         </div>
-        <ul id="languageChoice" class="col3 filteredList">
+        <ul class="languageSwitcher_list col3 filteredList">
           {% for url, name in languages %}
           <li><a href="{{url}}">{{name}}</a></li>
           {% endfor %}

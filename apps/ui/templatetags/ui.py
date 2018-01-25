@@ -19,6 +19,9 @@
 from __future__ import absolute_import
 
 from django import template
+from django.utils.safestring import mark_safe
+
+import ui.siteheader
 import ui.dates
 
 register = template.Library()
@@ -34,3 +37,16 @@ def elapsed_time(dt):
 @register.filter
 def format_time(dt):
     return ui.dates.format_time(dt)
+
+@register.simple_tag(takes_context=True)
+def header_links(context):
+    nav = context.get('nav')
+    parts = []
+    parts.append(u'<ul>')
+    for tab in ui.siteheader.navlinks():
+        if tab.name == nav:
+            parts.append(u'<li class="active">{}</li>'.format(unicode(tab)))
+        else:
+            parts.append(u'<li>{}</li>'.format(tab))
+    parts.append(u'</ul>')
+    return u'\n'.join(parts)

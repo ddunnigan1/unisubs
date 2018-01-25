@@ -29,7 +29,7 @@ from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.core.validators import EMPTY_VALUES
 from django.db.models import Q
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.forms.formsets import formset_factory
 from django.forms.util import ErrorDict
 from django.shortcuts import redirect
@@ -47,9 +47,10 @@ from messages.tasks import send_new_messages_notifications
 from subtitles.forms import SubtitlesUploadForm
 from teams.models import (
     Team, TeamMember, TeamVideo, Task, Project, Workflow, Invite,
-    BillingReport, MembershipNarrowing, Application
+    BillingReport, MembershipNarrowing, Application, TeamVisibility,
+    VideoVisibility,
 )
-from teams import behaviors, permissions
+from teams import behaviors, permissions, tasks
 from teams.exceptions import ApplicationInvalidException
 from teams.fields import TeamMemberInput
 from teams.permissions import (
@@ -58,6 +59,7 @@ from teams.permissions import (
     can_add_video_somewhere
 )
 from teams.permissions_const import ROLE_NAMES
+from teams.signals import member_remove
 from teams.workflows import TeamWorkflow
 from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
                       AmaraRadioSelect, SearchField, AmaraClearableFileInput, AmaraFileInput)
@@ -398,7 +400,7 @@ class AddVideoToTeamForm(forms.Form):
 class AddTeamVideoForm(forms.ModelForm):
     language = NewLanguageField(label=_(u'Video language'),
                                 required=True,
-                                options='null popular all',
+                                options='null popular all dont-set',
                                 help_text=_(u'It will be saved only if video does not exist in our database.'),
                                 error_messages={'required': 'Please select the video language.'})
 
@@ -441,7 +443,7 @@ class AddTeamVideoForm(forms.ModelForm):
         return self.cleaned_data
 
     def setup_video(self, video, video_url):
-        video.is_public = self.team.is_visible
+        video.is_public = self.team.videos_public()
         video.primary_audio_language_code = self.cleaned_data['language']
         self.saved_team_video = TeamVideo.objects.create(
             video=video, team=self.team, project=self.cleaned_data['project'],
@@ -466,7 +468,7 @@ class MultipleURLsField(forms.CharField):
 class AddMultipleTeamVideoForm(forms.Form):
     language = NewLanguageField(label=_(u'Video language'),
                                 required=True,
-                                options='null popular all',
+                                options='null popular all dont-set',
                                 help_text=_(u'It will be saved only if video does not exist in our database.'),
                                 error_messages={'required': 'Please select the video language.'})
 
@@ -500,7 +502,8 @@ class AddMultipleTeamVideoForm(forms.Form):
         video_urls = self.cleaned_data['video_urls'].split("\n")
         # See if any error happen when we create our videos
         for video_url in video_urls:
-            if len(video_url.strip()) == 0:
+            video_url = video_url.strip()
+            if len(video_url) == 0:
                 continue
             try:
                 Video.add(video_url, self.user, self.setup_video, self.team)
@@ -511,7 +514,7 @@ class AddMultipleTeamVideoForm(forms.Form):
         return self.cleaned_data
 
     def setup_video(self, video, video_url):
-        video.is_public = self.team.is_visible
+        video.is_public = self.team.videos_public()
         video.primary_audio_language_code = self.cleaned_data['language']
         self.saved_team_video = TeamVideo.objects.create(
             video=video, team=self.team, project=self.cleaned_data['project'],
@@ -550,6 +553,7 @@ class CreateTeamForm(forms.ModelForm):
     logo = forms.ImageField(widget=AmaraClearableFileInput,
                 validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)], required=False)
     workflow_type = forms.ChoiceField(choices=(), initial="O")
+    is_visible = forms.BooleanField(required=False)
 
     class Meta:
         model = Team
@@ -571,6 +575,8 @@ class CreateTeamForm(forms.ModelForm):
         return slug
 
     def save(self, user):
+        is_visible = self.cleaned_data.get('is_visible', False)
+        self.instance.set_legacy_visibility(is_visible)
         team = super(CreateTeamForm, self).save()
         TeamMember.objects.create_first_member(team=team, user=user)
         return team
@@ -793,7 +799,7 @@ class GuidelinesLangMessagesForm(forms.Form):
     sorted_keys = map(lambda x: x["key"], sorted(keys, key=lambda x: x["label"]))
     self.fields.keyOrder = ["messages_joins_language", "messages_joins_localized"] + sorted_keys
 
-class SettingsForm(forms.ModelForm):
+class LegacySettingsForm(forms.ModelForm):
     logo = forms.ImageField(
         validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
         help_text=_('Max 940 x 235'),
@@ -804,23 +810,74 @@ class SettingsForm(forms.ModelForm):
         help_text=_('Recommended size: 100 x 100'),
         widget=forms.FileInput,
         required=False)
+    is_visible = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
-        super(SettingsForm, self).__init__(*args, **kwargs)
+        super(LegacySettingsForm, self).__init__(*args, **kwargs)
+        self.fields['is_visible'].initial = self.instance.team_public()
         self.initial_settings = self.instance.get_settings()
 
+    def use_future_ui(self):
+        self.fields['logo'].widget = AmaraClearableFileInput()
+        self.fields['square_logo'].widget = AmaraClearableFileInput()
+
     def save(self, user):
+        is_visible = self.cleaned_data.get('is_visible', False)
         with transaction.atomic():
-            super(SettingsForm, self).save()
+            self.instance.set_legacy_visibility(is_visible)
+            super(LegacySettingsForm, self).save()
             self.instance.handle_settings_changes(user, self.initial_settings)
 
     class Meta:
         model = Team
-        fields = ('description', 'logo', 'square_logo', 'is_visible', 'sync_metadata')
+        fields = ('description', 'logo', 'square_logo', 'sync_metadata')
 
-class RenameableSettingsForm(SettingsForm):
-    class Meta(SettingsForm.Meta):
-            fields = SettingsForm.Meta.fields + ('name',)
+class LegacyRenameableSettingsForm(LegacySettingsForm):
+    class Meta(LegacySettingsForm.Meta):
+            fields = LegacySettingsForm.Meta.fields + ('name',)
+
+class GeneralSettingsForm(forms.ModelForm):
+    logo = forms.ImageField(
+        validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
+        help_text=_('Max 940 x 235'),
+        widget=AmaraClearableFileInput,
+        required=False)
+    square_logo = forms.ImageField(
+        validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
+        help_text=_('Recommended size: 100 x 100'),
+        widget=AmaraClearableFileInput,
+        required=False)
+    is_visible = forms.BooleanField(required=False)
+    team_visibility = forms.ChoiceField(
+        choices=TeamVisibility.choices(),
+        label=_('Team visibility'),
+        help_text=_("Can non-members view your team?"))
+    video_visibility = forms.ChoiceField(
+        choices=VideoVisibility.choices(),
+        label=_('Video visibility'),
+        help_text=_("Can non-members view your team videos?"))
+
+    def __init__(self, allow_rename, *args, **kwargs):
+        super(GeneralSettingsForm, self).__init__(*args, **kwargs)
+        self.initial_settings = self.instance.get_settings()
+        self.initial_video_visibility = self.instance.video_visibility
+        if not allow_rename:
+            del self.fields['name']
+
+    def save(self, user):
+        with transaction.atomic():
+            team = super(GeneralSettingsForm, self).save()
+            self.instance.handle_settings_changes(user, self.initial_settings)
+        if team.video_visibility != self.initial_video_visibility:
+            tasks.update_video_public_field.delay(team.id)
+            tasks.invalidate_video_visibility_caches.delay(team)
+        return team
+
+    class Meta:
+        model = Team
+        fields = ('name', 'description', 'logo', 'square_logo',
+                  'team_visibility', 'video_visibility', 'sync_metadata')
+
 
 class WorkflowForm(forms.ModelForm):
     class Meta:
@@ -918,7 +975,7 @@ class AddMembersForm(forms.Form):
 
 class InviteForm(forms.Form):
     username = UserAutocompleteField(error_messages={
-        'invalid': _(u'User is already a member of this team'),
+        'invalid': _(u'User has a pending invite or is already a member of this team'),
     })
     message = forms.CharField(required=False,
                               widget=forms.Textarea(attrs={'rows': 4}),
@@ -1248,6 +1305,9 @@ class VideoFiltersForm(FiltersForm):
 
         qs = Video.objects.filter(teamvideo__team=self.team)
 
+        if not (self.is_bound and self.is_valid()):
+            return qs.order_by('-created')
+
         if q:
             qs = qs.search(q)
         if project:
@@ -1488,7 +1548,7 @@ class ApproveApplicationForm(ManagementForm):
 
     def message(self):
         if self.approved_count:
-            return fmt(self.ungettext('Application as been approved',
+            return fmt(self.ungettext('Application has been approved',
                                       '%(count)s application has been approved',
                                       '%(count)s applications have been approved',
                                       self.approved_count), count=self.approved_count)
@@ -1600,8 +1660,7 @@ class ChangeMemberRoleForm(ManagementForm):
                     self.only_owner_count += 1
                 else:
                     try:
-                        member.role = self.cleaned_data['role']
-                        member.save()
+                        member.change_role(self.cleaned_data['role'])
                         self.changed_count += 1
                     except Exception as e:
                         logger.error(e, exc_info=True)
@@ -1667,6 +1726,9 @@ class RemoveMemberForm(ManagementForm):
         for member in members:
             try:
                 member.delete()
+                member_remove.send(sender=member)
+                for app in member.team.applications.filter(user=member.user):
+                    app.on_member_removed(self.user, "web UI")
                 self.removed_count += 1
             except Exception as e:
                 logger.warn(e, exc_info=True)
@@ -1807,8 +1869,11 @@ class ApplicationForm(forms.Form):
         return self.cleaned_data
 
     def save(self):
-        self.application.note = self.cleaned_data['about_you']
-        self.application.save()
+        try:
+            self.application.note = self.cleaned_data['about_you']
+            self.application.save()
+        except IntegrityError as e:
+            raise forms.ValidationError(e.__cause__, code='duplicate')
         languages = []
         for i in xrange(1, 7):
             value = self.cleaned_data['language{}'.format(i)]
@@ -1915,10 +1980,26 @@ class DeleteVideosForm(VideoManagementForm):
     permissions_check = staticmethod(permissions.can_remove_videos)
     css_class = 'cta-reverse'
 
-    delete = forms.BooleanField(
-        label=_('Delete entirely'), required=False, initial=False,
-        help_text=_('Delete videos rather than moving them to the '
-                    'public area'))
+    DELETE_CHOICES = (
+        ('', _('Just remove from team')),
+        ('yes', _('Delete entirely')),
+    )
+    DELETE_HELP_TEXT = (
+        ('', _('Remove the video(s) from team into the public area of '
+               'Amara.  All existing subtitles will remain on site and '
+               'can be edited by any user.')),
+        ('yes', mark_safe(_('Permanently delete the video(s) and all associated '
+                  'subtitles and subtitle requests from Amara. '
+                  '<em>Important: </em> this action is irreversible, so use it '
+                  'with care.'))),
+    )
+
+
+    delete = AmaraChoiceField(
+        label='', choices=DELETE_CHOICES,
+        choice_help_text=DELETE_HELP_TEXT, required=False, initial='',
+        widget=AmaraRadioSelect,
+    )
     verify = forms.CharField(required=False, label=_('Are you sure?'))
 
     permissions_check = staticmethod(permissions.new_can_remove_videos)
@@ -1935,7 +2016,7 @@ class DeleteVideosForm(VideoManagementForm):
     def clean_verify(self):
         verify = self.cleaned_data.get('verify')
         delete = self.cleaned_data.get('delete')
-        if delete and verify != unicode(self.VERIFY_STRING):
+        if delete == 'yes' and verify != unicode(self.VERIFY_STRING):
             raise forms.ValidationError(self.fields['verify'].help_text)
 
     def perform_submit(self, qs):
@@ -1946,7 +2027,7 @@ class DeleteVideosForm(VideoManagementForm):
 
         for video in qs:
             team_video = video.teamvideo
-            if delete:
+            if delete == 'yes':
                 team_video.delete()
                 video.delete(self.user)
             else:
@@ -1963,7 +2044,7 @@ class DeleteVideosForm(VideoManagementForm):
     def message(self):
         if self.success_count == 0:
             return None
-        if self.cleaned_data.get('delete'):
+        if self.cleaned_data.get('delete') == 'yes':
             msg = self.ungettext(
                 'Video has been deleted.',
                 '%(count)s video has been deleted.',
@@ -2016,9 +2097,7 @@ class MoveVideosForm(VideoManagementForm):
     def setup_fields(self):
         dest_teams = permissions.can_move_videos_to(self.user)
         dest_teams.sort(key=lambda t: t.name)
-        self.fields['new_team'].choices = [
-            (dest.id, dest.name) for dest in dest_teams
-        ]
+        self.fields['new_team'].choices = [(dest.id, dest.name) for dest in dest_teams]
         self.setup_project_field(dest_teams)
 
     def setup_project_field(self, dest_teams):

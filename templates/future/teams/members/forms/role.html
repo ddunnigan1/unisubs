@@ -20,6 +20,10 @@
       </header>
       <div class="modal-body">
         {% csrf_token %}
+        {% include "future/forms/non-field-errors.html" %}
+        {% if form.include_all %}
+        {{ form.include_all|render_field }}
+        {% endif %}
         {{ form.role|render_field }}
       </div>
       <div class="modal-footer">

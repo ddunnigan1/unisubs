@@ -35,3 +35,9 @@ def new_announcement(context):
         'announcement': Announcement.last(),
         'add_content_class': True,
     }
+
+@register.inclusion_tag('future/announcement.html')
+def futureui_announcement():
+    return {
+        'announcement': Announcement.last(),
+    }

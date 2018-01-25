@@ -28,10 +28,10 @@ from django.utils.translation import ugettext_lazy as _
 import babelsubs
 
 from auth.models import CustomUser as User
-from externalsites import google
+from externalsites import google, vimeo
 from externalsites import syncing
 from externalsites.exceptions import (SyncingError, RetryableSyncingError,
-                                      YouTubeAccountExistsError)
+                                      YouTubeAccountExistsError, VimeoSyncAccountExistsError)
 from subtitles.models import SubtitleLanguage, SubtitleVersion
 from teams.models import Team, TeamVideo
 from utils.text import fmt
@@ -387,6 +387,147 @@ class BrightcoveCMSAccount(ExternalAccount):
                                      self.client_secret,
                                      bc_video_id, language)
 
+class VimeoSyncAccountManager(ExternalAccountManager):
+    def _get_sync_account_team_video(self, team_video, video_url):
+        query = self.filter(type=ExternalAccount.TYPE_TEAM, username=video_url.owner_username)
+        where_sql = (
+            '(owner_id = %s OR EXISTS ('
+            'SELECT * '
+            'FROM externalsites_vimeosyncaccount_sync_teams '
+            'WHERE vimeosyncaccount_id = externalsites_vimeosyncaccount.id '
+            'AND team_id = %s))'
+        )
+        query = query.extra(where=[where_sql],
+                            params=[team_video.team_id, team_video.team_id])
+        return query.get()
+
+    def _get_sync_account_nonteam_video(self, video, video_url):
+        return self.get(
+            type=ExternalAccount.TYPE_USER, username=video_url.owner_username)
+
+    def accounts_to_import(self):
+        return self.filter(Q(type=ExternalAccount.TYPE_USER)|
+                           Q(import_team__isnull=False))
+
+    def for_team_or_synced_with_team(self, team):
+        return (self
+                .filter(type=ExternalAccount.TYPE_TEAM)
+                .filter(Q(owner_id=team.id) | Q(sync_teams=team)))
+
+    def create_or_update(self, username, access_token, **data):
+        if self.filter(username=username).count() == 0:
+            return self.create(username=username,
+                               access_token=access_token,
+                               **data)
+        other_account = self.get(username=username)
+        other_account.access_token = access_token
+        other_account.save()
+        raise VimeoSyncAccountExistsError(other_account)
+
+class VimeoSyncAccount(ExternalAccount):
+    """Vimeo account to sync to.
+
+    Note that we can have multiple Vimeo accounts for a user/team.  We use
+    the username attribute to lookup a specific account for a video.
+    """
+    account_type = 'V'
+    video_url_types = [videos.models.VIDEO_TYPE_VIMEO]
+
+    username = models.CharField(max_length=255)
+    access_token = models.CharField(max_length=255)
+    import_team = models.ForeignKey(Team, null=True, blank=True)
+    sync_subtitles = models.BooleanField(default=True)
+    fetch_initial_subtitles = models.BooleanField(default=True)
+    sync_teams = models.ManyToManyField(
+        Team, related_name='vimeo_sync_accounts')
+
+    objects = VimeoSyncAccountManager()
+
+    class Meta:
+        verbose_name = _('Vimeo account')
+        unique_together = [
+            ('type', 'owner_id', 'username'),
+        ]
+
+    def __unicode__(self):
+        return "Vimeo: %s" % (self.username)
+
+    def should_skip_syncing(self):
+        return not self.sync_subtitles
+
+    def set_sync_teams(self, user, teams):
+        """Set other teams to sync for
+
+        The default for team Vimeo accounts is to only sync videos if they
+        are part of that team.  This method allows for syncing other team's
+        videos as well by altering the sync_teams set.
+
+        This method only works for team accounts.  A ValueError will be thrown
+        if called for a user account.
+
+        If user is not an admin for this account's team and all the teams
+        being set, then PermissionDenied will be thrown.
+        """
+        if self.type != ExternalAccount.TYPE_TEAM:
+            raise ValueError("Non-team account: %s" % self)
+        for team in teams:
+            if team == self.team:
+                raise ValueError("Can't add account owner to sync_teams")
+        admin_team_ids = set([m.team_id for m in
+                              user.team_members.admins()])
+        if self.team.id not in admin_team_ids:
+            raise PermissionDenied("%s not an admin for %s" %
+                                   (user, self.team))
+        for team in teams:
+            if team.id not in admin_team_ids:
+                raise PermissionDenied("%s not an admin for %s" %
+                                       (user, team))
+        self.sync_teams = teams
+
+    def get_owner_display(self):
+        if self.username:
+            return self.username
+        else:
+            return _('No username')
+
+    def should_sync_video_url(self, video, video_url):
+        if not (video_url.type in self.video_url_types and \
+                video_url.owner_username == self.username):
+            return False
+        if self.type == ExternalAccount.TYPE_USER:
+            # for user accounts, match any video
+            return True
+        else:
+            # for team accounts, we need additional checks
+            team_video = video.get_team_video()
+            if team_video is None:
+                return False
+            else:
+                return (team_video.team_id == self.owner_id or
+                        self.sync_teams.filter(id=team_video.team_id).exists())
+
+    def _get_sync_account_nonteam_video(self, video, video_url):
+        return self.get(
+            type=ExternalAccount.TYPE_USER, username=video_url.owner_username)
+
+    def do_update_subtitles(self, video_url, language, version):
+        """Do the work needed to update subtitles.
+
+        """
+        if self.sync_subtitles:
+            vimeo.update_subtitles(self, video_url.videoid, version)
+
+    def do_delete_subtitles(self, video_url, language):
+        vimeo.delete_subtitles(self, video_url.videoid, language.language_code)
+
+    def delete(self):
+        #google.revoke_auth_token(self.oauth_refresh_token)
+        super(VimeoSyncAccount, self).delete()
+
+    def should_import_videos(self):
+        return (self.type == ExternalAccount.TYPE_USER or
+                (self.type == ExternalAccount.TYPE_TEAM and self.import_team))
+
 class YouTubeAccountManager(ExternalAccountManager):
     def _get_sync_account_team_video(self, team_video, video_url):
         query = self.filter(type=ExternalAccount.TYPE_TEAM,
@@ -587,6 +728,7 @@ account_models = [
     KalturaAccount,
     BrightcoveCMSAccount,
     YouTubeAccount,
+    VimeoSyncAccount,
 ]
 _account_type_to_model = dict(
     (model.account_type, model) for model in account_models

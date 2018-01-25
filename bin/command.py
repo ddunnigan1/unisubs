@@ -39,6 +39,7 @@ class Command(object):
     epilog = None
     add_help = True
     use_long_description = True
+    raw_args = False
 
     def __init__(self):
         self.parent_prog = None
@@ -92,7 +93,10 @@ class Command(object):
 
     def parse_args(self, command_args):
         parser = self.make_parser()
-        self.args = parser.parse_args(command_args)
+        if self.raw_args:
+            self.args = command_args
+        else:
+            self.args = parser.parse_args(command_args)
 
     def execute(self, command_args):
         self.parse_args(command_args)

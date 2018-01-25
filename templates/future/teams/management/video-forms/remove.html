@@ -19,16 +19,7 @@
         {{ form.include_all|render_field }}
         {% endif  %}
         {% if form.delete %}
-        <div class="form-group">
-          <div class="radio">
-            <input name="{{ form.delete.html_name }}" type="radio" value="" id="delete-field-remove"{% if not form.delete.data %} checked{% endif %}>
-            <label for="delete-field-remove"><span></span> {% trans "Just remove from team" %} </label>
-            <small><span class="help-block">{% trans "Removes the video(s) from team into the public area of Amara. All existing subtitles will remain on site and can be edited by any user." %}</span></small>
-            <input name="{{ form.delete.html_name }}" type="radio" value="1" id="delete-field-delete"{% if form.delete.data %} checked{% endif %}>
-            <label for="delete-field-delete"><span></span> {% trans "Delete entirely" %}</label>
-            <small><span class="help-block">{% trans "Permanently deletes the video(s) and all associated subtitles and subtitle requests from Amara. Important: this action is irreversible, so use it with care." %}</span></small>
-          </div>
-        </div>
+        {{ form.delete|render_field }}
         {% endif %}
         {% if form.verify %}
         <div class="hideUnlessChecked" data-controller="#delete-field-delete">{{ form.verify|render_field }}</div>

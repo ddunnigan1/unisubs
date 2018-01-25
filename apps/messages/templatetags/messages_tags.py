@@ -26,14 +26,22 @@ from messages.models import Message
 register = template.Library()
 
 @register.simple_tag(takes_context=True)
-def messages(context):
+def messages(context, futureui=False):
     user = context['user']
     request = context['request']
     hidden_message_id = request.COOKIES.get(Message.hide_cookie_name)
     if not user.is_authenticated():
         return ''
+    if hidden_message_id == '':
+        hidden_message_id = None
 
-    cache_key = 'messages-{}'.format(get_language())
+    if futureui:
+        cache_key = 'messages-future-{}'.format(get_language())
+        template_name = 'future/messages.html'
+    else:
+        cache_key = 'messages-{}'.format(get_language())
+        template_name = 'messages/_messages.html'
+
     cached = user.cache.get(cache_key)
     if isinstance(cached, tuple) and cached[0] == hidden_message_id:
         return cached[1]
@@ -43,13 +51,17 @@ def messages(context):
         last_unread = ''
     count = user.unread_messages_count(hidden_message_id)
     
-    content = render_to_string('messages/_messages.html',  {
+    content = render_to_string(template_name,  {
         'msg_count': count,
         'last_unread': last_unread,
         'cookie_name': Message.hide_cookie_name
     })
     user.cache.set(cache_key, (hidden_message_id, content), 30 * 60)
     return content
+
+@register.simple_tag(takes_context=True)
+def futureui_messages(context):
+    return messages(context, futureui=True)
 
 @register.filter
 def encode_html_email(message):

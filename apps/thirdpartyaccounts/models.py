@@ -124,6 +124,19 @@ class TwitterAccount(ThirdPartyAccount):
     def identifier(self):
         return self.username
 
+class VimeoExternalAccount(ThirdPartyAccount):
+    """The Vimeo-account-related data for a given User.
+    """
+    kind = 'Vimeo'
+
+    username = models.CharField(max_length=200, unique=True)
+    access_code = models.CharField(max_length=255, blank=True, null=True,
+                                    editable=False)
+
+    @property
+    def identifier(self):
+        return self.username
+
 
 class FacebookAccount(ThirdPartyAccount):
     """The Facebook-account-related data for a given User.

@@ -25,6 +25,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from auth.models import CustomUser as User
 from messages.forms import TeamAdminPageMessageForm
+from teams import tasks
 from teams.models import (
     Team, TeamMember, TeamVideo, Workflow, Task, Setting, MembershipNarrowing,
     Project, TeamLanguagePreference, TeamNotificationSetting, BillingReport,
@@ -32,8 +33,7 @@ from teams.models import (
     LanguageManager, BillToClient
 )
 from utils.text import fmt
-from videos.models import SubtitleLanguage
-
+from videos.models import Video
 
 class ProjectManagerInline(admin.TabularInline):
     model = TeamMember.projects_managed.through
@@ -46,9 +46,10 @@ class LanguageManagerInline(admin.TabularInline):
 class TeamAdmin(admin.ModelAdmin):
     search_fields = ('name'),
     list_display = ('name', 'not_deleted', 'membership_policy', 'video_policy',
-                    'is_visible', 'highlight', 'last_notification_time',
-                    'thumbnail', 'partner')
-    list_filter = ('highlight', 'is_visible')
+                    'team_visibility', 'video_visibility',
+                    'highlight', 'last_notification_time', 'thumbnail',
+                    'partner')
+    list_filter = ('highlight', 'team_visibility', 'video_visibility')
     actions = ['delete_selected', 'highlight', 'unhighlight', 'send_message']
     raw_id_fields = ['video', 'users', 'videos', 'applicants']
     exclude = ('users', 'applicants','videos')
@@ -99,6 +100,10 @@ class TeamAdmin(admin.ModelAdmin):
         if ordering:
             qs = qs.order_by(*ordering)
         return qs
+
+    def save_model(self, request, obj, form, change):
+        super(TeamAdmin, self).save_model(request, obj, form, change)
+        tasks.update_video_public_field.delay(obj.id)
 
 class TeamMemberChangeList(ChangeList):
     # This class is a bit of a hack.
@@ -178,6 +183,17 @@ class WorkflowAdmin(admin.ModelAdmin):
     raw_id_fields = ('team', 'team_video', 'project')
     ordering = ('-created',)
 
+class TaskChangeList(ChangeList):
+    def get_query_set(self, request):
+        # Hijack the query attribute so we can handle it ourselves
+        query = self.query
+        self.query = None
+        qs = super(TaskChangeList, self).get_query_set(request)
+        if query:
+            qs = qs.filter(team_video__video__in=Video.objects.search(query))
+        self.query = query
+        return qs
+
 class TaskAdmin(admin.ModelAdmin):
     # We specifically pull old/new subtitle version, assignee, team_video, team,
     # and language out into properties to force extra queries per row.
@@ -200,6 +216,9 @@ class TaskAdmin(admin.ModelAdmin):
     readonly_fields = ('created', 'modified')
     ordering = ('-id',)
     list_per_page = 20
+
+    def get_changelist(self, request, **kwargs):
+        return TaskChangeList
 
     def old_subtitle_version_str(self, o):
         return unicode(o.subtitle_version) if o.subtitle_version else ''

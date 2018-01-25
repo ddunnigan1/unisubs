@@ -105,16 +105,17 @@ div.amara-embed {
             left: 0;
             position: absolute;
             text-align: center;
+            line-height: 1.2;
 
             div {
                 background: rgba(0, 0, 0, .8);
                 color: #FFF;
-                font: bold 16px/22px;
                 margin: 0;
                 padding: 6px 20px;
                 text-align: center;
                 @include border-radius(5px);
             }
+
         }
     }
     div.amara-tools {
@@ -138,6 +139,9 @@ div.amara-embed {
             }
             a.amara-subtitles-button {
                 background: transparent url('../images/cc-icon-amara-18px.png') 10px 11px no-repeat;
+            }
+            a.amara-fullscreen-button {
+                background: transparent url('../images/fullscreen.svg') 0px 4px no-repeat;
             }
             a.amara-button {
                 display: inline-block;
@@ -177,6 +181,10 @@ div.amara-embed {
                 height: 36px;
                 margin: 0;
                 padding: 0 10px;
+
+                &.amara-displays-right {
+                    float: right;
+                }
 
                 li {
                     display: inline-block;

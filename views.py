@@ -28,17 +28,7 @@ logger = logging.getLogger(__name__)
 
 @cache_page(minutes=60)
 def home(request):
-    # At some point we should switch to using home.html, but for now we use
-    # oldhome.html.  The main reason is that if the new infrastructure change
-    # we're making on 9/1/2017 doesn't work, we want to be able to switch back
-    # to our old infrastructure.  This means we'll be using this view as our
-    # actual homepage for amara.org, so it can't be a placeholder.
-
-    # return render(request, 'home.html', {
-    #     'user_menu_esi': 'esi' in request.GET,
-    # })
-    
-    return render(request, 'oldhome.html')
+    return render(request, 'home.html')
 
 @staff_member_required
 def errortest(request):
@@ -63,13 +53,3 @@ def one_time_url(request, token):
         return response
     else:
         raise Http404()
-
-def user_menu_esi(request):
-    """
-    Render the user menu HTML snippet only
-
-    We use this so that we can use it as as edge-side include with Varnish.
-    """
-    return render(request, "future/user-menu.html", {
-        'next': request.GET.get('next')
-    })

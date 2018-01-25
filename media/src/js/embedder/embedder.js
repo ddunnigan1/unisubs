@@ -38,7 +38,7 @@
     }
     function resizeInside(e) {
 	if (e && e.data && e.data.resize) {
-	    window._amara.amaraInstances[0].resize_(e.data.width, e.data.height);
+	    window._amara.amaraInstances[0].resize_();
 	}
     }
     // Should be triggered whenever the size of the content of the widget changes
@@ -50,6 +50,9 @@
 	    else
 		width = _$(".amara-tools").width();
 	    var height = _$(".amara-popcorn").height() + _$(".amara-tools").height();
+            var documentHeight = _$(document).height();
+            var fontSize = Math.max(documentHeight / 25.0, 14);
+            _$(".amara-popcorn").css('font-size', fontSize + 'px');
 	    hostPage.source.postMessage({resize: true, index: hostPage.index,
 					 width: width,
 					 height: height,
@@ -123,6 +126,49 @@
         return timeParts.join(":");
     }
 
+    function requestFullscreen() {
+        var docElm = document.documentElement;
+        if (docElm.requestFullscreen) {
+            docElm.requestFullscreen();
+        }
+        else if (docElm.mozRequestFullScreen) {
+            docElm.mozRequestFullScreen();
+        }
+        else if (docElm.webkitRequestFullScreen) {
+            docElm.webkitRequestFullScreen();
+        }
+        else if (docElm.msRequestFullscreen) {
+            docElm.msRequestFullscreen();
+        }
+    }
+
+    function cancelFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+        else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        }
+        else if (document.webkitCancelFullScreen) {
+            document.webkitCancelFullScreen();
+        }
+        else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+
+    function isFullscreen() {
+        if(document.fullscreen !== undefined) {
+            return document.fullscreen;
+        } else if(document.mozFullScreen !== undefined) {
+            return document.mozFullScreen;
+        } else if(document.webkitIsFullScreen !== undefined) {
+            return document.webkitIsFullScreen;
+        } else if(document.msFullscreenElement !== undefined) {
+            return document.msFullscreenElement;
+        }
+    }
+
     var Amara = function(Amara) {
 
         // For reference in inner functions.
@@ -180,6 +226,7 @@
             subtitles: [], // Backbone collection
             url: '',
             video_type: '',
+            video_id: null,
             show_logo: true,
             show_subtitle_me: true,
             show_order_subtitles: true,
@@ -208,13 +255,18 @@
 
             // Every time a video model is created, do this.
             initialize: function() {
-
                 var video = this;
-                var apiURL = '/api/videos/?extra=player_urls&video_url=' + encodeURIComponent(this.get('url'));
-                if(this.get('team')) {
-                    apiURL += '&team=' + encodeURIComponent(this.get('team'));
-                } else if(this.get('team') === null) {
-                    apiURL += '&team=null';
+                if(this.get('video_id')) {
+                    var fetchingOneVideo = true;
+                    var apiURL = '/api/videos/' + encodeURIComponent(this.get('video_id')) + '/?extra=player_urls';
+                } else {
+                    var fetchingOneVideo = false;
+                    var apiURL = '/api/videos/?extra=player_urls&video_url=' + encodeURIComponent(this.get('url'));
+                    if(this.get('team')) {
+                        apiURL += '&team=' + encodeURIComponent(this.get('team'));
+                    } else if(this.get('team') === null) {
+                        apiURL += '&team=null';
+                    }
                 }
                 this.subtitles = new that.Subtitles();
                 // Make a call to the Amara API to get attributes like available languages,
@@ -222,33 +274,17 @@
                 _$.ajax({
                     url: apiURL,
                     success: function(resp) {
-                        if (resp.objects.length) {
+                        if(fetchingOneVideo) {
+                            video.set('is_on_amara', true);
+                            video.setFromVideoData(resp);
+                        } else if (resp.objects.length) {
                             // The video exists on Amara.
                             video.set('is_on_amara', true);
                             // Set all of the API attrs as attrs on the video model.
-                            video.setFromResponseData(resp);
-                            sizeUpdated(video);
-                            var visibleLanguages = _$.map(_$.grep(video.get('languages'), function(language) {return language.published;}),
-                                                      function(language) {return language.code;});
-                            video.get('languages').forEach(function(lang) {
-                                video.languages_dir[lang.code] = lang.dir;
-                            });
-                            // Set the initial language to either the one provided by the initial
-                            // options, or the original language from the API.
-                            var from_amara = document.referrer.split('/')[2].match('amara.org$')!= null;
-                            var page_language = null;
-                            if (from_amara) page_language = document.referrer.split('/')[6];
-                            video.set('initial_language',
-                                      ((visibleLanguages.indexOf(page_language) > -1) && page_language) ||
-                                      (video.get('initial_language') && (visibleLanguages.indexOf(video.get('initial_language')) > -1) && video.get('initial_language')) ||
-                                      (video.get('original_language') && (visibleLanguages.indexOf(video.get('original_language')) > -1) && video.get('original_language')) ||
-                                      ((visibleLanguages.indexOf('en') > -1) && 'en') ||
-                                      ((visibleLanguages.length > 0) && visibleLanguages[0])
-                            );
+                            video.setFromListingResponse(resp);
                         } else {
                             // The video does not exist on Amara.
                             video.set('is_on_amara', false);
-
                         }
 
                         // Mark that the video model has been completely populated.
@@ -258,20 +294,37 @@
                     }
                 });
             },
-            setFromResponseData: function(resp) {
+            setFromListingResponse: function(resp) {
                 // Try to find a non-team video
-                var videoData;
                 for(var i=0; i < resp.objects.length; i++) {
                     if(!resp.objects[i].team) {
-                        videoData = resp.objects[i];
-                        break;
+                        this.setFromVideoData(resp.objects[i]);
+                        return;
                     }
                 }
                 // Fall back to the first video
                 if(!videoData) {
-                    videoData = resp.objects[0];
+                    this.setFromVideoData(resp.objects[0]);
                 }
+            },
+            setFromVideoData: function(videoData) {
+                var that = this;
                 this.set(videoData);
+                sizeUpdated(this);
+                var visibleLanguages = _$.map(_$.grep(this.get('languages'), function(language) {return language.published;}),
+                        function(language) {return language.code;});
+                this.get('languages').forEach(function(lang) {
+                    that.languages_dir[lang.code] = lang.dir;
+                });
+                // Set the initial language to either the one provided by the initial
+                // options, or the original language from the API.
+                console.log(this.get('initial_language'));
+                this.set('initial_language',
+                        (this.get('initial_language') && (visibleLanguages.indexOf(this.get('initial_language')) > -1) && this.get('initial_language')) ||
+                        (this.get('original_language') && (visibleLanguages.indexOf(this.get('original_language')) > -1) && this.get('original_language')) ||
+                        ((visibleLanguages.indexOf('en') > -1) && 'en') ||
+                        ((visibleLanguages.length > 0) && visibleLanguages[0])
+                        );
             }
         });
 
@@ -312,18 +365,28 @@
                     autoScrollPaused: false,
                     contextMenuActive: false
                 };
+                // Fullscreen requires several different events since it's not yet standardized
+                var that = this;
+                function onFullscreenChange() {
+                    sizeUpdated(that.model);
+                }
+                document.addEventListener("fullscreenchange", onFullscreenChange, false);
+                document.addEventListener("mozfullscreenchange", onFullscreenChange, false);
+                document.addEventListener("webkitfullscreenchange", onFullscreenChange, false);
+                document.addEventListener("msfullscreenchange", onFullscreenChange, false);
             },
             events: {
 
                 // Global
                 'click':                                 'mouseClicked',
                 'mousemove':                             'mouseMoved',
-		'click div.video-thumbnail':              'thumbnailClicked',
+		'click div.video-thumbnail':             'thumbnailClicked',
                 // Toolbar
                 'click a.amara-share-button':            'shareButtonClicked',
                 'click a.amara-subtitles-button':        'toggleSubtitlesDisplay',
                 'click ul.amara-languages-list a.language-item':       'changeLanguage',
                 'click a.amara-transcript-button':       'toggleTranscriptDisplay',
+                'click a.amara-fullscreen-button':       'toggleFullscreen',
                 'keyup input.amara-transcript-search':   'updateSearch',
                 'change input.amara-transcript-search':  'updateSearch',
 
@@ -346,7 +409,10 @@
 	    hideThumbnail: function() {
 		this.$thumbnailContainer.hide();
 	    },
-	    resize_: function(width, height) {
+	    resize_: function() {
+                var width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                var height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                height -= _$('.amara-tools').height();
                 this.$popContainer.width(width);
                 this.$popContainer.height(height);
                 if (this.$amaraTools !== undefined)
@@ -355,6 +421,9 @@
                 this.$thumbnailContainer.height(height);
                 this.$videoDivContainer.width(width);
                 this.$videoDivContainer.height(height);
+                // For HTML5 videos, we also need to update the element
+                _$('video', this.$popContainer).width(width).height(height);
+                this.$thumbnailButton.css('margin-top', ((height - 35) / 2) + "px");
                 this.model.set('height', height);
                 this.model.set('width', width);
 	    },
@@ -366,6 +435,8 @@
                 this.currentSearchIndex = 0;
                 this.currentSearchMatches = 0;
 
+                var width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                var height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
                 // If jQuery exists on the page, Backbone tries to use it and there's an odd
                 // bug if we don't convert it to a local Zepto object.
                 this.$el = _$(this.$el.get(0));
@@ -377,20 +448,11 @@
                                  '    <div class="thumbnail-button medium"><button class="play"></button></div>' +
                                  '  </div>' +
                                  '</div>');
-                _$('div.thumbnail-button', this.$el).css("margin-top", ((this.$el.height() - 70)/ 2) + "px"); 
-
                 this.$popContainer = _$('div.amara-popcorn', this.$el);
                 this.$thumbnailContainer = _$('div.video-thumbnail', this.$el);
                 this.$videoDivContainer = _$('div.video-div', this.$el);
-                // Copy the width and height to the new Popcorn container.
-                this.$popContainer.width(this.$el.width());
-                this.$popContainer.height(this.$el.height());
-                this.$thumbnailContainer.width(this.$el.width());
-                this.$thumbnailContainer.height(this.$el.height());
-                this.$videoDivContainer.width(this.$el.width());
-                this.$videoDivContainer.height(this.$el.height());
-                this.model.set('height', this.$popContainer.height());
-                this.model.set('width', this.$popContainer.width());
+                this.$thumbnailButton = _$('div.thumbnail-button', this.$el);
+                this.resize_();
 
                 this.$el.append(this.template({
                     video_url: apiDomain(this.model.get('embed_on_amara')) + '/en/videos/create/?initial_url=' + this.model.get('url'),
@@ -423,9 +485,6 @@
                 });
 
                 this.pop.on('loadedmetadata', function() {
-                    // In case of HTML5 videos, we need to set their dimension directly to the video element
-                    _$('video', that.$popContainer).width(that.$popContainer.width()).height(that.$popContainer.height());
-
                     // Just set some cached Zepto selections for later use.
                     that.cacheNodes();
 
@@ -678,6 +737,7 @@
                 this.$amaraDisplays      = _$('ul.amara-displays',         this.$amaraTools);
                 this.$transcriptButton   = _$('a.amara-transcript-button', this.$amaraDisplays);
                 this.$subtitlesButton    = _$('a.amara-subtitles-button',  this.$amaraDisplays);
+                this.$fullscreenButton   = _$('a.amara-fullscreen-button', this.$amaraDisplays);
                 this.$transcriptHeaderRight = _$('div.amara-transcript-header-right', this.$amaraTranscript);
                 this.$search              = _$('input.amara-transcript-search', this.$transcriptHeaderRight);
                 this.$searchNext          = _$('a.amara-transcript-search-next', this.$transcriptHeaderRight);
@@ -974,6 +1034,14 @@
                 sizeUpdated(this.model);
                 return false;
             },
+            toggleFullscreen: function() {
+                if(isFullscreen()) {
+                    cancelFullscreen();
+                } else {
+                    requestFullscreen();
+                }
+                return false;
+            },
             setSubtitlesDisplay: function(show) {
 		if (show) {
                     this.$popSubtitlesContainer.show();
@@ -1109,7 +1177,10 @@
                 '            <li><a href="#" class="amara-transcript-button amara-button" title="Toggle transcript viewer"></a></li>' +
                 '            <li><a href="#" class="amara-subtitles-button amara-button" title="Toggle subtitles"></a></li>' +
                 '        </ul>' +
-		'        <div class="dropdown amara-languages">' +
+                '        <ul class="amara-displays amara-displays-right amara-group">' +
+                '            <li><a href="#" class="amara-fullscreen-button amara-button amara-button-enabled" title="Toggle fullscreen"></a></li>' +
+                '        </ul>' +
+                '        <div class="dropdown amara-languages">' +
                 '            <a class="amara-current-language" id="dropdownMenu1" role="button" data-toggle="dropdown" data-target="#" href="">Loading&hellip;' +
                 '            </a>'+
                 '            <ul id="languages-dropdown" class="dropdown-menu amara-languages-list" role="menu" aria-labelledby="dropdownMenu1"></ul>' +
@@ -1224,6 +1295,7 @@
                         'initial_language': $div.data('initial-language'),
                         'url': $div.data('url'),
                         'team': $div.data('team'),
+                        'video_id': $div.data('videoId'),
 			'show_subtitle_me': $div.data('hide-subtitle-me') ? false : true,
                         'show_logo': $div.data('hide-logo') ? false : true,
                         'show_order_subtitles': $div.data('hide-order') ? false : true,

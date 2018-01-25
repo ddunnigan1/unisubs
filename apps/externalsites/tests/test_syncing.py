@@ -35,7 +35,6 @@ from externalsites.models import (KalturaAccount, SyncedSubtitleVersion,
                                   SyncHistory, get_sync_account)
 from externalsites.syncing import kaltura, brightcove, youtube
 from subtitles import pipeline
-from subtitles.models import ORIGIN_IMPORTED
 from teams.permissions_const import ROLE_ADMIN
 from utils import test_utils
 from utils.factories import *

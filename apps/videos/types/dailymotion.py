@@ -72,5 +72,5 @@ class DailymotionVideoType(VideoType):
             })
             return response.json()
         except RequestException, e:
-            logger.warn("Error requesting dailymotion metadata: {}", e)
+            logger.warn("Error requesting dailymotion metadata: {}".format(e))
             return {}

@@ -157,17 +157,18 @@ def dashboard(request):
 
     return render(request, 'profiles/dashboard.html', context)
 
-def videos(request, user_id=None):
-    if user_id:
+def videos(request, user_id):
+    try:
+        user = User.objects.get(username=user_id)
+    except User.DoesNotExist:
         try:
-            user = User.objects.get(username=user_id)
-        except User.DoesNotExist:
-            try:
-                user = User.objects.get(id=user_id)
-            except (User.DoesNotExist, ValueError):
-                raise Http404
+            user = User.objects.get(id=user_id)
+        except (User.DoesNotExist, ValueError):
+            raise Http404
 
     qs = Video.objects.filter(user=user).order_by('-edited')
+    if not (request.user == user or request.user.is_superuser):
+        qs = qs.filter(is_public=True)
     q = request.REQUEST.get('q')
 
     if q:
@@ -250,6 +251,8 @@ def account(request):
         'edit_profile_page': True,
         'youtube_accounts': (externalsites.models.YouTubeAccount
                              .objects.for_owner(request.user)),
+        'vimeo_accounts': (externalsites.models.VimeoSyncAccount
+                             .objects.for_owner(request.user)),
         'twitters': twitters,
         'facebooks': facebooks,
         'hide_prompt': True
@@ -273,8 +276,8 @@ def send_message(request):
 @login_required
 def generate_api_key(request):
     key, created = AmaraApiKey.objects.get_or_create(user=request.user)
-    key.key = key.generate_key()
-    key.save()
+    if not created:
+        key.generate_new_key()
     return HttpResponse(json.dumps({"key":key.key}))
 
 
@@ -324,6 +327,10 @@ def add_third_party(request):
         request.session['no-login'] = True
         url = reverse('thirdpartyaccounts:twitter_login')
 
+    if account_type == 'vimeo':
+        request.session['vimeo-no-login'] = True
+        url = reverse('thirdpartyaccounts:vimeo_login')
+
     if account_type == 'facebook':
         request.session['fb-no-login'] = True
         url = reverse('thirdpartyaccounts:facebook_login')
@@ -345,6 +352,16 @@ def remove_third_party(request, account_type, account_id):
                                     pk=account_id)
         account_type_name = _('Facebook account')
         account_owner = account.uid
+    elif account_type == 'vimeo':
+        # map the account type string from the URL to the externalsites
+        # model
+        account_type_map = {
+            'vimeo': externalsites.models.VimeoSyncAccount
+        }
+        qs = account_type_map[account_type].objects.for_owner(request.user)
+        account = get_object_or_404(qs, id=account_id)
+        account_type_name = account._meta.verbose_name
+        account_owner = account.get_owner_display()
     else:
         # map the account type string from the URL to the externalsites
         # model

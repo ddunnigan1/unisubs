@@ -26,9 +26,6 @@ class FLVVideoType(VideoType):
     abbreviation = 'L'
     name = 'FLV'
 
-    def __init__(self, url):
-        self.url = url
-
     def get_direct_url(self, prefer_audio=False):
         return self.url
 

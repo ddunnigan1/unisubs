@@ -24,6 +24,7 @@ from django import dispatch
 logger = logging.getLogger(__name__)
 
 member_leave = dispatch.Signal()
+member_remove = dispatch.Signal()
 video_removed_from_team = dispatch.Signal(providing_args=["team", "user"])
 video_moved_from_team_to_team = dispatch.Signal(
         providing_args=["destination_team", "old_team", "video"])

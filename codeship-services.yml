@@ -4,6 +4,12 @@ create_commit_file:
     dockerfile: Dockerfile
   volumes:
     - .:/repository
+assets_node:
+  # If you update this, make sure to also change the NODE_IMAGE in bin/dev
+  image: node:9.0.0
+  working_dir: /mnt/amara-assets
+  volumes:
+    - .:/mnt
 amara:
   build:
     image: 241878618260.dkr.ecr.us-east-1.amazonaws.com/amara

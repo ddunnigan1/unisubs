@@ -1,14 +1,14 @@
-{% load i18n media_bundle %}
+{% load i18n media_bundle assets %}
 {% load url from future %}
 <nav class="accessnav">
   <ul>
     <li{% if nav == "volunteer" %} class="active"{% endif %}>
-      <a class="bg-plum" href="/{{ LANGUAGE_CODE}}/sitemap/">{% trans "Sitemap" %}</a>
+      <a class="topnav-button plum" href="/{{ LANGUAGE_CODE}}/sitemap/">{% trans "Sitemap" %}</a>
     </li>
     {% if not no_language_switcher %}
     <li>
-      <a class="ajaxLink bg-gray-lighter" data-href="/ui/language-select/">
-        <img width="16" height="16" src="{{ STATIC_URL }}images/language-switch-globe.svg"/>
+      <a class="topnav-button gray ajaxLink" data-href="/ui/language-select/">
+        <img width="16" height="16" src="{% asset "img/language-switch-globe.svg"  %}"/>
         {% current_language_name %}
       </a>
     </li>

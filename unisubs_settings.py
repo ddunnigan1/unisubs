@@ -88,17 +88,14 @@ DATABASES = {
     }
 }
 
-USE_AMAZON_S3 = AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and DEFAULT_BUCKET
+USE_AMAZON_S3 = True
 
 try:
     from settings_local import *
 except ImportError:
     pass
 
-if USE_AMAZON_S3:
-    AWS_BUCKET_NAME = AWS_STORAGE_BUCKET_NAME
-
-
+AWS_BUCKET_NAME = AWS_STORAGE_BUCKET_NAME
 COMPRESS_MEDIA = not DEBUG
 
 #  the keyd cache apps need this:

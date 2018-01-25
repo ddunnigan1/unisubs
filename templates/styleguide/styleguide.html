@@ -1,4 +1,4 @@
-{% load media_bundle %}
+{% load media_bundle assets %}
 {% load url from future %}
 <!DOCTYPE html>
 <html>
@@ -7,9 +7,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Amara Styleguide</title>
-    {% media_bundle "amara.css" %}
-    <link href='https://fonts.googleapis.com/css?family=Raleway:400,700|Open+Sans:400,300,600' rel='stylesheet' type='text/css'>
-    {% media_bundle "amara.js" %}
+    <link rel="stylesheet" href="{% asset "css/application.css" %}">
+    <script src="{% asset "js/head.js" %}"></script>
     {% js_i18n_catalog %}
     {% js_language_data %}
     <script>var userLanguages = [{% for language in user.get_languages %}"{{language }}"{% if not forloop.last %},{% endif %}{% endfor %}];</script>
@@ -29,5 +28,6 @@
         </div>
       </div>
     </div>
+    <script src="{% asset "js/application.js" %}"></script>
   </body>
 </html>

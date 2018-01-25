@@ -3,13 +3,13 @@
 <nav class="nav-actions">
   <span class="pull-right">
     {% if show_invite_link %}
-    <a href="{% url 'teams:invite' slug=team.slug %}" title="Invite Member">Invite Member</a>
+    <a href="{% url 'teams:invite' slug=team.slug %}" title="Invite member">Invite member</a>
     {% endif %}
     {% if show_add_link %}
-    <a href="{% url 'teams:add-members' slug=team.slug %}" title="Add Members">Add Members</a>
+    <a href="{% url 'teams:add-members' slug=team.slug %}" title="Add members">Add members</a>
     {% endif %}
     {% if show_application_link %}
-    <a href="{% url 'teams:applications' slug=team.slug %}" title="Application Review">Application Review</a>
+    <a href="{% url 'teams:applications' slug=team.slug %}" title="Review applications">Review applications</a>
     {% endif %}
   </span>
   {% if is_team_admin %}
@@ -62,7 +62,7 @@
 {% endif %}
 {% if is_team_admin %}
 <div id="memberDirectory-actionBar" class="actionBar">
-  <form class="ajaxForm" method="GET" action="{{ request.path }}">
+  <form class="ajaxForm copyQuery" method="GET" action="{{ request.path }}">
     <input class="selectList-selection" type="hidden" name="selection">
     <button class="button cta" type="submit" name="form" value="role">Change Role</button>
     <button class="button cta" type="submit" name="form" value="remove">Remove</button>

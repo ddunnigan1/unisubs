@@ -17,13 +17,16 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 from urlparse import urlparse
-
-from django.core.exceptions import ValidationError
 import subprocess, sys, uuid, os
 import requests
-from django.conf import settings
 import logging
-logger = logging.getLogger("Base video type")
+
+from django.core.exceptions import ValidationError
+from django.conf import settings
+
+from utils.url_escape import url_escape
+
+logger = logging.getLogger(__name__)
 
 class VideoType(object):
 
@@ -33,7 +36,7 @@ class VideoType(object):
     CAN_IMPORT_SUBTITLES = False
 
     def __init__(self, url):
-        self.url = url
+        self.url = url_escape(url)
 
     @property
     def video_id(self):

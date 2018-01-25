@@ -33,3 +33,8 @@ class YouTubeAccountExistsError(StandardError):
     def __init__(self, other_account):
         StandardError.__init__(self)
         self.other_account = other_account
+
+class VimeoSyncAccountExistsError(StandardError):
+    def __init__(self, other_account):
+        StandardError.__init__(self)
+        self.other_account = other_account

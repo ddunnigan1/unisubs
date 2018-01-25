@@ -44,7 +44,7 @@ class YoutubeVideoType(VideoType):
     CAN_IMPORT_SUBTITLES = True
 
     VIDEOID_MAX_LENGTH = 11
-    MAX_ACCOUNTS_TO_TRY = 5
+    MAX_ACCOUNTS_TO_TRY = 10
 
     def __init__(self, url):
         self.url = url

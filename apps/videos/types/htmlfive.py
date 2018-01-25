@@ -73,9 +73,6 @@ class HtmlFiveVideoType(VideoType):
 
     valid_extensions = set(['ogv', 'ogg', 'mp4', 'm4v', 'webm'])
 
-    def __init__(self, url):
-        self.url = url
-
     @classmethod
     def matches_video_url(cls, url):
         return cls.url_extension(url) in cls.valid_extensions

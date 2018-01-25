@@ -67,7 +67,7 @@ def _invalidate_cache(video):
 def _update_is_public(video):
     team_video = video.get_team_video()
     if team_video:
-        video.is_public = team_video.team.is_visible
+        video.is_public = team_video.team.videos_public()
     else:
         video.is_public = True
     video.save()

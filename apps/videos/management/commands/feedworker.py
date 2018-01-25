@@ -30,6 +30,9 @@ from django.db import connection
 from externalsites.models import YouTubeAccount
 from videos.models import VideoFeed
 
+def commit():
+    connection.cursor().execute('COMMIT')
+
 class Command(BaseCommand):
     """
     Long-running process that updates our video feeds
@@ -75,6 +78,7 @@ class Command(BaseCommand):
             Task(update_youtube_account, account_id)
             for account_id in youtube_accounts
         )
+        commit()
         return tasks
 
     def terminate(self, signum, frame):
@@ -105,6 +109,7 @@ def update_video_feed(feed_id):
             feed_id))
     else:
         print('Updated {}'.format(video_feed))
+    commit()
     sys.stdout.flush()
 
 def update_youtube_account(account_id):
@@ -116,6 +121,8 @@ def update_youtube_account(account_id):
               "YouTubeAccount.DoesNotExist ({})".format(account_id))
     else:
         print('Imported {}'.format(account))
+    commit()
+    sys.stdout.flush()
 
 if __name__ == "__main__":
     main()

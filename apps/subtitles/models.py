@@ -1376,6 +1376,7 @@ subtitles_subtitleversion.version_number = (
 
 ORIGIN_API = 'api'
 ORIGIN_IMPORTED = 'imported'
+ORIGIN_PROVIDER = 'provider'
 ORIGIN_LEGACY_EDITOR = 'web-legacy-editor'
 ORIGIN_ROLLBACK = 'rollback'
 ORIGIN_SCRIPTED = 'scripted'
@@ -1387,6 +1388,7 @@ SUBTITLE_VERSION_ORIGINS = (
     (ORIGIN_API, _("API")),
     (ORIGIN_LEGACY_EDITOR, _("Edited (legacy editor)")),
     (ORIGIN_IMPORTED, _("Imported")),
+    (ORIGIN_PROVIDER, _("Provider")),
     (ORIGIN_ROLLBACK, _("Rollback")),
     (ORIGIN_SCRIPTED, _("Scripted")),
     (ORIGIN_TERN, _("Tern")),
@@ -1640,7 +1642,7 @@ class SubtitleVersion(models.Model):
 
         if self.is_public() and self.is_for_primary_audio_language():
             self._set_video_data()
-        elif video_needs_save:
+        if video_needs_save:
             self.video.save()
 
     def is_rtl(self):
@@ -1974,14 +1976,21 @@ class SubtitleVersion(models.Model):
             self._set_video_data()
 
     def _set_video_data(self):
+        changed = False
         if self.title:
+            changed = True
             self.video.title = self.title
         if self.description:
+            changed = True
             self.video.description = self.description
         if self.duration and not self.video.duration:
+            changed = True
             self.video.duration = self.duration
-        self.video.update_metadata(self.get_metadata(), commit=False)
-        self.video.save()
+        if self.video.get_metadata() != self.get_metadata():
+            self.video.update_metadata(self.get_metadata(), commit=False)
+            changed = True
+        if changed:
+            self.video.save()
 
     def unpublish(self, delete=False, signal=True):
         """Unpublish this version.

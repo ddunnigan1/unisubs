@@ -14,7 +14,7 @@
     <div class="row">
       <div class="col-xs-12 col-sm-8">
         <div class="content">
-          {% include "future/videos/embed.html" with width=848 height=477 url=player_url team=video.get_team %}
+          {% include "future/videos/embed.html" with width=848 height=477 %}
           <h2>{{ video.title_display }}</h2>
           <ul class="nav nav-tabs" role="tablist">
             <li role="presentation"{% if tab == "info" %} class="active"{% endif %}><a href="#video_info" aria-controls="video_info" role="tab" data-toggle="tab">{% trans "Video info" %}</a></li>

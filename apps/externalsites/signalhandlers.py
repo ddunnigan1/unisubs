@@ -26,11 +26,13 @@ from externalsites import subfetch
 from externalsites import tasks
 from externalsites.models import (KalturaAccount,
                                   get_sync_accounts, get_sync_account)
-from subtitles.models import (SubtitleLanguage, SubtitleVersion,
-                              ORIGIN_IMPORTED)
+from subtitles.models import (SubtitleLanguage, SubtitleVersion, ORIGIN_IMPORTED)
 from videos.models import Video, VideoUrl
 import subtitles.signals
 import videos.signals
+
+import logging
+logger = logging.getLogger(__name__)
 
 def _update_subtitles_for_language(language):
     for account, video_url in get_sync_accounts(language.video):
@@ -43,7 +45,8 @@ def _update_subtitles_for_language(language):
 def on_subtitles_published(signal, sender, version=None, **kwargs):
     if not isinstance(sender, SubtitleLanguage):
         raise ValueError("sender must be a SubtitleLanguage: %s" % sender)
-    _update_subtitles_for_language(sender)
+    if not (version is not None and version.origin == ORIGIN_IMPORTED):
+        _update_subtitles_for_language(sender)
 
 @receiver(subtitles.signals.subtitles_deleted)
 def on_subtitles_deleted(signal, sender, **kwargs):
@@ -71,4 +74,8 @@ def on_video_url_added(sender, video, **kwargs):
         user = kwargs.pop('user', None)
         if user is not None:
             user = user.pk
-        tasks.fetch_subs.delay(video_url.pk, user, team)
+        try:
+            tasks.fetch_subs.delay(video_url.pk, user, team)
+        except Exception, e:
+            logger.error("Exception")
+            logger.error(e)

@@ -26,8 +26,7 @@ class UpdateSettingsTest(TestCase):
     @mock_handler(teams.signals.team_settings_changed)
     def setUp(self, signal_handler):
         self.user = UserFactory()
-        self.team = TeamFactory(admin=self.user,
-                                is_visible=True)
+        self.team = TeamFactory(admin=self.user, description='test')
         self.signal_handler = signal_handler
 
     def change_settings(self, **attrs):
@@ -38,16 +37,16 @@ class UpdateSettingsTest(TestCase):
         self.team.handle_settings_changes(self.user, initial_settings)
 
     def test_update_settings(self):
-        self.change_settings(is_visible=False)
+        self.change_settings(description='test2')
         # Check the signal emission
         assert_equal(self.signal_handler.call_args, mock.call(
             signal=teams.signals.team_settings_changed,
             sender=self.team,
             user=self.user,
-            changed_settings={'is_visible': False},
-            old_settings={'is_visible': True},
+            changed_settings={'description': 'test2'},
+            old_settings={'description': 'test'},
         ))
 
     def test_no_changes(self):
-        self.change_settings(is_visible=True)
+        self.change_settings(description='test')
         assert_false(self.signal_handler.called)

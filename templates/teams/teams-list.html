@@ -64,8 +64,8 @@
                         {% if team.user_is_member and not my_teams %} 
                             <span class="descriptor">{% trans 'Your team' %}</span>
                         {% endif %}
-                        {% if not team.is_visible %}
-                            <span class="descriptor">{% trans 'Private' %}</span>
+                        {% if not team.team_public %}
+                        <span class="descriptor">{{ team.team_visibility.label }}</span>
                         {% endif %}
                     </h3>
                     {% if team.description %}

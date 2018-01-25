@@ -14,37 +14,35 @@
         {% endif %}
     </div>
 {% endif %}
-{% if team.is_visible or member %}
-    {% team_projects team as projects %}
-    {% if projects|length > 0 %}
-        <div id="projects-list">
-            <div>
-                <h4>{% trans 'Projects' %} ({{ projects|length }})</h4>
-                <ul {% if projects|length > 6 %} class="list-collapsible"{% endif %}>
-                    {% for project in projects %}
-                        <li {% if forloop.counter > 6 %} class="hidden"{% endif %}>
-                            {% if '/tasks/' in request.path %}
-                                <a href="{% url "teams:team_tasks" team.slug %}{% query_string request.GET project=project.slug %}">
-                            {% else %}
-                                <a href="{% url "teams:videos" team.slug %}{% query_string request.GET project=project.slug %}">
-                            {% endif %}
-                                {{ project }}
-                                <span class="count">
-                                    {{ project.videos_count }}
-                                    {% trans 'video' %}{{ project.videos_count|pluralize }}
-                                </span>
-                            </a>
-                        </li>
-                    {% endfor %}
-                    {% if projects|length > 6 %}
-                        <li class="expand">
-                            <a href="#"><span class="all">{% trans 'Show all' %} ↓</span><span class="less">{% trans 'Show less' %} ↑</span></a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+{% team_projects team as projects %}
+{% if projects|length > 0 %}
+    <div id="projects-list">
+        <div>
+            <h4>{% trans 'Projects' %} ({{ projects|length }})</h4>
+            <ul {% if projects|length > 6 %} class="list-collapsible"{% endif %}>
+                {% for project in projects %}
+                    <li {% if forloop.counter > 6 %} class="hidden"{% endif %}>
+                        {% if '/tasks/' in request.path %}
+                            <a href="{% url "teams:team_tasks" team.slug %}{% query_string request.GET project=project.slug %}">
+                        {% else %}
+                            <a href="{% url "teams:videos" team.slug %}{% query_string request.GET project=project.slug %}">
+                        {% endif %}
+                            {{ project }}
+                            <span class="count">
+                                {{ project.videos_count }}
+                                {% trans 'video' %}{{ project.videos_count|pluralize }}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+                {% if projects|length > 6 %}
+                    <li class="expand">
+                        <a href="#"><span class="all">{% trans 'Show all' %} ↓</span><span class="less">{% trans 'Show less' %} ↑</span></a>
+                    </li>
+                {% endif %}
+            </ul>
         </div>
-    {% endif %}
+    </div>
 {% endif %}
 {% team_metrics team member projects %}
 {% if member %}
@@ -85,7 +83,7 @@
     </ul>
 {% endif %}
 
-{% if team.is_visible %}
+{% if team.team_public %}
     <h3>{% trans 'Share' %}</h3>
     <ul class="buttons">
         <li><a href="#" onclick="return share_on_facebook(event);" class="facebook" title="{% trans 'Post to Facebook' %}">{% trans 'Post to Facebook' %}</a></li>

@@ -219,6 +219,9 @@ from subtitles.models import SubtitleLanguage
 from auth.models import CustomUser as User
 from teams.models import Team
 from videos.models import Video
+import auth.permissions
+import teams.permissions
+import videos.permissions
 
 class ActivitySerializer(serializers.ModelSerializer):
     type = serializers.SlugField()
@@ -329,6 +332,9 @@ class VideoActivityView(generics.ListAPIView):
 
     def get_queryset(self):
         video = get_object_or_404(Video, video_id=self.kwargs['video_id'])
+        if not videos.permissions.can_view_activity(video, self.request.user):
+            # Raise 404 so we don't give away the fact the video exists
+            raise Http404()
         return ActivityRecord.objects.for_video(video)
 
 class TeamActivityView(generics.ListAPIView):
@@ -339,6 +345,12 @@ class TeamActivityView(generics.ListAPIView):
 
     def get_queryset(self):
         team = get_object_or_404(Team, slug=self.kwargs['slug'])
+        if not teams.permissions.can_view_activity(team, self.request.user):
+            if team.team_private():
+                # raise a 404 here to not give away if the slug exists or not
+                raise Http404()
+            else:
+                raise PermissionDenied()
         return ActivityRecord.objects.for_team(team)
 
 class UserActivityView(generics.ListAPIView):
@@ -351,6 +363,8 @@ class UserActivityView(generics.ListAPIView):
         try:
             user = userlookup.lookup_user(self.kwargs['identifier'])
         except User.DoesNotExist:
+            raise Http404()
+        if not auth.permissions.can_view_activity(user, self.request.user):
             raise Http404()
         return ActivityRecord.objects.for_user(user)
 

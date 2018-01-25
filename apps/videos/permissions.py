@@ -48,3 +48,6 @@ def can_user_resync_own_video(video, user):
     if user.is_staff or (video.user == user):
         return True
     return False
+
+def can_view_activity(video, user):
+    return video.get_workflow().user_can_view_video(user)

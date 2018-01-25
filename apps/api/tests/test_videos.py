@@ -17,6 +17,7 @@
 
 from __future__ import absolute_import
 
+from django import http
 from django.test import TestCase
 from nose.tools import *
 from rest_framework import status
@@ -29,6 +30,7 @@ import unittest
 from api.tests.utils import format_datetime_field
 from api.views.videos import VideoSerializer, VideoViewSet
 from subtitles import pipeline
+from teams.models import VideoVisibility
 from utils.factories import *
 from utils import test_utils
 from utils.test_utils.api import *
@@ -556,7 +558,7 @@ class VideoViewSetTest(TestCase):
         assert_equal(self.viewset.get_object(), video)
         # test failed permissions check
         workflow.user_can_view_video.return_value = False
-        with assert_raises(PermissionDenied):
+        with assert_raises(http.Http404):
             self.viewset.get_object()
 
     def test_get_detail_returns_403_when_video_not_found(self):
@@ -574,7 +576,7 @@ class VideoViewSetTest(TestCase):
         assert_items_equal([v1], self.viewset.get_queryset())
 
     def test_team_filter(self):
-        team = TeamFactory(is_visible=True)
+        team = TeamFactory(video_visibility=VideoVisibility.PUBLIC)
         v1 = VideoFactory(title='correct team')
         v2 = VideoFactory(title='wrong team')
         v3 = VideoFactory(title='not in team')
@@ -584,7 +586,7 @@ class VideoViewSetTest(TestCase):
         assert_items_equal([v1], self.viewset.get_queryset())
 
     def test_project_filter(self):
-        team = TeamFactory(is_visible=True)
+        team = TeamFactory(video_visibility=VideoVisibility.PUBLIC)
         project = ProjectFactory(team=team, slug='project')
         other_project = ProjectFactory(team=team, slug='wrong-project')
         v1 = VideoFactory(title='correct project')
@@ -600,7 +602,7 @@ class VideoViewSetTest(TestCase):
         assert_items_equal([v1], self.viewset.get_queryset())
 
     def test_default_project_filter(self):
-        team = TeamFactory(is_visible=True)
+        team = TeamFactory(video_visibility=VideoVisibility.PUBLIC)
         project = ProjectFactory(team=team, slug='project-slug')
         v1 = VideoFactory(title='in default project')
         v2 = VideoFactory(title='not in default project')
@@ -612,7 +614,7 @@ class VideoViewSetTest(TestCase):
         assert_items_equal([v1], self.viewset.get_queryset())
 
     def test_team_filter_user_is_not_member(self):
-        team = TeamFactory(is_visible=False)
+        team = TeamFactory()
         video = TeamVideoFactory(team=team).video
         self.query_params['team'] = team.slug
         assert_items_equal([], self.viewset.get_queryset())

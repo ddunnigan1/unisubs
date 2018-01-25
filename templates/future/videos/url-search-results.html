@@ -45,7 +45,9 @@
           <select name="team" class="select" data-placeholder="{% trans "Move to team" %}">
             <option></option>
             {% for team in move_to_options %}
+            {% if not team.deleted %}
             <option value={{ team.slug }}>{{ team }}</option>
+            {% endif %}
             {% endfor %}
           </select>
         </div>

@@ -65,7 +65,7 @@
                 </div>
             </li>
         </ul> 
-        {% include "videos/embed.html" %}
+        {% include "future/videos/embed.html" with url=video.get_video_url team=video.get_team %}
         {% if language.get_description %}
             <div id="description"{% if language.get_description|length > 300 %} class="abbr collapsed{% endif %}">
                 <div {% if language.is_rtl %}class="is-rtl"{% endif %}>

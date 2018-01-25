@@ -117,6 +117,31 @@ class BrightcoveCMSAccountForm(AccountForm):
             return None
         return account
 
+class AddVimeoAccountForm(forms.Form):
+    add_button = SubmitButtonField(
+        label=ugettext_lazy('Add Vimeo account'),
+        required=False,
+        widget=SubmitButtonWidget(attrs={'class': 'small'}))
+
+    def __init__(self, owner, data=None, **kwargs):
+        super(AddVimeoAccountForm, self).__init__(data=data, **kwargs)
+        self.owner = owner
+
+    def save(self):
+        pass
+
+    def redirect_path(self):
+        if self.cleaned_data['add_button']:
+            path = reverse('externalsites:vimeo-add-account')
+            if isinstance(self.owner, Team):
+                return '%s?team_slug=%s' % (path, self.owner.slug)
+            elif isinstance(self.owner, User):
+                return '%s?username=%s' % (path, self.owner.username)
+            else:
+                raise ValueError("Unknown owner type: %s" % self.owner)
+        else:
+            return None
+
 class AddYoutubeAccountForm(forms.Form):
     add_button = SubmitButtonField(
         label=ugettext_lazy('Add YouTube account'),
@@ -168,7 +193,7 @@ class YoutubeAccountForm(forms.Form):
         choices = []
         initial = []
         # allow the admin to uncheck any of the current sync teams
-        current_sync_teams = list(self.account.sync_teams.all())
+        current_sync_teams = list(self.account.sync_teams.get_query_set())
         for team in current_sync_teams:
             choices.append((team.id, team.name))
             initial.append(team.id)
@@ -179,7 +204,7 @@ class YoutubeAccountForm(forms.Form):
                      .exclude(team_id__in=exclude_team_ids)
                      .select_related('team'))
         choices.extend((member.team.id, member.team.name)
-                       for member in member_qs)
+                       for member in member_qs if not member.team.deleted)
         self['sync_teams'].field.choices = choices
         self['sync_teams'].field.initial = initial
 
@@ -227,6 +252,61 @@ class YoutubeAccountForm(forms.Form):
     def show_sync_teams(self):
         return len(self['sync_teams'].field.choices) > 0
 
+class VimeoAccountForm(forms.Form):
+    remove_button = SubmitButtonField(label=ugettext_lazy('Remove account'),
+                                      required=False)
+    sync_teams = forms.MultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        required=False)
+    sync_subtitles = forms.BooleanField(label=ugettext_lazy('Sync subtitles from Amara to Vimeo'), required=False)
+    fetch_initial_subtitles = forms.BooleanField(label=ugettext_lazy('Fetch initial subtitles from Vimeo when videos are submitted to Amara'), required=False)
+
+    def __init__(self, admin_user, account, data=None, **kwargs):
+        super(VimeoAccountForm, self).__init__(data=data, **kwargs)
+        self.account = account
+        self.admin_user = admin_user
+        self.setup_sync_team()
+        self.setup_account_options()
+
+    def setup_account_options(self):
+        self['sync_subtitles'].field.initial = self.account.sync_subtitles
+        self['fetch_initial_subtitles'].field.initial = self.account.fetch_initial_subtitles
+
+    def setup_sync_team(self):
+        choices = []
+        initial = []
+        # allow the admin to uncheck any of the current sync teams
+        current_sync_teams = list(self.account.sync_teams.all())
+        for team in current_sync_teams:
+            choices.append((team.id, team.name))
+            initial.append(team.id)
+        # allow the admin to check any of the other teams they're an admin for
+        exclude_team_ids = [t.id for t in current_sync_teams]
+        exclude_team_ids.append(self.account.owner_id)
+        member_qs = (self.admin_user.team_members.admins()
+                     .exclude(team_id__in=exclude_team_ids)
+                     .select_related('team'))
+        choices.extend((member.team.id, member.team.name)
+                       for member in member_qs)
+        self['sync_teams'].field.choices = choices
+        self['sync_teams'].field.initial = initial
+
+    def save(self):
+        if not self.is_valid():
+            raise ValueError("Form not valid")
+        if self.cleaned_data['remove_button']:
+            self.account.delete()
+        else:
+            self.account.sync_teams = Team.objects.filter(
+                id__in=self.cleaned_data['sync_teams']
+            )
+            self.account.sync_subtitles = self.cleaned_data['sync_subtitles']
+            self.account.fetch_initial_subtitles = self.cleaned_data['fetch_initial_subtitles']
+            self.account.save()
+
+    def show_sync_teams(self):
+        return len(self['sync_teams'].field.choices) > 0
+
 class AccountFormset(dict):
     """Container for multiple account forms.
 
@@ -243,9 +323,13 @@ class AccountFormset(dict):
         self.make_form('kaltura', KalturaAccountForm, owner)
         self.make_form('brightcovecms', BrightcoveCMSAccountForm, owner)
         self.make_form('add_youtube', AddYoutubeAccountForm, owner)
+        self.make_form('add_vimeo', AddVimeoAccountForm, owner)
         for account in models.YouTubeAccount.objects.for_owner(owner):
             name = 'youtube_%s' % account.id
             self.make_form(name, YoutubeAccountForm, self.admin_user, account)
+        for account in models.VimeoSyncAccount.objects.for_owner(owner):
+            name = 'vimeo_%s' % account.id
+            self.make_form(name, VimeoAccountForm, self.admin_user, account)
 
     def make_form(self, name, form_class, *args, **kwargs):
         kwargs['prefix'] = name.replace('_', '-')
@@ -255,6 +339,10 @@ class AccountFormset(dict):
     def youtube_forms(self):
         return [form for name, form in self.items()
                 if name.startswith('youtube_')]
+
+    def vimeo_forms(self):
+        return [form for name, form in self.items()
+                if name.startswith('vimeo_')]
 
     def is_valid(self):
         return all(form.is_valid() for form in self.values())

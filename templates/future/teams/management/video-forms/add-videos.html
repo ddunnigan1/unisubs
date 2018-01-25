@@ -1,4 +1,4 @@
-{% load i18n forms %}
+{% load i18n forms assets %}
 <div class="modal-dialog modal-md" role="document">
   <div class="modal-content">
     <header class="dialogHeader">
@@ -52,7 +52,7 @@
       </div>
       {% if form_bulk %}
       <div id="modal_tab_three" class="tab-pane {% if current_tab == 'add-csv' %}active{% endif %}">
-	<p>{% trans "Please use this " %}<a href="{{ STATIC_URL }}images/template.csv" download>{% trans "CSV Import Template" %}</a>{% trans " as the basis for your import. The Video URL field is mandatory, but all other fields can be left blank." %}</p>
+        <p>{% trans "Please use this " %}<a href="{% asset "img/template.csv" %}" download>{% trans "CSV Import Template" %}</a>{% trans " as the basis for your import. The Video URL field is mandatory, but all other fields can be left blank." %}</p>
 	<p>{% trans "A CSV file can be created with a text editor or using the export function of a spreadsheet editor." %}</p>
 	<p>{% trans "Upon completion, you will receive a summary by email." %}</p>
 	<form class="ajaxForm" action="{{ request.get_full_path }}" method="POST" enctype="multipart/form-data">

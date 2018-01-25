@@ -18,6 +18,9 @@
 
 import json
 
+from django.utils.encoding import force_unicode
+from django.utils.html import conditional_escape
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
@@ -26,8 +29,12 @@ from ui.forms import widgets
 
 class AmaraChoiceFieldMixin(object):
     def __init__(self, allow_search=True, border=False, max_choices=None,
-                 *args, **kwargs):
+                 choice_help_text=None, *args, **kwargs):
         self.border = border
+        if choice_help_text:
+            self.choice_help_text = dict(choice_help_text)
+        else:
+            self.choice_help_text = {}
         super(AmaraChoiceFieldMixin, self).__init__(*args, **kwargs)
         if not allow_search:
             self.set_select_data('nosearchbox')
@@ -49,13 +56,29 @@ class AmaraChoiceFieldMixin(object):
         for choice in self.choices:
             if not choice[0]:
                 null_choice = choice[1]
-        self.widget.choices = self.choices
+        self.widget.choices = [
+            self.make_widget_choice(c)
+            for c in self.choices
+        ]
         if null_choice:
             self.set_select_data('placeholder', null_choice)
             self.set_select_data('clear', 'true')
         else:
             self.unset_select_data('placeholder')
             self.set_select_data('clear', 'false')
+
+    def make_widget_choice(self, choice):
+        name, label = choice
+
+        help_text = self.choice_help_text.get(name)
+        if help_text:
+            label = u''.join([
+                force_unicode(label),
+                mark_safe(
+                    '<div class="helpBlock helpBlock-radio">{}</div>'.format(
+                        force_unicode(conditional_escape(help_text))))
+            ])
+        return (name, label)
 
     def widget_attrs(self, widget):
         if isinstance(widget, forms.Select):
@@ -86,10 +109,32 @@ class AmaraMultipleChoiceField(AmaraChoiceFieldMixin,
     pass
 
 class LanguageFieldMixin(AmaraChoiceFieldMixin):
+    """
+    Used to create a language selector
+
+    This is implemented as a mixin class so it can be used for both single and
+    multiple selects.
+
+    Args:
+        options: whitespace separated list of different option types.  The
+            following types are supported:
+            - null: allow no choice
+            - my: "My languages" optgroup
+            - popular: "Popular languages" optgroup
+            - all: "All languages" optgroup
+            - dont-set: The "Don't set" option.  Use this when you want to
+              allow users to leave the value unset, but only if they actually
+              select that option rather than just leaving the initial value
+              unchanged.
+    """
+
     def __init__(self, options="null my popular all",
                  placeholder=_("Select language"), *args, **kwargs):
-        kwargs['choices'] = translation.get_language_choices(flat=True)
-        super(LanguageFieldMixin, self).__init__(*args, **kwargs)
+        choices = translation.get_language_choices(flat=True)
+        if 'dont-set' in options.split():
+            choices.append(('dont-set', _('Don\'t set')))
+        super(LanguageFieldMixin, self).__init__(*args, choices=choices,
+                                                 **kwargs)
         self.set_select_data('language-options', options)
         if "null" in options:
             self.set_placeholder(placeholder)
@@ -117,6 +162,12 @@ class LanguageFieldMixin(AmaraChoiceFieldMixin):
 
     def _setup_widget_choices(self):
         pass
+
+    def clean(self, value):
+        value = super(LanguageFieldMixin, self).clean(value)
+        if value == 'dont-set':
+            value = ''
+        return value
 
 class LanguageField(LanguageFieldMixin, forms.ChoiceField):
     widget = widgets.AmaraLanguageSelect

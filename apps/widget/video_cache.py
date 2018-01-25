@@ -323,7 +323,7 @@ def get_visibility_policies(video_id):
 
         if team_video:
             team = team_video.team
-            is_public = team.is_visible
+            is_public = team.videos_public()
             team_id = team.id
         else:
             is_public = True

@@ -113,9 +113,44 @@ class YouTubeAccountAdmin(admin.ModelAdmin):
             messages.info(request, _(u'Resyncing subtitles'))
         return account
 
+class VimeoAccountForm(forms.ModelForm):
+    resync_subtitles = forms.BooleanField(required=False)
+    sync_teams = forms.ModelMultipleChoiceField(Team.objects.all(),
+                                                required=False)
+
+    def save(self, commit=True):
+        account = super(VimeoAccountForm, self).save(commit=commit)
+        if self.cleaned_data.get('resync_subtitles'):
+            tasks.update_all_subtitles.delay(account.account_type, account.id)
+        return account
+
+    class Meta:
+        model = models.VimeoSyncAccount
+
+class VimeoAccountAdmin(admin.ModelAdmin):
+    form = VimeoAccountForm
+    fields = (
+        'type',
+        'owner_id',
+        'username',
+        'access_token',
+        'sync_teams',
+        'resync_subtitles',
+        'sync_subtitles',
+        'fetch_initial_subtitles',
+    )
+
+    def save_model(self, request, obj, form, change):
+        account = super(VimeoAccountAdmin, self).save_model(
+            request, obj, form, change)
+        if form.cleaned_data.get('resync_subtitles'):
+            messages.info(request, _(u'Resyncing subtitles'))
+        return account
+
 admin.site.register(models.KalturaAccount)
 admin.site.register(models.BrightcoveCMSAccount)
 admin.site.register(models.YouTubeAccount, YouTubeAccountAdmin)
+admin.site.register(models.VimeoSyncAccount, VimeoAccountAdmin)
 admin.site.register(models.SyncedSubtitleVersion)
 admin.site.register(models.SyncHistory, SyncHistoryAdmin)
 admin.site.register(models.OpenIDConnectLink, OpenIDConnectLinkAdmin)

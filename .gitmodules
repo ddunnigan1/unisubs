@@ -10,3 +10,6 @@
 [submodule "pykss"]
 	path = pykss
 	url = git@github.com:pculture/pykss.git
+[submodule "amara-assets"]
+	path = amara-assets
+	url = git@github.com:pculture/amara-assets.git

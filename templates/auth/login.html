@@ -46,7 +46,7 @@
               <input type="hidden" name="next" value="{{ next }}" />
             </form>
         </div>
-        <div class="sso">
+        <div id="create-account" class="sso">
           <form class="auth-form" action="{% url "auth:create_user" %}" method="post">
               <h2>{% trans "Create an Account" %}</h2>
               <h5>{% trans "It's free!" %}</h5>

@@ -27,9 +27,6 @@ class Mp3VideoType(VideoType):
     abbreviation = 'M'
     name = 'MP3'
 
-    def __init__(self, url):
-        self.url = url
-
     def get_direct_url(self, prefer_audio=False):
         return self.url
 

@@ -59,7 +59,7 @@ def update_video_public_field(team_id):
 
     for team_video in team.teamvideo_set.all():
         video = team_video.video
-        video.is_public = team.is_visible
+        video.is_public = team.videos_public()
         video.save()
         video_changed_tasks(video.id)
 
@@ -195,7 +195,7 @@ def add_team_videos(team_pk, user_pk, videos):
                 continue
 
             def setup_video(video, video_url):
-                video.is_public = team.is_visible
+                video.is_public = team.videos_public()
                 if video_item.get('title'):
                     video.title = video_item['title']
                 if video_item.get('description'):

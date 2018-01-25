@@ -1,4 +1,4 @@
-{% load i18n media_bundle announcement_tags messages_tags %}
+{% load i18n assets media_bundle announcement_tags messages_tags assets %}
 {% load url from future %}
 <!DOCTYPE html>
 <html>
@@ -6,10 +6,30 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Amara - {% trans 'Caption, translate, subtitle and transcribe video.' %}{% endblock %}</title>
-    {% media_bundle "amara.css" %}
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i|Raleway:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
-    {% media_bundle "amara.js" %}
+    <title>{% block title %}{% trans 'Amara: Caption, Subtitle and Translate Video' %}{% endblock %}</title>
+    <meta name="description" content="{% trans "Amara's award-winning technology enables you to caption and subtitle any video for free. For larger subtitling projects the platform makes it easy to manage teams of translators. And you can always purchase high-quality captions or translations from our passionate team of professional linguists. Amara can help make your videos accessible to the world!" %}">
+    <meta property="og:title" content="{% trans 'Amara: Caption, Subtitle and Translate Video' %}">
+    <meta property="og:description" content="{% trans "Amara's award-winning technology enables you to caption and subtitle any video for free. For larger subtitling projects the platform makes it easy to manage teams of translators. And you can always purchase high-quality captions or translations from our passionate team of professional linguists. Amara can help make your videos accessible to the world!" %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://amara.org/">
+    <meta property="og:image" content="{% asset "img/og-image.jpg" %}">
+    <meta property="og:image:width" content="1400">
+    <meta property="og:image:height" content="600">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@AmaraSubs">
+    <meta name="twitter:creator" content="@AmaraSubs">
+    <meta name="twitter:title" content="{% trans 'Amara: Caption, Subtitle and Translate Video' %}">
+    <meta name="twitter:description" content="{% trans "Make video accessible to the world with Amara!" %}">
+    <meta name="twitter:image" content="{% asset "img/og-image.jpg" %}">
+    <meta name="twitter:image:alt" content="{% trans "Colorful Amara logo and the following text: Working to Build a More Open, Collaborative World" %}">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% asset "img/apple-touch-icon.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% asset "img/favicon-16x16.png" %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% asset "img/favicon-32x32.png" %}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    {% block css %}<link rel="stylesheet" href="{% asset "css/application.css" %}">{% endblock css %}
+    <script src="{% asset "js/head.js" %}"></script>
     {% js_i18n_catalog %}
     {% js_language_data %}
     {% block head-extra %}{% endblock %}
@@ -17,6 +37,8 @@
   </head>
   <body{% block body-extra %}{% endblock %}>
     {% block header %}{% include "future/header.html" %}{% endblock %}
+    {% futureui_announcement %}
+    {% futureui_messages %}
     <main id="page-content">
       {% if messages %}
       <div id="messages" class="container">
@@ -57,6 +79,9 @@
       </div>
     </div>
     {% endif %}
+
+    {% block main_js %}<script src="{% asset "js/application.js" %}"></script>{% endblock %}
     {% block bottom %}{% endblock %}
+    {% include "_analytics.html" %}
   </body>
 </html>

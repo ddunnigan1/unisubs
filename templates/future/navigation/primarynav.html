@@ -1,10 +1,5 @@
-{% load i18n %}
+{% load i18n ui%}
 {% load url from future %}
-<nav class="primarynav">
-  <ul>
-    <li{% if nav == "subtitling-platform" %} class="active"{% endif %}><a href="/{{ LANGUAGE_CODE }}/subtitling-platform/">{% trans "Subtitling Platform" %}</a></li>
-    <li{% if nav == "purchase-subtitles" %} class="active"{% endif %}><a href="/{{ LANGUAGE_CODE}}/purchase-subtitles/">{% trans "Purchase Subtitles" %}</a></li>
-    <li{% if nav == "about" %} class="active"{% endif %}><a href="/{{ LANGUAGE_CODE}}/about-amara/">{% trans "About" %}</a></li>
-    <li{% if nav == "volunteer" %} class="active"{% endif %}><a href="/{{ LANGUAGE_CODE}}/volunteer/">{% trans "Volunteer" %}</a></li>
-  </ul>
+<nav class="primarynav mainnav-nav">
+  {% header_links %}
 </nav>

@@ -267,13 +267,4 @@ class ApiKeysTest(TestCase):
         self.user = UserFactory()
 
     def test_get_api_key(self):
-        self.assertEqual(self.user.check_api_key(""), False)
-        self.assertEqual(self.user.get_api_key(), "")
-        self.assertEqual(self.user.check_api_key(""), True)
-        key= self.user.api_key.generate_key()
-        self.user.api_key.key = key
-        self.user.api_key.save()
         self.assertEqual(len(self.user.get_api_key()), 40)
-        self.assertEqual(self.user.get_api_key(), key)
-        self.assertEqual(self.user.check_api_key(""), False)
-        self.assertEqual(self.user.check_api_key(key), True)

@@ -22,6 +22,7 @@ from django.test import TestCase
 from activity.models import ActivityRecord
 from comments.models import Comment
 from subtitles import pipeline
+from teams.models import TeamVisibility, VideoVisibility
 from teams.permissions_const import *
 from utils import dates
 from utils.factories import *
@@ -362,11 +363,12 @@ class TestViewableByUser(TestCase):
         self.user = UserFactory()
         self.video = VideoFactory()
         self.public_team_video = VideoFactory(
-            team=TeamFactory(is_visible=True))
+            team=TeamFactory(team_visibility=TeamVisibility.PUBLIC))
         self.private_team_video = VideoFactory(
-            team=TeamFactory(is_visible=False))
+            team=TeamFactory(team_visibility=TeamVisibility.PRIVATE))
         self.my_team_video = VideoFactory(
-            team=TeamFactory(member=self.user, is_visible=False))
+            team=TeamFactory(member=self.user,
+                             team_visibility=TeamVisibility.PRIVATE))
         self.team_video = VideoFactory()
         ActivityRecord.objects.create_for_video_added(self.video)
         ActivityRecord.objects.create_for_video_added(self.public_team_video)

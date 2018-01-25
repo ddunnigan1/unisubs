@@ -32,13 +32,6 @@
                 urls[0] += '&controls=1';
             }
         }
-        if (primaryVideoType == 'C') {
-            pop = Popcorn.brightcove(id, urls, options);
-        } else if (primaryVideoType == 'I') {
-            pop = Popcorn.googledrive(id, urls, options);
-        } else {
-            pop = Popcorn.smart(id, urls, options);
-        }
-        return pop;
+        return Popcorn.smart(id, urls, options);
     }
 })(Popcorn);

@@ -32,7 +32,8 @@ from api.tests.utils import format_datetime_field, user_field_data
 from auth.models import CustomUser as User
 from notifications.models import TeamNotification
 from subtitles import pipeline
-from teams.models import Team, TeamMember, Task, Application
+from teams.models import (Team, TeamMember, Task, Application, TeamVisibility,
+                          VideoVisibility)
 from utils import test_utils
 from utils.test_utils.api import *
 from utils.factories import *
@@ -78,7 +79,9 @@ class TeamAPITest(TeamAPITestBase):
         assert_equal(data['name'], team.name)
         assert_equal(data['slug'], team.slug)
         assert_equal(data['description'], team.description)
-        assert_equal(data['is_visible'], team.is_visible)
+        assert_equal(data['is_visible'], team.team_public())
+        assert_equal(data['team_visibility'], team.team_visibility.slug)
+        assert_equal(data['video_visibility'], team.video_visibility.slug)
         assert_equal(data['membership_policy'],
                      team.get_membership_policy_display())
         assert_equal(data['video_policy'], team.get_video_policy_display())
@@ -86,20 +89,13 @@ class TeamAPITest(TeamAPITestBase):
     def test_get_list(self):
         # we should display these teams
         teams = [
-            TeamFactory(is_visible=True),
-            TeamFactory(is_visible=False, membership_policy=Team.OPEN),
-            TeamFactory(is_visible=False, membership_policy=Team.APPLICATION),
-            TeamFactory(is_visible=False,
-                        membership_policy=Team.INVITATION_BY_MANAGER,
+            TeamFactory(team_visibility=TeamVisibility.PUBLIC),
+            TeamFactory(team_visibility=TeamVisibility.PRIVATE,
                         member=self.user),
         ]
         # we should not display these teams
-        TeamFactory(is_visible=False,
-                    membership_policy=Team.INVITATION_BY_ALL)
-        TeamFactory(is_visible=False,
-                    membership_policy=Team.INVITATION_BY_MANAGER)
-        TeamFactory(is_visible=False,
-                    membership_policy=Team.INVITATION_BY_ADMIN)
+        TeamFactory(team_visibility=TeamVisibility.PRIVATE),
+        TeamFactory(team_visibility=TeamVisibility.UNLISTED),
 
         team_map = dict((t.slug, t) for t in teams)
         response = self.client.get(self.list_url)
@@ -110,7 +106,7 @@ class TeamAPITest(TeamAPITestBase):
             self.check_team_data(team_data, team_map[team_data['slug']])
 
     def test_get_details(self):
-        team = TeamFactory()
+        team = TeamFactory(admin=self.user, workflow_type='S')
         response = self.client.get(self.detail_url(team))
         assert_equal(response.status_code, status.HTTP_200_OK)
         self.check_team_data(response.data, team)
@@ -124,7 +120,8 @@ class TeamAPITest(TeamAPITestBase):
                      response.content)
         team = Team.objects.get(slug='test-team')
         self.check_team_data(response.data, team)
-        assert_equal(team.is_visible, True)
+        assert_equal(team.team_public(), True)
+        assert_equal(team.videos_public(), True)
         assert_equal(team.workflow_type, 'O')
         # check that we set the owner of the team to be the user who created
         # it
@@ -175,22 +172,22 @@ class TeamAPITest(TeamAPITestBase):
 
     @test_utils.mock_handler(teams.signals.team_settings_changed)
     def test_update_team(self, settings_changed_handler):
-        team = TeamFactory(is_visible=False)
+        team = TeamFactory(admin=self.user, description='first draft')
         response = self.client.put(self.detail_url(team), data={
-            'is_visible': True,
+            'description': 'second draft',
         })
         assert_equal(response.status_code, status.HTTP_200_OK,
                      response.content)
         team = test_utils.reload_obj(team)
-        assert_equal(team.is_visible, True)
+        assert_equal(team.description, 'second draft')
 
         assert_true(settings_changed_handler.called)
         assert_equal(settings_changed_handler.call_args, mock.call(
             signal=teams.signals.team_settings_changed,
             sender=team,
             user=self.user,
-            changed_settings={'is_visible': True},
-            old_settings={'is_visible': False}
+            changed_settings={'description': 'second draft'},
+            old_settings={'description': 'first draft'}
         ))
 
     def test_delete_team_not_allowed(self):
@@ -206,6 +203,36 @@ class TeamAPITest(TeamAPITestBase):
         assert_equal(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         assert_equal(self.can_delete_team.call_args, None)
 
+    def test_set_is_visible(self):
+        response = self.client.post(self.list_url, data={
+            'name': 'Test Team',
+            'slug': 'test-team',
+            'is_visible': False,
+            'type': 'simple',
+        })
+        assert_equal(response.status_code, status.HTTP_201_CREATED,
+                     response.content)
+        team = Team.objects.get(slug='test-team')
+        assert_equal(team.team_visibility, TeamVisibility.PRIVATE)
+        assert_equal(team.video_visibility, VideoVisibility.PRIVATE)
+
+        self.client.put(self.detail_url(team), data={
+            'is_visible': True,
+        })
+        team = test_utils.reload_obj(team)
+        assert_equal(team.team_visibility, TeamVisibility.PUBLIC)
+        assert_equal(team.video_visibility, VideoVisibility.PUBLIC)
+
+        # If is_visible is not set, then we should use the team_visibility and
+        # video_visibility fields
+        self.client.put(self.detail_url(team), data={
+            'team_visibility': 'public',
+            'video_visibility': 'unlisted',
+        })
+        team = test_utils.reload_obj(team)
+        assert_equal(team.team_visibility, TeamVisibility.PUBLIC)
+        assert_equal(team.video_visibility, VideoVisibility.UNLISTED)
+
     def test_create_team_permissions(self):
         self.can_create_team.return_value = False
         response = self.client.post(self.list_url, data={
@@ -216,7 +243,7 @@ class TeamAPITest(TeamAPITestBase):
         assert_equal(self.can_create_team.call_args, mock.call(self.user))
 
     def test_update_team_permissions(self):
-        team = TeamFactory()
+        team = TeamFactory(admin=self.user)
         self.can_change_team_settings.return_value = False
         response = self.client.put(self.detail_url(team), data={
             'name': 'New Name',
@@ -229,19 +256,21 @@ class TeamAPITest(TeamAPITestBase):
     def test_create_fields(self):
         response = self.client.options(self.list_url)
         assert_writable_fields(response, 'POST', [
-            'name', 'slug', 'type', 'description', 'is_visible',
-            'membership_policy', 'video_policy',
+            'name', 'slug', 'type', 'description', 'team_visibility',
+            'video_visibility', 'is_visible', 'membership_policy',
+            'video_policy',
         ])
         assert_required_fields(response, 'POST', [
             'name', 'slug',
         ])
 
     def test_update_writable_fields(self):
-        team = TeamFactory()
+        team = TeamFactory(admin=self.user)
         response = self.client.options(self.detail_url(team))
         assert_writable_fields(response, 'PUT', [
-            'name', 'slug', 'description', 'is_visible',
-            'membership_policy', 'video_policy',
+            'name', 'slug', 'description', 'team_visibility',
+            'video_visibility', 'is_visible', 'membership_policy',
+            'video_policy',
         ])
         assert_required_fields(response, 'PUT', [])
 

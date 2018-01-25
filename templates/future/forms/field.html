@@ -10,10 +10,10 @@
 
   {% if field.errors %}
   {% for error in field.errors %}
-  <p class="help-block">{{ error|escape }}</p>
+  <p class="helpBlock">{{ error|escape }}</p>
   {% endfor %}
   {% elif field.help_text %}
-  <p class="help-block">{{ field.help_text }}</p>
+  <p class="helpBlock">{{ field.help_text }}</p>
   {% endif %}
 </div>
 {% endif %}

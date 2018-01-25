@@ -50,7 +50,7 @@ from videos import behaviors
 from videos import metadata
 from videos import signals
 from videos.types import (video_type_registrar, video_type_choices,
-                          VideoTypeError, YoutubeVideoType)
+                          VideoTypeError, YoutubeVideoType, VimeoVideoType)
 from videos.feed_parser import VideoImporter
 from comments.models import Comment
 from widget import video_cache
@@ -62,9 +62,12 @@ from utils.panslugify import pan_slugify
 from utils.searching import get_terms
 from utils.subtitles import create_new_subtitles, dfxp_merge
 from utils.text import fmt
+from utils.url_escape import url_escape
 from teams.moderation_const import MODERATION_STATUSES, UNMODERATED
 
 logger = logging.getLogger("videos-models")
+
+URL_MAX_LENGTH = 2048
 
 NO_SUBTITLES, SUBTITLES_FINISHED = range(2)
 VIDEO_TYPE_HTML5 = 'H'
@@ -86,6 +89,8 @@ VIDEO_META_CHOICES = (
 VIDEO_META_TYPE_NAMES = {}
 VIDEO_META_TYPE_VARS = {}
 VIDEO_META_TYPE_IDS = {}
+
+MAX_VIDEO_SEARCH_TERMS = 10
 
 def url_hash(url):
     return hashlib.md5(url.encode("utf-8")).hexdigest()
@@ -171,6 +176,8 @@ EXISTS(
             return self.filter(index__text__search=query)
         else:
             terms = [t for t in get_terms(query) if len(t) > 2]
+            if len(terms) > MAX_VIDEO_SEARCH_TERMS:
+                terms = terms[:MAX_VIDEO_SEARCH_TERMS]
             query = u' '.join(u'+"{}"'.format(t) for t in terms)
             return self.filter(index__text__search=query)
 
@@ -541,6 +548,10 @@ class Video(models.Model):
 
         if self.small_thumbnail:
             return self.small_thumbnail
+
+        if self.thumbnail:
+            return self.thumbnail
+
         return "%simages/video-no-thumbnail-small.png" % settings.STATIC_URL
 
     def get_medium_thumbnail(self):
@@ -721,6 +732,7 @@ class Video(models.Model):
             (video, video_url) tuple
         """
         with transaction.atomic():
+            url = url_escape(url)
             video, video_url = cls._get_video_for_add(url, user, team)
             if setup_callback:
                 setup_callback(video, video_url)
@@ -813,6 +825,12 @@ class Video(models.Model):
                 video_info, incomplete = vt.get_video_info(self, user, team, video_url)
                 YoutubeVideoType.set_owner_username(self, video_url, video_info)
             except google.APIError:
+                pass
+        elif type(vt) is VimeoVideoType:
+            try:
+                video_info = vt.get_video_info(user, team, video_url)
+                VimeoVideoType.set_owner_username(video_url, video_info[4])
+            except Exception:
                 pass
 
         video_cache.invalidate_cache(self.video_id)
@@ -2163,12 +2181,14 @@ class VideoUrlManager(models.Manager):
 class VideoUrlQueryset(query.QuerySet):
     def get(self, **kwargs):
         if 'url' in kwargs:
-            kwargs['url_hash'] = url_hash(kwargs.pop('url'))
+            url = url_escape(kwargs.pop('url'))
+            kwargs['url_hash'] = url_hash(url)
         return super(VideoUrlQueryset, self).get(**kwargs)
 
     def filter(self, **kwargs):
         if 'url' in kwargs:
-            kwargs['url_hash'] = url_hash(kwargs.pop('url'))
+            url = url_escape(kwargs.pop('url'))
+            kwargs['url_hash'] = url_hash(url)
         return super(VideoUrlQueryset, self).filter(**kwargs)
 
 # VideoUrl
@@ -2180,7 +2200,7 @@ class VideoUrl(models.Model):
     # type should be 2 chars long with the first char being unique for the
     # app.
     type = models.CharField(max_length=2)
-    url = models.URLField(max_length=2048)
+    url = models.URLField(max_length=URL_MAX_LENGTH)
     url_hash = models.CharField(max_length=32)
     videoid = models.CharField(max_length=50, blank=True)
     primary = models.BooleanField(default=False)
@@ -2294,6 +2314,7 @@ class VideoUrl(models.Model):
         assert self.type != '', "Can't set an empty type"
         if updates_timestamp:
             self.created = datetime.now()
+        self.url = url_escape(self.url)
         self.url_hash = url_hash(self.url)
         super(VideoUrl, self).save(*args, **kwargs)
 

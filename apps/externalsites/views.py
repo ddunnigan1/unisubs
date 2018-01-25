@@ -16,7 +16,7 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-import logging
+import logging, json
 
 from django.contrib import messages
 from django.contrib import auth
@@ -31,12 +31,12 @@ from django.utils.translation import ugettext as _
 
 from auth.models import CustomUser as User
 from externalsites import forms
-from externalsites import google
-from externalsites import tasks
+from externalsites import google, vimeo, tasks
 from externalsites.auth_backends import OpenIDConnectInfo, OpenIDConnectBackend
-from externalsites.exceptions import YouTubeAccountExistsError
-from externalsites.models import get_sync_account, YouTubeAccount, SyncHistory
+from externalsites.exceptions import YouTubeAccountExistsError, VimeoSyncAccountExistsError
+from externalsites.models import get_sync_account, YouTubeAccount, SyncHistory, VimeoSyncAccount
 from localeurl.utils import universal_url
+from socialauth.views import get_url_host
 from teams.models import Team
 from teams.permissions import can_change_team_settings, can_resync
 from videos import permissions
@@ -76,6 +76,10 @@ def team_settings_tab(request, team):
         if 'remove-youtube-account' in request.POST:
             account = YouTubeAccount.objects.for_owner(team).get(
                 id=request.POST['remove-youtube-account'])
+            account.delete()
+        elif 'remove-vimeo-account' in request.POST:
+            account = VimeoSyncAccount.objects.for_owner(team).get(
+                id=request.POST['remove-vimeo-account'])
             account.delete()
         return redirect(settings_page_redirect_url(team, formset))
     
@@ -226,6 +230,52 @@ def youtube_add_account(request):
         google_callback_url(), 'offline', state,
         google.youtube_scopes()))
 
+def vimeo_add_account(request):
+    if 'team_slug' in request.GET:
+        state = json.dumps({'team_slug': request.GET['team_slug']})
+    elif 'username' in request.GET:
+        state = json.dumps({'username': request.GET['username']})
+    else:
+        logging.error("vimeo_add_account: Unknown owner")
+        raise Http404()
+    auth_url = vimeo.get_auth_url(get_url_host(request), state)
+    return HttpResponseRedirect(auth_url)
+
+
+def vimeo_login_done(request):
+    state = json.loads(request.GET.get('state'))
+    code = request.GET.get('code')
+    account_data = {}
+    if 'error' in state:
+        logger.error("vimeo_callback: invalid state data: %s" %
+                     state)
+        messages.error(request, _("Error in auth callback"))
+        return redirect('home')
+    if 'team_slug' in state:
+        team = get_object_or_404(Team, slug=state['team_slug'])
+        account_data['team'] = team
+        redirect_url = reverse('teams:settings_externalsites', kwargs={
+            'slug': team.slug,
+        })
+    elif 'username' in state:
+        user = get_object_or_404(User, username=state['username'])
+        account_data['user'] = user
+        redirect_url = reverse('profiles:account')
+    else:
+        logger.error("vimeo_callback: invalid state data: %s" %
+                     state)
+        messages.error(request, _("Error in auth callback"))
+        redirect_url = reverse('home')
+    if 'code' is not None and request.GET.get('error') is None:
+        try:
+            token_message = vimeo.get_token(code)
+            username = token_message['user']['name']
+            account = VimeoSyncAccount.objects.create_or_update(username, token_message['access_token'], **account_data)
+        except VimeoSyncAccountExistsError, e:
+            messages.error(request,
+                           already_linked_message(request.user, e.other_account))
+    return HttpResponseRedirect(redirect_url)
+
 def handle_add_account_callback(request, auth_info):
     try:
         user_info = google.get_youtube_user_info(auth_info.access_token)
@@ -291,7 +341,7 @@ def google_callback(request):
 
 def already_linked_message(user, other_account):
     if other_account.user is not None:
-        return fmt(_('That youtube account has already been linked '
+        return fmt(_('That account has already been linked '
                      'to the user %(username)s.'),
                    username=other_account.user.username)
 
@@ -299,13 +349,13 @@ def already_linked_message(user, other_account):
         settings_link = reverse('teams:settings_externalsites', kwargs={
             'slug': other_account.team.slug,
         })
-        return fmt(_('That youtube account has already been linked '
+        return fmt(_('That account has already been linked '
                      'to the %(team)s team '
                      '(<a href="%(link)s">view settings page</a>).'),
                    team=other_account.team,
                    link=settings_link)
     else:
-        return fmt(_('That youtube account has already been linked '
+        return fmt(_('That account has already been linked '
                      'to the %(team)s team.'),
                    team=other_account.team)
 

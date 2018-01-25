@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.test import TestCase
+from nose.tools import *
 
 from auth.models import CustomUser as User
 from teams.models import Team, TeamMember
@@ -19,6 +20,7 @@ class MembershipTests(TestCase):
             membership_policy=1,
             video_policy=1,
         ))
+        assert_true(f.is_valid(), f.errors.as_text())
         t = f.save(user)
         self.assertEqual(
             t.members.get(user=user).role,

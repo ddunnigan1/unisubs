@@ -67,6 +67,27 @@
                         {% endif %}
                     </div>
                 </fieldset>
+                <fieldset>
+                    <h3>{% trans "Vimeo Sync" %}</h3>
+                    <div class="callout">
+                      {% if vimeo_accounts %}
+                            {% for account in vimeo_accounts  %}
+                            <a class="button reduced" href="{% url "profiles:remove-third-party" "vimeo" account.pk %}">{% trans 'Disconnect' %}</a>
+                                <p>
+                                    {% blocktrans with account.username as username %}
+                                        <strong>link is active</strong> for {{ username }}
+                                    {% endblocktrans %}
+                                </p>
+                            {% endfor %}
+		      <p><a href="{% url "profiles:profile_sync_externalsites" %}">{% trans "Check for syncing issues" %} >> </a></p>
+                        {% else %}
+                            <a class="button open-modal reduced" href="#vimeo-modal">
+                                <span>Connect to Vimeo</span>
+                            </a>
+                            <p>{% trans "Enable Amara crowd subtitles on your personal Vimeo account" %}</p>
+                        {% endif %}
+                    </div>
+                </fieldset>
 
                 <fieldset>
                     <h3>{% trans "Other Accounts" %}</h3>
@@ -92,6 +113,16 @@
                                     <h3>Facebook - {{ fb.uid }}</h3>
                                     <ul class="actions">
                                         <li><a href="{% url "profiles:remove-third-party" "facebook" fb.pk %}" title="Unlink this account">{% trans "Remove" %}</a></li>
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        {% endif %}
+                        {% if vimeos %}
+                            {% for vim in vimeos %}
+                                <li>
+                                    <h3>Vimeo - {{ vim.username }}</h3>
+                                    <ul class="actions">
+                                        <li><a href="{% url "profiles:remove-third-party" "vimeo" vim.pk %}" title="Unlink this account">{% trans "Remove" %}</a></li>
                                     </ul>
                                 </li>
                             {% endfor %}
@@ -224,6 +255,52 @@
                         </fieldset>
                         <p>
                             {% trans "Organizations/companies: interested in YouTube sync and crowd subtitling? " %}
+                            <a href="mailto:enterprise@amara.org">{% trans "Contact us" %}</a>.
+                        </p>
+                    </div>
+                </form>
+        </div>
+        <div class="modal" id="vimeo-modal">
+            <div class="modal-header">
+                <a href="#" class="close">x</a>
+                <h3>{% trans 'Enable Crowd Subtitles on your Personal Vimeo Account' %}</h3>
+            </div>
+
+                <form method="get" action="{% url "externalsites:vimeo-add-account" %}">
+
+                    <div class="modal-body">
+                        <fieldset>
+                            <input type="hidden" name="username" value="{{ user.username }}"/>
+
+                            <h5>{% trans "How We Enable Crowd Subtitles" %}</h5>
+                            <ul>
+                                <li>
+                                    {% blocktrans %}
+                                        When you add a video from your Vimeo account to Amara, we <strong>fetch the subtitles</strong> for this video from Vimeo.
+                                    {% endblocktrans %}
+                                </li>
+                                <li>
+                                    {% blocktrans %}
+                                        We <strong>send subtitles</strong> to your videos to Vimeo whenever they are completed on Amara.
+                                    {% endblocktrans %}
+                                </li>
+                            </ul>
+
+                            <h5>{% trans "When We Send Subtitles to Vimeo" %}</h5>
+                            <ul>
+                                <li>
+                                    {% blocktrans %}
+                                        The link is <strong>one-way only</strong>. Changes made on Vimeo won't be reflected on Amara and may be overwritten. Use Amara to edit subtitles.
+                                    {% endblocktrans %}
+                                </li>
+                            </ul>
+
+
+                            <h5>{% trans "Ready to Enable Crowd Subtitles?" %}</h5>
+                            <input type="submit" class="btn btn-primary" value="{% trans 'Link accounts' %}" />
+                        </fieldset>
+                        <p>
+                            {% trans "Organizations/companies: interested in Vimeo sync and crowd subtitling? " %}
                             <a href="mailto:enterprise@amara.org">{% trans "Contact us" %}</a>.
                         </p>
                     </div>

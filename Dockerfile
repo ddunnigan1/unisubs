@@ -7,7 +7,7 @@ RUN (echo "deb http://archive.ubuntu.com/ubuntu trusty-updates main universe mul
 RUN (echo "deb-src http://archive.ubuntu.com/ubuntu trusty-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN locale-gen en_US.UTF-8
 RUN apt-get update
-RUN apt-get -y --force-yes install wget python-dev python-setuptools make gcc s3cmd libmysqlclient-dev libmemcached-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto subversion openjdk-6-jre libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client firefox flashplugin-installer xvfb node-uglify ruby-sass libav-tools libz-dev
+RUN apt-get -y --force-yes install wget python-dev python-setuptools make gcc libmysqlclient-dev libmemcached-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto subversion openjdk-6-jre libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass libav-tools libz-dev
 ENV APP_DIR /opt/apps/amara
 ENV CLOSURE_PATH /opt/google-closure
 RUN git clone https://github.com/google/closure-library $CLOSURE_PATH

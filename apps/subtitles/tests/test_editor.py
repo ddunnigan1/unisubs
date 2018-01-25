@@ -104,16 +104,13 @@ class EditorViewTest(TestCase):
 
 class NotLoggedInEditor(TestCase):
     def setUp(self):
-        team = TeamFactory(slug="private-team", name="Private Team",
-                           is_visible=False)
+        team = TeamFactory(slug="private-team", name="Private Team")
         self.public_video = VideoFactory()
         self.team_video = VideoFactory()
         self.user = UserFactory()
         TeamMember.objects.create_first_member(team, self.user)
         TeamVideoFactory(team=team, video=self.team_video, added_by=self.user)
-        key = self.user.get_api_key()
-        self.user.api_key.key = self.user.api_key.generate_key()
-        self.user.api_key.save()
+        self.user.get_api_key()
         self.language_code = 'en'
         self.public_language = self.public_video.subtitle_language(self.language_code,
                                                      create=True)

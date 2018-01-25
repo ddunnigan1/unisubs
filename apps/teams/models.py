@@ -59,6 +59,7 @@ from teams.signals import (member_leave, api_subtitles_approved,
                            api_subtitles_rejected, video_removed_from_team,
                            team_settings_changed)
 from utils import DEFAULT_PROTOCOL
+from utils import enum
 from utils import translation
 from utils.amazon import S3EnabledImageField, S3EnabledFileField
 from utils.panslugify import pan_slugify
@@ -69,7 +70,6 @@ from subtitles.models import (
     SubtitleVersion as NewSubtitleVersion,
     SubtitleLanguage as NewSubtitleLanguage,
     SubtitleNoteBase,
-    ORIGIN_IMPORTED
 )
 from subtitles import pipeline
 
@@ -131,17 +131,14 @@ class TeamManager(models.Manager):
         """Return a QS of all non-deleted teams."""
         return TeamQuerySet(Team).filter(deleted=False)
 
-    def for_user(self, user, exclude_private=False):
-        """Return the teams visible for the given user.
-
-        If exclude_private is True, then we will exclude private teams, even
-        if the user can apply to them.
-        """
-        # policies where we should show the team, even if they're not visible
-        visible_policies = [Team.OPEN, Team.APPLICATION]
-        q = models.Q(is_visible=True)
-        if not exclude_private:
-            q |= models.Q(membership_policy__in=visible_policies)
+    def for_user(self, user, allow_unlisted=False):
+        """Return the teams visible for the given user.  """
+        if user.is_superuser:
+            return self.all()
+        if allow_unlisted:
+            q = ~models.Q(team_visibility=TeamVisibility.PRIVATE)
+        else:
+            q = models.Q(team_visibility=TeamVisibility.PUBLIC)
         if user.is_authenticated():
             user_teams = TeamMember.objects.filter(user=user)
             q |= models.Q(id__in=user_teams.values('team_id'))
@@ -163,6 +160,17 @@ class TeamManager(models.Manager):
             notify_interval=notify_interval,
             teamvideo__created__gt=models.F('last_notification_time'))
             .distinct())
+
+TeamVisibility = enum.Enum('TeamVisibility', [
+    ('PUBLIC', _(u'Public')),
+    ('UNLISTED', _(u'Unlisted')),
+    ('PRIVATE', _(u'Private')),
+])
+VideoVisibility = enum.Enum('VideoVisibility', [
+    ('PUBLIC', _(u'Public')),
+    ('UNLISTED', _(u'Unlisted')),
+    ('PRIVATE', _(u'Private')),
+])
 
 class Team(models.Model):
     APPLICATION = 1
@@ -225,7 +233,11 @@ class Team(models.Model):
                                       default='', blank=True,
                                       legacy_filenames=False,
                                       thumb_sizes=[(100, 100), (48, 48), (40, 40), (30, 30)])
-    is_visible = models.BooleanField(_(u'videos public?'), default=False)
+    # New fields
+    team_visibility = enum.EnumField(enum=TeamVisibility,
+                                     default=TeamVisibility.PRIVATE)
+    video_visibility = enum.EnumField(enum=VideoVisibility,
+                                       default=VideoVisibility.PRIVATE)
     sync_metadata = models.BooleanField(_(u'Sync metadata when available (Youtube)?'), default=False)
     videos = models.ManyToManyField(Video, through='TeamVideo',  verbose_name=_('videos'))
     users = models.ManyToManyField(User, through='TeamMember', related_name='teams', verbose_name=_('users'))
@@ -410,6 +422,38 @@ class Team(models.Model):
             Team.INVITATION_BY_ADMIN,
         )
 
+    def team_public(self):
+        return self.team_visibility == TeamVisibility.PUBLIC
+
+    def team_unlisted(self):
+        return self.team_visibility == TeamVisibility.UNLISTED
+
+    def team_private(self):
+        return self.team_visibility == TeamVisibility.PRIVATE
+
+    def videos_public(self):
+        return self.video_visibility == VideoVisibility.PUBLIC
+
+    def videos_unlisted(self):
+        return self.video_visibility == VideoVisibility.UNLISTED
+
+    def videos_private(self):
+        return self.video_visibility == VideoVisibility.PRIVATE
+
+    def set_legacy_visibility(self, is_visible):
+        """
+        Update team_visibility and video_visibility together
+
+        Call this in places where you want to emulate the legacy behavior,
+        where is_visible controls both team visibility and video_visibility.
+        """
+        if is_visible:
+            self.team_visibility = TeamVisibility.PUBLIC
+            self.video_visibility = VideoVisibility.PUBLIC
+        else:
+            self.team_visibility = TeamVisibility.PRIVATE
+            self.video_visibility = VideoVisibility.PRIVATE
+
     def get_workflow(self):
         """Return the workflow for the given team.
 
@@ -453,7 +497,7 @@ class Team(models.Model):
             TeamVideo.objects.create(video=video, team=self,
                                      project=project,
                                      added_by=user)
-            video.is_public = self.is_visible
+            video.is_public = self.videos_public()
             if setup_video:
                 setup_video(video, video_url)
 
@@ -475,15 +519,15 @@ class Team(models.Model):
         if project is None:
             project = self.default_project
         with transaction.atomic():
-            video.is_public = self.is_visible
+            video.is_public = self.videos_public()
             video.update_team(self)
             video.save()
             return TeamVideo.objects.create(team=self, video=video,
                                             project=project, added_by=user)
     # Settings
     SETTINGS_ATTRIBUTES = set([
-        'description', 'is_visible', 'sync_metadata', 'membership_policy',
-        'video_policy',
+        'description', 'sync_metadata', 'membership_policy', 'video_policy',
+        'team_visibility', 'video_visibility',
     ])
     def get_settings(self):
         """Get the current settings for this team
@@ -513,10 +557,16 @@ class Team(models.Model):
             user: user performing the action
             previous_settings: return value from the get_settings() method
         """
+        def coerce_value(value):
+            if isinstance(value, enum.EnumMember):
+                return value.slug
+            else:
+                return value
         changed_settings = {}
         old_settings = {}
         for name, old_value in previous_settings.items():
-            current_value = getattr(self, name)
+            old_value = coerce_value(old_value)
+            current_value = coerce_value(getattr(self, name))
             if old_value != current_value:
                 changed_settings[name] = current_value
                 old_settings[name] = old_value
@@ -682,8 +732,8 @@ class Team(models.Model):
                      .exclude(languages_managed__code=language_code))
         return User.objects.filter(team_members__in=member_qs)
 
-    def user_can_view_videos(self, user):
-        return self.is_visible or self.user_is_member(user)
+    def user_can_view_video_listing(self, user):
+        return self.videos_public() or self.user_is_member(user)
 
     def _is_role(self, user, role=None):
         """Return whether the given user has the given role in this team.
@@ -993,7 +1043,7 @@ class ProjectManager(models.Manager):
         """
         if hasattr(team_identifier, "pk"):
             team = team_identifier
-        elif isinstance(team_identifier, int):
+        elif isinstance(team_identifier, (int, long)):
             team = Team.objects.get(pk=team_identifier)
         elif isinstance(team_identifier, str):
             team = Team.objects.get(slug=team_identifier)
@@ -1206,6 +1256,8 @@ class TeamVideo(models.Model):
         self.video.clear_team_video_cache()
         Team.cache.invalidate_by_pk(self.team_id)
 
+        self.video.teamvideo = self
+
         assert self.project.team == self.team, \
                     "%s: Team (%s) is not equal to project's (%s) team (%s)"\
                          % (self, self.team, self.project, self.project.team)
@@ -1223,7 +1275,7 @@ class TeamVideo(models.Model):
             video = self.video
 
             video.newsubtitleversion_set.extant().update(visibility='public')
-            video.is_public = self.team.is_visible
+            video.is_public = self.team.videos_public()
             video.moderated_by = self.team if self.team.moderates_videos() else None
             video.save()
 
@@ -1542,6 +1594,15 @@ class TeamMember(models.Model):
     def leave_team(self):
         member_leave.send(sender=self)
         notifier.team_member_leave(self.team_id, self.user_id)
+
+    def change_role(self, new_role):
+        if new_role == self.role:
+            return
+        else:
+            self.role = new_role
+            self.save()
+            if new_role in (ROLE_MANAGER, ROLE_ADMIN):
+                notifier.team_member_promoted(self.team_id, self.user_id, new_role)
 
     def project_narrowings(self):
         """Return any project narrowings applied to this member."""
@@ -3620,6 +3681,10 @@ class BillingRecordManager(models.Manager):
 
         if not tv:
             celery_logger.debug('not a team video')
+            return
+
+        if tv.team.deleted:
+            celery_logger.debug('Cannot create billing record for deleted team')
             return
 
         if not language.is_complete_and_synced(public=False):

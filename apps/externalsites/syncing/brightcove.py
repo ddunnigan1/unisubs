@@ -68,7 +68,7 @@ def _make_cms_request(account_id, client_id, client_secret, bc_video_id, languag
     if subtitle_version is not None:
         subtitle_data = babelsubs.to(subtitle_version.get_subtitles(), "vtt", language=subtitle_version.language_code)
         url = set_one_time_data(subtitle_data)
-        label = 'Amara Captions - ' + subtitle_version.get_language_code_display()
+        label = subtitle_version.get_language_code_display()
         data = {
             "text_tracks": [
                 {

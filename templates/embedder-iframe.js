@@ -24,10 +24,10 @@ var THIS_JS_FILE = scriptFiles[scriptFiles.length-1].src;
 		if ((width != targetWidth) || (targetHeight != containerSize[1])) {
 		    width = targetWidth;
 		    height = targetHeight;
-		    iframes[index].contentWindow.postMessage({resize: true, width: width, height: (height - toolbarHeight - transcriptHeight)}, iframeDomain);
 		    iframes[index].width = 0;
 		    iframes[index].width = width;
 		    iframes[index].height = height;
+                    iframes[index].contentWindow.postMessage({resize: true}, iframeDomain);
 		}
 	    }
 	};
@@ -56,8 +56,9 @@ var THIS_JS_FILE = scriptFiles[scriptFiles.length-1].src;
 	this.resizeReceiver = function(e) {
 	    if (e.data.initDone)
 		window.clearInterval(timers[e.data.index]);
-	    if (e.data.resize)
+	    if (e.data.resize) {
 		resize(e.data.index, e.data.width, e.data.height, e.data.transcriptHeight);
+            }
 	    if (e.data.content)
 		updateContent(e.data.index, e.data.content);
             if (e.data.error == window.MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED)
@@ -103,6 +104,7 @@ var THIS_JS_FILE = scriptFiles[scriptFiles.length-1].src;
 		iframe.style.overflow = "hidden";
 		iframe.scrolling = "no";
 		iframe.style.opacity = 0;
+                iframe.setAttribute("allowfullscreen", true);
 		currentDiv.appendChild(iframe);
 		loadingDivs.push(loadingDiv);
 		iframes.push(iframe);

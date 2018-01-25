@@ -21,6 +21,7 @@ import functools
 
 from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase
+from django.utils.encoding import iri_to_uri
 from nose.tools import *
 import babelsubs
 import mock
@@ -62,7 +63,7 @@ class TestVideoUrl(TestCase):
         unicode_url = u"http://\u2014.com"
         self.primary_url.url = unicode_url
         self.primary_url.save()
-        self.assertEqual(unicode_url, self.primary_url.url)
+        self.assertEqual(iri_to_uri(unicode_url), self.primary_url.url)
 
     def test_unique_error_message(self):
         self.assertEqual(self.url.unique_error_message(None, ['url']),

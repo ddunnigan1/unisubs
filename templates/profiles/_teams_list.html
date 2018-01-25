@@ -5,7 +5,7 @@
 <ul>
   {% for t in teams %}
   <li>
-    <a href="{% url "teams:dashboard" slug=t.slug %}">{{ t }}</a>{% if not t.is_visible %} {% trans "(private)" %}{% endif %}
+    <a href="{% url "teams:dashboard" slug=t.slug %}">{{ t }}</a>{% if not t.team_public %} ({{ t.team_visibility.label }}){% endif %}
   </li>
   {% endfor %}
 </ul>

@@ -252,6 +252,7 @@ class AccountFormsetTest(TestCase):
             'brightcovecms',
             'kaltura',
             'add_youtube',
+            'add_vimeo',
             'youtube_1',
             'youtube_2',
         ]))

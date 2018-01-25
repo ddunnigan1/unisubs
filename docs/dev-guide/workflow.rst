@@ -37,35 +37,47 @@ As you work on your topic branch, other branches may have been merged into
 ``dev`` by other people.  Make sure you merge ``staging`` back to your branch
 as often as possible to keep it up-to-date.
 
-Other Git Repositories
-----------------------
+Git Submodules
+--------------
 
-Inside the unisubs repository, you may want to check out some other repositories.
+The ``unisubs`` code contains several submodules that point to other repositories:
 
-If you have access to our private repository
-(https://github.com/pculture/amara-enterprise/).  Check that out inside the
-root directory of the unisubs repository to add the extra functionality.  See
-:ref:`optional-apps` for details on how this works.
+  - ``babelsubs``: https://github.com/pculture/babelsubs/
+  - ``unilangs``: https://github.com/pculture/unilangs/
+  - ``pykss``: https://github.com/pculture/pykss/
+  - ``amara-assets``: https://github.com/pculture/amara-assets/
+  - ``amara-enterprise``: https://github.com/pculture/amara-enterprise/ (private)
 
-We also have a couple other repositories that integrate into unisubs:
 
-  - https://github.com/pculture/babelsubs/
-  - https://github.com/pculture/unilangs/
+Initial checkout
+^^^^^^^^^^^^^^^^
 
-Both of these get installed inside your docker container.  Normally you don't
-need to do anything to use them.  However, if you want to test changes to
-those repositories you need to check out a local copy:
+Before you can run Amara, you need to check out the submodules.  Use the
+``checkout-submodules`` script to do this.  There are two modes:
 
-  - Check out the git repository inside the root unisubs directory.
-  - Make a symlink from the root directory to the python package (for example:
-    ``ln -s babelsubs-git/babelsubs .``)
-  - After this the unisubs code will be using your local checkout rather than
-    the default package.  Make changes there, test them on your dev
-    environment, then commit/push the changes back to a branch on the pculture
-    repository, then open a PR to maste.
-  - When we deploy amara, we pick up the the latest commit in master for these
-    libraries.  So once your changes are merged to master, they will be live
-    the next time we deploy.
+  - ``checkout-submodules public`` -- checkout the public submodules.  Use this
+    if you are a member of the public.
+  - ``checkout-submodules all`` -- checkout the all submodules.  Use this if
+    you are a PCF employee with access to the private submodules.
+
+Braches and submodules
+^^^^^^^^^^^^^^^^^^^^^^
+
+We use the following strategy to deal with branches:
+
+  - Always create a branch on the ``unisubs`` repo, even if the only code
+    changes are in other repositories.
+  - If you need to change code in another repository, then create a branch
+    there as well.  The name should match the branch name in unisubs.
+  - If you create a commit in a submodule, make sure to also add a commit in
+    ``unisubs`` to track the changes.  You can use the ``dev bump`` command to
+    automate this in simple cases.
+
+Switching branches
+^^^^^^^^^^^^^^^^^^
+
+Use the ``dev switch [branch-name]`` command to switch branches.  This command
+checks out the branch on unisubs, and also any submodules if needed.
 
 Testing
 -------

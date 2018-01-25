@@ -33,7 +33,8 @@ class AJAXResponseRenderer(object):
     create an AJAXResponseRenderer object.  Call various methods to update the
     page, then call return the results of render().
 
-    See media/amara/js/ajax.js for the JS code that processes these responses.
+    See amara-assets/scripts/application/ajax.js for the JS code that
+    processes these responses.
     """
 
     def __init__(self, request):

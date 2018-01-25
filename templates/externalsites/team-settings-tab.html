@@ -49,6 +49,30 @@
                 {{ forms.add_youtube.add_button }}
             </fieldset>
 
+            <fieldset class="youtube">
+                <legend>{% trans "Vimeo" %}</legend>
+                {% for form in forms.vimeo_forms %}
+                <div class="youtube-form">
+                    <div class="remove-button">
+                        {{ form.remove_button }}
+                    </div>
+                    <h3>{% blocktrans with account_name=form.account.get_owner_display %}
+                        Linked Account: {{ account_name }}
+                        {% endblocktrans %}
+                    </h3>
+                    {% include "_field.html" with field=form.sync_subtitles %}
+                    {% include "_field.html" with field=form.fetch_initial_subtitles %}
+                    {% if form.show_sync_teams %}
+                        <h4>{% trans "Sync videos from these teams:" %}</h4>
+                        {{ form.sync_teams }}
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="no-accounts">{% trans 'No Vimeo accounts linked yet.' %}</p>
+                {% endfor %}
+                {{ forms.add_vimeo.add_button }}
+            </fieldset>
+
             <fieldset class="kaltura{% if not forms.kaltura.enabled.value %} disabled{% endif %}">
                 <legend>{% trans "Kaltura" %}</legend>
                 {{ forms.kaltura.non_field_errors }}

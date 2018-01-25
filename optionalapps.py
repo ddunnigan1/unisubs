@@ -43,17 +43,17 @@ from django.conf.urls import patterns, include, url
 
 project_root = os.path.abspath(os.path.dirname(__file__))
 
-POTENTIAL_REPOS = [
+# These are git submodules that can extend the amara code
+AMARA_EXTENSIONS = [
+    'amara-assets',
     'amara-enterprise',
 ]
 
-def _repositories_present():
-    """Get a list of optional repositories that are present."""
-    for name in POTENTIAL_REPOS:
-        # exclude names that don't look like repositories
-        if name.startswith('.'):
-            continue
-        if os.path.exists(os.path.join(project_root, name)):
+def _extensions_present():
+    """Get the amara extensions that are present."""
+    for name in AMARA_EXTENSIONS:
+        repo_path = os.path.join(project_root, name)
+        if os.path.exists(repo_path) and os.listdir(repo_path):
             yield name
 
 def setup_path():
@@ -70,7 +70,7 @@ def get_repository_paths():
         sys.path so that we can import the apps.
     """
     return [os.path.join(project_root, repo)
-            for repo in _repositories_present()]
+            for repo in _extensions_present()]
 
 def get_apps():
     """Get a list of optional apps

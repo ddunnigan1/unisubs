@@ -37,8 +37,25 @@ Get a list of teams
         - ``collaboration`` -- collaboration team
 
     :>json string description: Team description
-    :>json boolean is_visible: Should this team's videos be publicly visible (True by default)?
-    :>json string membership_policy: Team membership policy. One of:
+    :>json string team_visibility: Should non-team members be able to view the
+        team?  Possible values:
+
+        - ``private`` -- Only team members can view the team
+        - ``unlisted`` -- Team not listed in the directory, but publicly
+            accessible for users with a link
+        - ``public`` -- Anyone can view the team (default)
+
+    :>json string video_visibility: Should non-team members be able to view the
+        team's videos?  Possible values:
+
+        - ``private`` -- Only team members can view the team's videos
+        - ``unlisted`` -- The team's videos not searchable, or listed in the
+            directory, but publicly accessible for users with a link
+        - ``public`` -- Anyone can view the team's videos (default)
+
+    :>json boolean is_visible: Legacy visibility field.  This will be True if
+        ``team_visibility`` is ``public``.
+    :>json string membership_policy: Team membership policy. Possible values:
 
         - ``Open``
         - ``Application``
@@ -46,7 +63,7 @@ Get a list of teams
         - ``Invitation by manager``
         - ``Invitation by admin``
 
-    :>json string video_policy: Team video policy.  One of:
+    :>json string video_policy: Team video policy.  Possible values:
 
         - ``Any team member``
         - ``Managers and admins``
@@ -72,43 +89,31 @@ Updating team settings
 
 .. http:put:: /api/teams/(team-slug)
 
-    :<json string name: (required) Name of the team
-    :<json slug slug: (required) Manchine name for the team (used in URLs)
+    :<json string name: Name of the team
+    :<json slug slug: Machine name for the team (used in URLs)
     :<json string description: Team description
-    :<json boolean is_visible: Should this team be publicly visible?
-    :<json string membership_policy:  Team membership policy.  One of:
+    :<json string team_visibility: Should non-team members be able to view the
+        team?  Possible values:
 
-        - ``Open``
-        - ``Application``
-        - ``Invitation by any team member``
-        - ``Invitation by manager``
-        - ``Invitation by admin``
+        - ``private`` -- Only team members can view the team
+        - ``unlisted`` -- Team not listed in the directory, but publicly
+            accessible for users with a link
+        - ``public`` -- Anyone can view the team (default)
 
-    :<json string video_policy:  Team video policy.  One of:
+    :<json string video_visibility: Should non-team members be able to view the
+        team's videos?  Possible values:
 
-        - ``Any team member``
-        - ``Managers and admins``
-        - ``Admins only``
+        - ``private`` -- Only team members can view the team's videos
+        - ``unlisted`` -- The team's videos not searchable, or listed in the
+            directory, but publicly accessible for users with a link
+        - ``public`` -- Anyone can view the team's videos (default)
 
-Creating a team
-^^^^^^^^^^^^^^^
-
-Amara partners can create teams via the API.
-
-.. http:post:: /api/teams/
-
-    :<json string name: (required) Name of the team
-    :<json slug slug: (required) Manchine name for the team (used in URLs)
-    :<json string type: Team type.  Possible values:
-
-        - ``default`` -- default team type
-        - ``simple`` -- simplified workflow team
-        - ``collaboration`` -- collaboration team
-
-    :<json string description: Team description
-    :<json boolean is_visible: Should this team be publicly visible?
-    :<json string membership_policy:  Team membership policy.  Possible
-        values:
+    :<json boolean is_visible: Legacy visibility field.  If set to True, this
+        will set both ``team_visibility`` and ``video_visibility`` to
+        ``public``.  If set to False, it will set them both to ``private`.
+        When reading this field, it is True if ``team_visibility`` is set to
+        ``public``
+    :<json string membership_policy:  Team membership policy.  Possible values:
 
         - ``Open``
         - ``Application``
@@ -122,6 +127,56 @@ Amara partners can create teams via the API.
         - ``Managers and admins``
         - ``Admins only``
 
+Creating a team
+^^^^^^^^^^^^^^^
+
+Amara partners can create teams via the API.
+
+.. http:post:: /api/teams/
+
+    :<json string name (required): Name of the team
+    :<json slug slug (required): Machine name for the team (used in URLs)
+    :<json string type (required): Team type.  Possible values:
+
+        - ``default`` -- default team type
+        - ``simple`` -- simplified workflow team
+        - ``collaboration`` -- collaboration team
+
+    :<json string description: Team description
+    :<json string team_visibility: Should non-team members be able to view the
+        team?  Possible values:
+
+        - ``private`` -- Only team members can view the team
+        - ``unlisted`` -- Team not listed in the directory, but publicly
+            accessible for users with a link
+        - ``public`` -- Anyone can view the team (default)
+
+    :<json string video_visibility: Should non-team members be able to view the
+        team's videos?  Possible values:
+
+        - ``private`` -- Only team members can view the team's videos
+        - ``unlisted`` -- The team's videos not searchable, or listed in the
+            directory, but publicly accessible for users with a link
+        - ``public`` -- Anyone can view the team's videos (default)
+
+    :<json boolean is_visible: Legacy visibility field.  If set to True, this
+        will set both ``team_visibility`` and ``video_visibility`` to
+        ``public``.  If set to False, it will set them both to ``private`.
+        When reading this field, it is True if ``team_visibility`` is set to
+        ``public``
+    :<json string membership_policy:  Team membership policy.  Possible values:
+
+        - ``Open``
+        - ``Application``
+        - ``Invitation by any team member``
+        - ``Invitation by manager``
+        - ``Invitation by admin``
+
+    :<json string video_policy:  Team video policy.  Possible values:
+
+        - ``Any team member``
+        - ``Managers and admins``
+        - ``Admins only``
 
 Members Resource
 ****************
@@ -135,7 +190,7 @@ Listing members of a team
 
     :>json user user: User associated with the membership (see
         :ref:`user_fields`)
-    :>json string role: One of: ``owner``, ``admin``, ``manager``, or
+    :>json string role: Possible values: ``owner``, ``admin``, ``manager``, or
         ``contributor``
 
 Get info on a team member
@@ -153,7 +208,7 @@ Adding a member to the team
 .. http:post:: /api/teams/(team-slug)/members/
 
     :<json user-identifier user: User to add (see :ref:`user_ids`)
-    :<json string role: One of: ``owner``, ``admin``, ``manager``, or
+    :<json string role: Possible values: ``owner``, ``admin``, ``manager``, or
         ``contributor``
 
 Change a team member's role
@@ -161,7 +216,7 @@ Change a team member's role
 
 .. http:put:: /api/teams/(team-slug)/members/(username)/
 
-    :<json string role: One of: ``owner``, ``admin``, ``manager``, or
+    :<json string role: Possible values: ``owner``, ``admin``, ``manager``, or
         ``contributor``
 
 Removing a user from a team
@@ -256,14 +311,14 @@ Get details on a specific task
     :>json video-id video_id: ID of the video being worked on
     :>json bcp-47 language: Language code being worked on
     :>json integer id: ID for the task
-    :>json string type: type of task.  One of ``Subtitle``, ``Translate``,
-         ``Review``, or ``Approve``
+    :>json string type: type of task.  Possible values: ``Subtitle``,
+        ``Translate``, ``Review``, or ``Approve``
     :>json user-data assignee: Task assignee (see :ref:`user_fields`)
     :>json integer priority: Priority for the task
     :>json datetime created: Date/time when the task was created
     :>json datetime modified: Date/time when the task was last updated
     :>json datetime completed: Date/time when the task was completed (or null)
-    :>json string approved: Approval status of the task.  One of
+    :>json string approved: Approval status of the task.  Possible values:
         ``In Progress``, ``Approved``, or ``Rejected``
     :>json resource_uri: Task resource
 
@@ -415,11 +470,12 @@ from rest_framework.views import APIView
 
 from api import userlookup
 from api.views.apiswitcher import APISwitcherMixin
-from api.fields import UserField, TimezoneAwareDateTimeField
+from api.fields import UserField, TimezoneAwareDateTimeField, EnumField
 from auth.models import CustomUser as User
 from notifications.models import TeamNotification
 from teams.models import (Team, TeamMember, Project, Task, TeamVideo,
-                          Application, TeamLanguagePreference)
+                          Application, TeamLanguagePreference, TeamVisibility,
+                          VideoVisibility)
 from teams.workflows import TeamWorkflow
 from utils.translation import ALL_LANGUAGE_CODES
 import messages.tasks
@@ -455,6 +511,10 @@ class MappedChoiceField(serializers.ChoiceField):
         except KeyError:
             return 'unknown'
 
+class IsVisibleField(serializers.BooleanField):
+    def get_attribute(self, team):
+        return team.team_public()
+
 class TeamSerializer(serializers.ModelSerializer):
     type = MappedChoiceField(
         source='workflow_type', required=False, default='O',
@@ -479,6 +539,9 @@ class TeamSerializer(serializers.ModelSerializer):
     video_policy = MappedChoiceField(
         VIDEO_POLICY_CHOICES, required=False,
         default=Team._meta.get_field('video_policy').get_default())
+    team_visibility = EnumField(TeamVisibility, required=False)
+    video_visibility = EnumField(VideoVisibility, required=False)
+    is_visible = IsVisibleField(required=False)
 
     activity_uri = serializers.HyperlinkedIdentityField(
         view_name='api:team-activity',
@@ -490,7 +553,15 @@ class TeamSerializer(serializers.ModelSerializer):
     tasks_uri = serializers.SerializerMethodField()
     languages_uri = serializers.SerializerMethodField()
     resource_uri = serializers.SerializerMethodField()
-    is_visible = serializers.BooleanField(default=True)
+
+    def get_fields(self):
+        fields = super(TeamSerializer, self).get_fields()
+        if (self.instance and
+                isinstance(self.instance, Team) and 
+                self.instance.is_old_style()):
+            del fields['team_visibility']
+            del fields['video_visibility']
+        return fields
 
     def get_members_uri(self, team):
         return reverse('api:team-members-list', kwargs={
@@ -528,12 +599,28 @@ class TeamSerializer(serializers.ModelSerializer):
             'team_slug': team.slug,
         }, request=self.context['request'])
 
+    def save(self):
+        is_visible = self.validated_data.pop('is_visible', None)
+        team = super(TeamSerializer, self).save()
+        if is_visible is not None:
+            team.set_legacy_visibility(is_visible)
+            team.save()
+        return team
+
+    def create(self, validated_data):
+        if 'team_visibility' not in validated_data:
+            validated_data['team_visibility'] = 'public'
+        if 'video_visibility' not in validated_data:
+            validated_data['video_visibility'] = 'public'
+        return super(TeamSerializer, self).create(validated_data)
+
     class Meta:
         model = Team
-        fields = ('name', 'slug', 'type', 'description', 'is_visible',
-                  'membership_policy', 'video_policy', 'activity_uri',
-                  'members_uri', 'projects_uri', 'applications_uri',
-                  'languages_uri', 'tasks_uri', 'resource_uri')
+        fields = ('name', 'slug', 'type', 'description', 'team_visibility',
+                  'video_visibility', 'is_visible', 'membership_policy',
+                  'video_policy', 'activity_uri', 'members_uri',
+                  'projects_uri', 'applications_uri', 'languages_uri',
+                  'tasks_uri', 'resource_uri')
 
 class TeamUpdateSerializer(TeamSerializer):
     name = serializers.CharField(required=False)
@@ -553,6 +640,12 @@ class TeamViewSet(mixins.CreateModelMixin,
 
     def get_queryset(self):
         return Team.objects.for_user(self.request.user)
+
+    def get_object(self):
+        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
+        if team.team_private() and not team.user_is_member(self.request.user):
+            raise Http404()
+        return team
 
     def get_serializer_class(self):
         if self.request.method in ('PUT', 'PATCH'):

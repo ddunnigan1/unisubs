@@ -1,0 +1,23 @@
+{% extends "future/teams/settings/base.html" %}
+{% load i18n forms %}
+{% load url from future %}
+
+{% block settings_form %}
+<h2>{% trans "General Settings" %}</h2>
+<form method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% if form.name %}
+  {{ form.name|render_field }}
+  {% endif  %}
+  {{ form.description|render_field }}
+  {{ form.team_visibility|render_field }}
+  {{ form.video_visibility|render_field }}
+  {{ form.logo|render_field }}
+  {{ form.square_logo|render_field }}
+  {{ form.sync_metadata|render_field }}
+  <div class="form-group">
+    <button type="submit" class="button cta">{% trans "Update" %}</button>
+  </div>
+</form>
+
+{% endblock %}

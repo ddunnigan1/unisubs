@@ -1,10 +1,9 @@
 {% load i18n amara_cache %}
 {% load url from future %}
-<ul class="nav">
-  {% if user.is_authenticated %}
+<ul>
   {% cache-by-user futureui-top-panel %}
   <li class="dropdown">
-    <button id="user-menu" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{ user.username }} <span class="caret"></span></button>
+    <button id="user-menu" class="topnav-button amaranth bold dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{ user.username }} <span class="caret"></span></button>
     <ul class="dropdown-menu collapse" aria-labeledby="user-menu">
       <li>
         <a href="{% url "profiles:dashboard" %}">{% trans "Dashboard" %}</a>
@@ -49,7 +48,4 @@
     </ul>
   </li>
   {% endcache %}
-  {% else %}
-  <li><a class="button" href="{% url "auth:login" %}?next={% firstof next|urlencode request.path_info|urlencode %}">{% trans 'Login' %}</a></li>
-  {% endif %}
 </ul>

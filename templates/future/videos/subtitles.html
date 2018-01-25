@@ -14,7 +14,7 @@
     <div class="row">
       <div class="col-xs-12 col-sm-8"><a href="{{video.get_absolute_url}}{% query_string %}"><i class="icon icon-back"></i>{% trans "Return to Video" %}</a>
         <div class="content">
-          {% include "future/videos/embed.html" with width=848 height=477 url=video.get_video_url team=video.get_team %}
+          {% include "future/videos/embed.html" with width=848 height=477 subtitle_language=subtitle_language %}
           <h2{% if subtitle_version and subtitle_language and subtitle_language.get_title %}
             {% if subtitle_language.is_rtl %} class="is-rtl"{% endif %}>
             <bdi>{{ subtitle_language.title_display }}</bdi>

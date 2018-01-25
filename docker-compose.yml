@@ -15,10 +15,11 @@ services:
     hostname: unisubs.example.com
     ports:
       - "8000:8000"
-    links:
+    depends_on:
       - db
       - queue
       - cache
+      - asset-builder
 
   worker:
     image: amara-app
@@ -45,7 +46,7 @@ services:
       JSON_LOGGING:
     volumes:
       - .:/opt/apps/amara:z
-    links:
+    depends_on:
       - db
       - queue
       - cache
@@ -61,6 +62,13 @@ services:
       - ./docker-dev/mysql/conf.d/:/etc/mysql/conf.d:z
     ports:
       - "3306"
+
+  asset-builder:
+    image: node:9.0.0
+    volumes:
+      - .:/mnt
+    working_dir: /mnt/amara-assets
+    command: ['node', 'node_modules/gulp/bin/gulp.js']
 
   queue:
     image: rabbitmq

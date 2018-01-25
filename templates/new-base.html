@@ -1,4 +1,4 @@
-{% load i18n media_bundle announcement_tags messages_tags auth_tags profiles_tags %}
+{% load i18n media_bundle announcement_tags messages_tags auth_tags profiles_tags assets %}
 {% load url from future %}
 
 <!DOCTYPE html>
@@ -25,8 +25,9 @@
     <meta property="fb:admins" content="539835590"/>
   {% endblock  %}
 
-  <link rel="shortcut icon" type="image/png" href="{{ STATIC_URL }}images/favicon.png" />
-  <link rel="icon" type="image/png" href="{{ STATIC_URL }}images/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{% asset "img/apple-touch-icon.png" %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% asset "img/favicon-16x16.png" %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% asset "img/favicon-32x32.png" %}">
 
   <!--[if IE]>
       <style type="text/css"> .group { display: block; zoom: 1; } </style>

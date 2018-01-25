@@ -60,6 +60,9 @@ header a:link, footer a:link {
     height: auto;
 }
 
+#mobilenav {
+        display: none;
+}
 #mainnav .primarynav ul li {
     padding: 0;
 }
@@ -142,7 +145,7 @@ $half-gutter-width: $gutter-width * .5;
   $size: nth($breakpoint, 2);
   $container: nth($breakpoint, 3);
   @media only screen and (min-width: $size) {
-    #page-header, #page-footer, .newgrid {
+    #page-footer, .newgrid {
       .container {
         width: $container;
       }
@@ -219,4 +222,55 @@ $half-gutter-width: $gutter-width * .5;
 #page-footer .languageSwitcher {
   margin-left: 15px;
   margin-top: 10px;
+}
+
+@font-face {
+  font-family: 'amara';
+  src:  url('../fonts/amara.eot');
+  src:  url('../fonts/amara.eot#iefix') format('embedded-opentype'),
+    url('../fonts/amara.woff2') format('woff2'),
+    url('../fonts/amara.ttf') format('truetype'),
+    url('../fonts/amara.woff') format('woff'),
+    url('../fonts/amara.svg#amara') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+// search icon
+i.icon {
+  font-family: 'amara' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  vertical-align: middle;
+}
+i.icon.icon-search:before {
+  content: "\e91a";
+  /* use !important to prevent issues with browser extensions that change fonts */
+  speak: none;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+.visible-xs, .visible.sm {
+  display: none;
+}
+.dropdown {
+  position:relative
+}
+#topnav #user-menu .caret {
+        float: none;
 }
