@@ -889,22 +889,29 @@ class Video(models.Model):
             team(Team): team the URL is being added to, or None if it's being
                 added to the public area
         """
+        error = False
         # get all existing VideoUrl objects with the same url
         qs = VideoUrl.objects.filter(url=url)
         if team and team.prevent_duplicate_public_videos:
-            # check for public videos with this url before adding
-            qs = qs.filter(
-                    Q(video__teamvideo__isnull=True) |
-                    Q(video__teamvideo__team__prevent_duplicate_public_videos=False))
-            limit = 1
+            # check for public videos with this url
+            qs_public = qs.filter(video__teamvideo__isnull=True)
+            # check for videos on teams without the flag set
+            qs_other_team = qs.filter(video__teamvideo__team__prevent_duplicate_public_videos=False)
+            # if not on another team and only one public video exists
+            if not len(qs_other_team) > 0 and len(qs_public) > 1:
+                error = True
+            # if on another team and any public videos exist
+            elif len(qs_other_team) > 0 and len(qs_public) > 0:
+                error=True
         else:
             # check for VideoUrls on teams with prevent duplicate flag
             qs = qs.filter(
                 video__teamvideo__team__prevent_duplicate_public_videos=True
             )
-            limit = 0
-        # if the new url already exists somewhere that conflicts with the prevent duplicate flag
-        if len(qs) > limit:
+            # if the new url already exists somewhere that conflicts with the prevent duplicate flag
+            if len(qs) > 0:
+                error = True
+        if error:
             raise Video.DuplicateUrlError(
                 qs[0], from_prevent_duplicate_public_videos=True)
 
