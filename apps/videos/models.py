@@ -889,21 +889,22 @@ class Video(models.Model):
             team(Team): team the URL is being added to, or None if it's being
                 added to the public area
         """
-        if team and not team.prevent_duplicate_public_videos:
-            return
-
         # get all existing VideoUrl objects with the same url
         qs = VideoUrl.objects.filter(url=url)
-        if team:
-            # if being added to a team, get VideoUrls for existing public videos
-            qs = qs.filter(video__teamvideo__isnull=True)
+        if team and team.prevent_duplicate_public_videos:
+            # check for public videos with this url before adding
+            qs = qs.filter(
+                    Q(video__teamvideo__isnull=True) |
+                    Q(video__teamvideo__team__prevent_duplicate_public_videos=False))
+            limit = 1
         else:
-            # if added to public space, get VideoUrls on teams with prevent duplicate flag
+            # check for VideoUrls on teams with prevent duplicate flag
             qs = qs.filter(
                 video__teamvideo__team__prevent_duplicate_public_videos=True
             )
+            limit = 0
         # if the new url already exists somewhere that conflicts with the prevent duplicate flag
-        if len(qs) > 0:
+        if len(qs) > limit:
             raise Video.DuplicateUrlError(
                 qs[0], from_prevent_duplicate_public_videos=True)
 
@@ -2186,11 +2187,11 @@ class VideoUrlQueryset(query.QuerySet):
             kwargs['url_hash'] = url_hash(url)
         return super(VideoUrlQueryset, self).get(**kwargs)
 
-    def filter(self, **kwargs):
+    def filter(self, *args, **kwargs):
         if 'url' in kwargs:
             url = url_escape(kwargs.pop('url'))
             kwargs['url_hash'] = url_hash(url)
-        return super(VideoUrlQueryset, self).filter(**kwargs)
+        return super(VideoUrlQueryset, self).filter(*args, **kwargs)
 
 # VideoUrl
 class VideoUrl(models.Model):
