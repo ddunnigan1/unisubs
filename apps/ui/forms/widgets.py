@@ -117,7 +117,7 @@ class AmaraClearableFileInput(widgets.ClearableFileInput):
 
         # if is_initial
         if bool(value and hasattr(value, 'url')):
-            context.update(self.get_template_substitution_values(value))
+            # context.update(self.get_template_substitution_values(value))
             if not self.is_required:
                 checkbox_name = self.clear_checkbox_name(name)
                 checkbox_id = self.clear_checkbox_id(checkbox_name)

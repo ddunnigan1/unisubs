@@ -83,7 +83,7 @@ def user_avatar(context, user_obj):
 def profile_teams_list(context):
     viewing_user = context['user']
     profile_user = context['user_info']
-    team_qs = profile_user.teams.for_user(viewing_user, exclude_private=True)
+    team_qs = profile_user.teams.for_user(viewing_user)
     return {
         'teams': team_qs,
     }

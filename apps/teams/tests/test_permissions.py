@@ -1136,9 +1136,6 @@ class TestViews(BaseTestPermission):
         owner.user.set_password("hey")
         owner.user.save()
 
-        self.team.is_visible = False
-        self.team.save()
-
         resp = self.client.get(video_url, follow=True)
         self.assertNotEqual(resp.status_code, 200)
 

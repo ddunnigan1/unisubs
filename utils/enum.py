@@ -40,6 +40,16 @@ class EnumMember(object):
     def __repr__(self):
         return "{}.{}".format(self.enum_name, self.name)
 
+    def __eq__(self, other):
+        if isinstance(other, EnumMember):
+            return self.number == other.number
+        elif isinstance(other, basestring):
+            return self.slug == other
+        elif isinstance(other, (int, long)):
+            return self.number == other
+        else:
+            return False
+
     def choice(self):
         return (self.number, self.label)
 
@@ -159,6 +169,27 @@ class EnumField(models.PositiveSmallIntegerField):
         super(EnumField, self).__init__(**kwargs)
         self.enum = enum
 
+    def get_default(self):
+        if self.has_default() and isinstance(self.default, EnumMember):
+            return self.default.number
+        else:
+            return super(EnumField, self).get_default()
+
+    @property
+    def choices(self):
+        return self.enum.choices()
+
+    def value_from_object(self, obj):
+        value = getattr(obj, self.attname)
+        return value.number if isinstance(value, EnumMember) else value
+
+    @property
+    def raw_default(self):
+        if isinstance(self.default, EnumMember):
+            return self.default.number
+        else:
+            return self.default
+
     def db_type(self, connection):
         return 'tinyint UNSIGNED' # 256 values should be enough for our enums
 
@@ -168,7 +199,10 @@ class EnumField(models.PositiveSmallIntegerField):
 
     def to_python(self, value):
         if isinstance(value, basestring):
-            return self.enum.lookup_slug(value)
+            if value.isdigit():
+                return self.enum.lookup_number(int(value))
+            else:
+                return self.enum.lookup_slug(value)
         elif isinstance(value, (int, long)):
             return self.enum.lookup_number(value)
         else:
@@ -184,6 +218,14 @@ class EnumField(models.PositiveSmallIntegerField):
         else:
             return value.number
 
-add_introspection_rules([], [
+add_introspection_rules([
+    (
+        [EnumField],
+        [],
+        {
+            'default': ['raw_default', {}],
+        }
+    ),
+], [
     "^utils\.enum\.EnumField$",
 ])

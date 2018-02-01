@@ -128,7 +128,7 @@ class TestDeleteVideosForm(TeamVideoManagementFormBase):
         videos = self.videos[:2]
         with mock_handler(video_deleted) as handler:
             form = self.build_form(forms.DeleteVideosForm, videos, data={
-                'delete': 1,
+                'delete': 'yes',
                 'verify': unicode(forms.DeleteVideosForm.VERIFY_STRING)
             })
         for v in videos:

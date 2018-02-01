@@ -29,6 +29,7 @@ from videos.models import Video, VideoUrl
 from auth.models import CustomUser as User
 from utils.factories import *
 from utils.panslugify import pan_slugify
+from utils.test_utils import *
 
 class ViewsTests(TestCase):
     def setUp(self):
@@ -104,7 +105,8 @@ class ViewsTests(TestCase):
         self.assertTrue(team.logo)
         self.assertEqual(team.name, u"New team")
         self.assertEqual(team.description, u"testing")
-        self.assertFalse(team.is_visible)
+        self.assertTrue(team.team_private())
+        self.assertTrue(team.videos_private())
         self.assertTrue(all([v.is_public for v in videos]))
 
         data = {
@@ -115,8 +117,11 @@ class ViewsTests(TestCase):
 
         url = reverse("teams:settings_basic", kwargs={"slug": team.slug})
         response = self.client.post(url, data)
+        team = reload_obj(team)
 
         self.failUnlessEqual(response.status_code, 302)
+        self.assertTrue(team.team_public())
+        self.assertTrue(team.videos_public())
         self.assertTrue(all([v.is_public for v in videos]))
 
     def test_create_project(self):
@@ -315,8 +320,7 @@ class ViewsTests(TestCase):
                          "Video did not stay in the old team.")
 
     def test_team_permission(self):
-        team = TeamFactory(slug="private-team", name="Private Team",
-                           is_visible=False)
+        team = TeamFactory(slug="private-team", name="Private Team")
         TeamMember.objects.create_first_member(team, self.user)
         video = VideoFactory()
         TeamVideoFactory(team=team, video=video, added_by=self.user)

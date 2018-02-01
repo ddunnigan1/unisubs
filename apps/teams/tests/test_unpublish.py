@@ -10,7 +10,7 @@ from utils.factories import *
 
 class UnpublishTestCase(TestCase):
     def setUp(self):
-        self.team = TeamFactory(workflow_enabled=True, is_visible=True)
+        self.team = TeamFactory(workflow_enabled=True)
         self.workflow = WorkflowFactory(team=self.team)
         self.user = UserFactory(is_staff=True)
         self.member = TeamMemberFactory(team=self.team, user=self.user,

@@ -28,7 +28,7 @@ from auth.models import CustomUser as User
 from codefield import CodeField, Code
 from comments.models import Comment
 from mysqltweaks import query
-from teams.models import Team
+from teams.models import Team, TeamVisibility, VideoVisibility
 from teams.permissions import can_view_activity
 from teams.permissions_const import (ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER,
                                      ROLE_CONTRIBUTOR, ROLE_NAMES)
@@ -62,7 +62,15 @@ class TeamSettingsChangeInfo(models.Model):
     changes = models.TextField()
 
     SETTINGS_CHANGE_LABELS = {
+        'team_visibility': _('Team Visibility'),
+        'video_visibility': _('Video Visibility'),
+        # is_visible is no longer a Team field, but we still need to suport
+        # activity records about it
         'is_visible': _('Videos Public'),
+    }
+    SETTINGS_ENUMS = {
+        'team_visibility': TeamVisibility,
+        'video_visibility': VideoVisibility,
     }
 
     @classmethod
@@ -87,7 +95,7 @@ class TeamSettingsChangeInfo(models.Model):
             if name in self.SETTINGS_CHANGE_LABELS:
                 rv.append(fmt(ugettext(u'%(setting)s changed to %(value)s'),
                               setting=self.SETTINGS_CHANGE_LABELS[name],
-                              value=self.format_value(value)))
+                              value=self.format_value(name, value)))
             else:
                 misc_count += 1
         if misc_count:
@@ -97,11 +105,13 @@ class TeamSettingsChangeInfo(models.Model):
                 misc_count), count=misc_count))
         return rv
 
-    def format_value(self, value):
+    def format_value(self, name, value):
         if value == True:
             return ugettext('true')
         elif value == False:
             return ugettext('false')
+        elif name in self.SETTINGS_ENUMS:
+            return self.SETTINGS_ENUMS[name].lookup_slug(value).label
         else:
             return unicode(value)
 
@@ -686,7 +696,8 @@ class ActivityQueryset(query.QuerySet):
     def viewable_by_user(self, user):
         if user.is_superuser:
             return self
-        q = Q(team__isnull=True) | Q(team__is_visible=True)
+        q = (Q(team__isnull=True) |
+             Q(team__team_visibility=TeamVisibility.PUBLIC))
         if user.is_authenticated():
             q |= Q(team__in=user.teams.all())
 

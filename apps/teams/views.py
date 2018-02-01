@@ -49,9 +49,9 @@ from videos.templatetags.paginator import paginate
 from messages import tasks as notifier
 from teams.forms import (
     CreateTeamForm, EditTeamVideoForm,
-    AddTeamVideosFromFeedForm, TaskAssignForm, SettingsForm, TaskCreateForm,
+    AddTeamVideosFromFeedForm, TaskAssignForm, LegacySettingsForm, TaskCreateForm,
     PermissionsForm, WorkflowForm, InviteForm, TaskDeleteForm,
-    GuidelinesMessagesForm, RenameableSettingsForm, ProjectForm, LanguagesForm,
+    GuidelinesMessagesForm, LegacyRenameableSettingsForm, ProjectForm, LanguagesForm,
     MoveTeamVideoForm, TaskUploadForm, make_billing_report_form,
     TaskCreateSubtitlesForm, TeamMultiVideoCreateSubtitlesForm,
     OldMoveVideosForm, AddVideoToTeamForm, GuidelinesLangMessagesForm,
@@ -117,13 +117,13 @@ DEV = getattr(settings, 'DEV', False)
 DEV_OR_STAGING = DEV or getattr(settings, 'STAGING', False)
 BILLING_CUTOFF = getattr(settings, 'BILLING_CUTOFF', None)
 
-def get_team_for_view(slug, user, exclude_private=True):
+def get_team_for_view(slug, user):
     if isinstance(slug, Team):
         # hack to handle the new view code calling this page.  In that
         # case it passes the team directly rather than the slug
         return slug
     try:
-        return Team.objects.for_user(user, exclude_private).get(slug=slug)
+        return Team.objects.for_user(user).get(slug=slug)
     except Team.DoesNotExist:
         raise Http404
 
@@ -243,14 +243,14 @@ def settings_basic(request, team):
             return r
 
     if can_rename_team(team, request.user):
-        FormClass = RenameableSettingsForm
+        FormClass = LegacyRenameableSettingsForm
     else:
-        FormClass = SettingsForm
+        FormClass = LegacySettingsForm
 
     if request.POST:
         form = FormClass(request.POST, request.FILES, instance=team)
 
-        is_visible = team.is_visible
+        old_video_visibility = team.video_visibility
 
         if form.is_valid():
             try:
@@ -259,7 +259,7 @@ def settings_basic(request, team):
                 logger.exception("Error on changing team settings")
                 raise
 
-            if is_visible != form.instance.is_visible:
+            if old_video_visibility != form.instance.video_visibility:
                 update_video_public_field.delay(team.id)
                 invalidate_video_visibility_caches.delay(team)
 
@@ -466,7 +466,7 @@ def _default_project_for_team(team):
 
 def _get_videos_for_detail_page(team, user, query, project, language_code,
                                 language_mode, sort):
-    if not team.is_member(user) and not team.is_visible:
+    if not team.is_member(user) and not team.videos_public():
         return Video.objects.none()
 
     qs = Video.objects.filter(teamvideo__team=team)
@@ -1321,8 +1321,9 @@ def leave_team(request, slug):
         team_pk = member.team.pk
         member.leave_team()
         member.delete()
-        [application.on_member_leave(request.user, "web UI") for application in \
-         member.team.applications.filter(status=Application.STATUS_APPROVED)]
+        application = member.team.applications.get(status=Application.STATUS_APPROVED,
+                                                   user=request.user)
+        application.on_member_leave(request.user, "web UI")
 
         messages.success(request, _(u'You have left this team.'))
     return redirect(request.META.get('HTTP_REFERER') or team)
@@ -1558,7 +1559,7 @@ def old_dashboard(request, team):
 
         for video in videos:
             Task.add_cached_video_urls(video.tasks)
-    elif team.is_visible:
+    elif team.videos_public():
         team_videos = team.videos.select_related("teamvideo").order_by("-teamvideo__created")
         # TED's dashboard should only show TEDTalks videos
         # http://i.imgur.com/fjjqx.gif

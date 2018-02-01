@@ -157,17 +157,18 @@ def dashboard(request):
 
     return render(request, 'profiles/dashboard.html', context)
 
-def videos(request, user_id=None):
-    if user_id:
+def videos(request, user_id):
+    try:
+        user = User.objects.get(username=user_id)
+    except User.DoesNotExist:
         try:
-            user = User.objects.get(username=user_id)
-        except User.DoesNotExist:
-            try:
-                user = User.objects.get(id=user_id)
-            except (User.DoesNotExist, ValueError):
-                raise Http404
+            user = User.objects.get(id=user_id)
+        except (User.DoesNotExist, ValueError):
+            raise Http404
 
     qs = Video.objects.filter(user=user).order_by('-edited')
+    if not (request.user == user or request.user.is_superuser):
+        qs = qs.filter(is_public=True)
     q = request.REQUEST.get('q')
 
     if q:

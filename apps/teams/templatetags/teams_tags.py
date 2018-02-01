@@ -193,18 +193,9 @@ def team_metrics(team, member, projects):
             len(projects)))
 
     return {
-        'with_links': (team.is_visible or member),
+        'with_links': (team.team_public() or member),
         'metrics': metrics,
     }
-
-@register.filter
-def team_is_visible(team_slug):
-    try:
-        team = Team.objects.get(slug=team_slug)
-    except Team.DoesNotExist:
-        return False
-    if team.is_visible:
-        return True
 
 @tag(register, [])
 def share_panel_email_url(context):

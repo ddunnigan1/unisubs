@@ -765,14 +765,14 @@ def can_add_version(user, video, language_code):
 
     team = team_video.team
 
-    if team.is_visible:
+    if team.team_public():
         default_message = _(u"These subtitles are moderated. See the %s team page for information on how to contribute." % str(team_video.team))
     else:
         default_message = _(u"Sorry, these subtitles are privately moderated.")
 
     # basic check, if the user doesn't have view permission, then they can't
     # add a new version
-    if not (team.is_visible or team.is_member(user)):
+    if team.videos_private() and not team.is_member(user):
         return TeamsPermissionsCheck(False, team, default_message)
 
     # check if the user has permission based on the tasks system

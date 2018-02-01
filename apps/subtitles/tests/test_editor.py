@@ -104,8 +104,7 @@ class EditorViewTest(TestCase):
 
 class NotLoggedInEditor(TestCase):
     def setUp(self):
-        team = TeamFactory(slug="private-team", name="Private Team",
-                           is_visible=False)
+        team = TeamFactory(slug="private-team", name="Private Team")
         self.public_video = VideoFactory()
         self.team_video = VideoFactory()
         self.user = UserFactory()

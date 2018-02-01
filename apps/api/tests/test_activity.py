@@ -28,6 +28,7 @@ from rest_framework.test import APIClient, APIRequestFactory
 from api.tests.utils import format_datetime_field, format_datetime_field_as_date, user_field_data
 from comments.models import Comment
 from subtitles import pipeline
+from utils.test_utils import *
 from utils.factories import *
 from activity.models import ActivityRecord
 
@@ -149,7 +150,7 @@ class ActivityTest(TestCase):
             record3, record2)
 
     def test_team(self):
-        team = TeamFactory(slug='team')
+        team = TeamFactory(slug='team', admin=self.user)
         video1 = VideoFactory(video_id='video1',
                               primary_audio_language_code='fr', team=team)
         video2 = VideoFactory(video_id='video2', team=team)
@@ -213,6 +214,33 @@ class ActivityTest(TestCase):
         video = VideoFactory()
         ActivityRecord.objects.create_for_video_deleted(video, self.user)
         self.check_extra_field('video-deleted', title=video.title_display())
+
+    @patch_for_test('teams.permissions.can_view_activity')
+    def test_permissions_team(self, can_view_activity):
+        can_view_activity.return_value = False
+        team = TeamFactory()
+        url = reverse('api:team-activity', args=(team.slug,))
+        response = self.client.get(url)
+        assert_equal(response.status_code, status.HTTP_404_NOT_FOUND)
+        assert_equal(can_view_activity.call_args, mock.call(team, self.user))
+
+    @patch_for_test('auth.permissions.can_view_activity')
+    def test_permissions_user(self, can_view_activity):
+        can_view_activity.return_value = False
+        user = UserFactory()
+        url = reverse('api:user-activity', args=(user.username,))
+        response = self.client.get(url)
+        assert_equal(response.status_code, status.HTTP_404_NOT_FOUND)
+        assert_equal(can_view_activity.call_args, mock.call(user, self.user))
+
+    @patch_for_test('videos.permissions.can_view_activity')
+    def test_permissions_video(self, can_view_activity):
+        can_view_activity.return_value = False
+        video = VideoFactory()
+        url = reverse('api:video-activity', args=(video.video_id,))
+        response = self.client.get(url)
+        assert_equal(response.status_code, status.HTTP_404_NOT_FOUND)
+        assert_equal(can_view_activity.call_args, mock.call(video, self.user))
 
 class LegacyActivityTestCase(TestCase):
     def setUp(self):

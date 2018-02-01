@@ -346,6 +346,50 @@ def team_member_leave(team_pk, user_pk):
     send_templated_email(user, subject, template_name, context)
 
 @task()
+def team_member_promoted(team_pk, user_pk, new_role):
+    if getattr(settings, "MESSAGES_DISABLED", False):
+        return
+    from messages.models import Message
+    from teams.models import Setting, TeamMember, Team
+    user = User.objects.get(pk=user_pk)
+    team = Team.objects.get(pk=team_pk)
+
+    team_default_message = None
+    messages = Setting.objects.messages().filter(team=team)
+    if messages.exists():
+        data = {}
+        for m in messages:
+            data[m.get_key_display()] = m.data
+        mapping = {
+            TeamMember.ROLE_ADMIN: data['messages_admin'],
+            TeamMember.ROLE_MANAGER: data['messages_manager'],
+        }
+        team_default_message = mapping.get(new_role, None)
+
+    if new_role == TeamMember.ROLE_ADMIN:
+        role_label = "Admin"
+    elif new_role == TeamMember.ROLE_MANAGER:
+        role_label = "Manager"
+
+    context = {
+        'role': role_label,
+        "user": user,
+        "team": team,
+        'custom_message': team_default_message,
+        'url_base': get_url_base(),
+    }
+    title = fmt(
+        ugettext(u"You are now a(n) %(role)s for the %(team)s team!"),
+        role=role_label, team=team.name)
+    body = render_to_string("messages/team-member-promoted.txt", context)
+    msg = Message(user=user, subject=title, content=body, message_type=SYSTEM_NOTIFICATION)
+    msg.save()
+    send_new_message_notification.delay(msg.id)
+    if user.notify_by_email:
+        template_name = 'messages/email/team-member-promoted.html'
+        send_templated_email(user, title, template_name, context)
+
+@task()
 def email_confirmed(user_pk):
     from messages.models import Message
     user = User.objects.get(pk=user_pk)
