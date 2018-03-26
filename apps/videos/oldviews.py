@@ -33,6 +33,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from videos.templatetags.paginator import paginate
@@ -48,6 +49,7 @@ from django.utils.encoding import force_unicode
 from django.utils.http import urlquote_plus
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django.views.decorators.http import require_POST
+from gdata.service import RequestError
 
 from activity.models import ActivityRecord
 from auth.models import CustomUser as User
@@ -755,7 +757,7 @@ def video_url_create(request):
                 'video': video,
                 'video_url': obj,
                 'user': user,
-                'domain': settings.HOSTNAME,
+                'domain': Site.objects.get_current().domain,
                 'hash': user.hash_for_video(video.video_id)
             }
             send_templated_email(user, subject,

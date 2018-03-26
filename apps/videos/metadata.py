@@ -39,6 +39,16 @@ from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_noop
 
+try:
+    from south.modelsinspector import add_introspection_rules
+except ImportError:
+    pass
+else:
+    add_introspection_rules([], [
+        "^videos\.metadata\.Metadata.*Field",
+        "^apps\.videos\.metadata\.Metadata.*Field",
+    ])
+
 METADATA_FIELD_COUNT = 3
 
 # Define possible values for the metadata type fields.  List of

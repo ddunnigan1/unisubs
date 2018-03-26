@@ -16,13 +16,9 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from __future__ import absolute_import
-
 from django import template
 from django.template.loader import render_to_string
 from django import forms
-
-from ui.forms import HelpTextList
 
 register = template.Library()
 
@@ -31,7 +27,6 @@ def render_field(field):
     return render_to_string('future/forms/field.html', {
         'field': field,
         'widget_type': calc_widget_type(field),
-        'no_help_block': isinstance(field.help_text, HelpTextList),
     })
 
 @register.filter

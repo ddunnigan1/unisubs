@@ -590,9 +590,6 @@ def can_change_video_settings(user, team_video):
     role = get_role_for_target(user, team_video.team, team_video.project, None)
     return role in [ROLE_MANAGER, ROLE_ADMIN, ROLE_OWNER]
 
-def can_change_video_titles(user, team_video):
-    role = get_role_for_target(user, team_video.team, team_video.project, None)
-    return role in [ROLE_ADMIN, ROLE_OWNER]
 
 def can_review_own_subtitles(role, team_video):
     '''Return True if a user with the given role can review their own subtitles.

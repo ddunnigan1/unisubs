@@ -1,4 +1,4 @@
-from django.conf import settings
+from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from auth.models import CustomUser as User
 from utils.graphing import plot
@@ -76,7 +76,7 @@ def compute_statistics(team, stats_type):
                 (get_language_label(l),
                  languages_recent.count(l),
                  get_language_label(l),
-                 "%s://%s%s" % (DEFAULT_PROTOCOL, settings.HOSTNAME, reverse('teams:members', args=[], kwargs={'slug': team.slug}) + "?sort=-joined&lang=%s" % l))
+                 "%s://%s%s" % (DEFAULT_PROTOCOL, Site.objects.get_current().domain, reverse('teams:members', args=[], kwargs={'slug': team.slug}) + "?sort=-joined&lang=%s" % l))
                 )
         title_recent = ''
         graph_recent = plot(numbers_recent, graph_type='HorizontalBar', title=title_recent, max_entries=25, labels=True, xlinks=True, total_label="Members: ")
@@ -115,7 +115,7 @@ def compute_statistics(team, stats_type):
             return ("%s %s (%s)" % (user_details[1], user_details[2], user_details[3]),
                     len(user[1]),
                     "%s %s (%s)" % (user_details[1], user_details[2], user_details[3]),
-                    "%s://%s%s" % (DEFAULT_PROTOCOL, settings.HOSTNAME, reverse("profiles:profile", kwargs={'user_id': str(user[0])}))
+                    "%s://%s%s" % (DEFAULT_PROTOCOL, Site.objects.get_current().domain, reverse("profiles:profile", kwargs={'user_id': str(user[0])}))
             )
 
         user_details = User.displayable_users(map(lambda x: int(x[0]), most_active_users))

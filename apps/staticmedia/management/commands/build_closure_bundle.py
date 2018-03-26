@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import tempfile
 
+from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 

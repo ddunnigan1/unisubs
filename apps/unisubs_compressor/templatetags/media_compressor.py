@@ -153,3 +153,23 @@ def url_for(bundle_name, should_compress=True):
 def full_url_for(bundle_name, should_compress=True):
     urls, media_url, bundle_type = _urls_for(bundle_name, should_compress)
     return media_url + urls[0]
+
+
+# some of the files in our media settings bundle need to be handled specially
+# when we serve them uncompressed.  Instead of simply linking to them, we
+# should render the output of the special handler function.
+_special_files_handlers = {}
+
+def handle_special_file(filename):
+    def wrapper(func):
+        _special_files_handlers[filename] = func
+        return func
+    return wrapper
+
+@handle_special_file('src/js/embedder/conf.js')
+def render_embedder_conf():
+    script_src = render_to_string('embedder/conf.js', {
+        'current_site': urlparse(calc_static_url()).netloc,
+        'STATIC_URL': calc_static_url(),
+    })
+    return '<script type="text/javascript">%s</script>' % script_src

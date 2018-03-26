@@ -193,15 +193,12 @@ class ManagementForm(forms.Form):
         if not all_selected:
             del self.fields['include_all']
         else:
-            total_objects = self.include_all_count()
+            total_objects = self.queryset.count()
             if total_objects <= len(selection):
                 del self.fields['include_all']
             else:
                 self.fields['include_all'].label = fmt(
                     self.include_all_label, count=total_objects)
-
-    def include_all_count(self):
-        return self.queryset.count()
 
     def setup_fields(self):
         """Override this if you need to dynamically setup the form fields."""

@@ -24,7 +24,6 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_unicode, force_text
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
 
 class AmaraLanguageSelectMixin(object):
     def render(self, name, value, attrs=None, choices=()):
@@ -88,9 +87,9 @@ class SearchBar(widgets.TextInput):
     def render(self, name, value, attrs=None):
         input = super(SearchBar, self).render(name, value, attrs)
         return mark_safe(u'<div class="searchbar">'
-                         '<label class="sr-only">{}</label>'
+                         '<label class="sr-only">Search</label>'
                          '{}'
-                         '</div>'.format(_('Search'), input))
+                         '</div>'.format(input))
 
 class AmaraFileInput(widgets.FileInput):
     template_name = "widget/file_input.html"

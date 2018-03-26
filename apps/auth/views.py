@@ -31,8 +31,7 @@ from django.contrib.auth.views import password_reset as contrib_password_reset
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.forms.util import ErrorList
-from django.http import (HttpResponseRedirect, HttpResponseForbidden,
-                         HttpResponse, HttpResponseBadRequest)
+from django.http import HttpResponseRedirect, HttpResponseForbidden, HttpResponse
 from django.shortcuts import render, render_to_response, redirect
 from django.template import RequestContext
 from django.template.response import TemplateResponse
@@ -340,12 +339,3 @@ def password_reset(request):
     else:
         form = SecureCustomPasswordResetForm
     return contrib_password_reset(request, password_reset_form=form, extra_context=extra_context)
-
-@login_required
-def set_hidden_message_id(request):
-    try:
-        message_id = request.POST['message_id']
-    except KeyError:
-        return HttpResponseBadRequest()
-    request.user.set_last_hidden_message_id(request, message_id)
-    return HttpResponse()

@@ -17,7 +17,7 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 from django import template
-from django.conf import settings
+from django.contrib.sites.models import Site
 
 register = template.Library()
 
@@ -30,7 +30,7 @@ def widget(widget_params, div_id='widget_div'):
 
 @register.inclusion_tag('videos/_get_counter.html')
 def get_counter():
-    domain = settings.HOSTNAME
+    domain = Site.objects.get_current().domain
     return {
         'domain': domain
     }

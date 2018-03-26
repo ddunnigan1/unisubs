@@ -28,6 +28,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.sites.models import Site
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
@@ -1945,7 +1946,7 @@ def download_draft(request, slug, task_pk, type="srt"):
     subtitle_version = task.get_subtitle_version()
 
     subtitles = babelsubs.to(subtitle_version.get_subtitles(), type)
-    response = HttpResponse(unicode(subtitles), content_type="text/plain")
+    response = HttpResponse(unicode(subtitles), mimetype="text/plain")
     original_filename = '%s.%s' % (subtitle_version.video.lang_filename(task.language), type)
 
     if not 'HTTP_USER_AGENT' in request.META or u'WebKit' in request.META['HTTP_USER_AGENT']:
@@ -2396,7 +2397,7 @@ def auto_captions_status(request, slug):
         if jobs.exists():
             j = jobs[0]
             extra = "%s\t%s\t%s\t%s\t%s" % (j.status, j.job_id, j.task_id, j.created_on, j.completed_on)
-        url = "%s://%s%s" % (DEFAULT_PROTOCOL, settings.HOSTNAME, tv.video.get_absolute_url())
+        url = "%s://%s%s" % (DEFAULT_PROTOCOL, Site.objects.get_current().domain, tv.video.get_absolute_url())
         buffer.append( "Video:%s\t %s\t%s\t %s" % (tv.video.title,tv.project.name, url, extra))
     response =  HttpResponse( "\n".join(buffer), content_type="text/csv")
     response['Content-Disposition'] = 'filename=team-status.csv'

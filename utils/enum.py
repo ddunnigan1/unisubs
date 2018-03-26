@@ -22,11 +22,10 @@ utils.enum -- Enum handling
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils.deconstruct import deconstructible
+from south.modelsinspector import add_introspection_rules
 
 RAISE_KEY_ERROR = object()
 
-@deconstructible
 class EnumMember(object):
     def __init__(self, enum_name, name, label, number):
         self.enum_name = enum_name
@@ -218,3 +217,15 @@ class EnumField(models.PositiveSmallIntegerField):
             return self.enum.lookup_slug(value).number
         else:
             return value.number
+
+add_introspection_rules([
+    (
+        [EnumField],
+        [],
+        {
+            'default': ['raw_default', {}],
+        }
+    ),
+], [
+    "^utils\.enum\.EnumField$",
+])

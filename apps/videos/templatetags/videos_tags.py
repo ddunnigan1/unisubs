@@ -27,6 +27,8 @@ from django import template
 
 register = template.Library()
 
+from django.contrib.sites.models import Site
+
 from staticmedia import utils
 from utils.basexconverter import base62
 from videos.views import LanguageList
@@ -188,7 +190,7 @@ def shortlink_for_video( video):
     The pattern is http://amara.org/v/<pk>
     """
     protocol = getattr(settings, 'DEFAULT_PROTOCOL')
-    domain = settings.HOSTNAME
+    domain = Site.objects.get_current().domain
     # don't www me, we'll redirect users and save three
     # chars. Yay for our twitter-brave-new-world
     domain = domain.replace("www.", '')

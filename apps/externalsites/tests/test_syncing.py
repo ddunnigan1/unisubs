@@ -24,6 +24,7 @@ import string
 
 from django.test import TestCase
 from django.db.models.signals import post_save
+from django.utils import simplejson as json
 from nose.tools import *
 import babelsubs
 import mock

@@ -222,7 +222,7 @@ def members(request, team):
     }
 
     if form_name and is_team_admin:
-        return manage_members_form(request, team, form_name, members, page)
+        return manage_members_form(request, team, form_name, members)
 
     if not form_name and request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
@@ -235,7 +235,7 @@ def members(request, team):
 
     return render(request, 'future/teams/members/members.html', context)
 
-def manage_members_form(request, team, form_name, members, page):
+def manage_members_form(request, team, form_name, members):
 
     try:
         selection = request.GET['selection'].split('-')
@@ -249,15 +249,8 @@ def manage_members_form(request, team, form_name, members, page):
     else:
         raise Http404()
 
-    # Don't count the current user for the all_selected var, since they cannot
-    # select their own entry
-    enabled_checkbox_count = len([
-        member for member in page
-        if member.user_id != request.user.id
-    ])
-    all_selected = len(selection) >= enabled_checkbox_count
-    # filter out the current user from the full queryset
-    members = members.exclude(user=request.user)
+    # we don't count the current user since they cannot select their own entry
+    all_selected = len(selection) >= MEMBERS_PER_PAGE - 1
 
     if request.method == 'POST':
         try:
@@ -315,8 +308,7 @@ def applications(request, team):
     }
 
     if form_name:
-        return manage_application_form(request, team, form_name, applications,
-                                       page)
+        return manage_application_form(request, team, form_name, applications)
 
     if not form_name and request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
@@ -329,7 +321,7 @@ def applications(request, team):
 
     return render(request, 'future/teams/applications/applications.html', context)
 
-def manage_application_form(request, team, form_name, applications, page):
+def manage_application_form(request, team, form_name, applications):
 
     try:
         selection = request.GET['selection'].split('-')
@@ -343,7 +335,7 @@ def manage_application_form(request, team, form_name, applications, page):
     else:
         raise Http404()
 
-    all_selected = len(selection) >= len(page)
+    all_selected = len(selection) >= MEMBERS_PER_PAGE
     response_renderer = AJAXResponseRenderer(request)
 
     if request.method == 'POST':
@@ -609,7 +601,7 @@ def member_search(request, team, qs):
         for member in members_qs
     ]
 
-    return HttpResponse(json.dumps(data), content_type='application/json')
+    return HttpResponse(json.dumps(data), mimetype='application/json')
 
 @public_team_view
 @login_required
@@ -668,7 +660,7 @@ def admin_list(request, team):
     if (not team.is_by_invitation() and not
         team.user_is_member(request.user)):
         return HttpResponseForbidden()
-    return render(request, 'future/teams/members/admin-list.html', {
+    return render(request, 'new-teams/admin-list.html', {
         'team': team,
         'admins': (team.members
                    .filter(Q(role=TeamMember.ROLE_ADMIN)|
@@ -684,6 +676,8 @@ def activity(request, team):
 
     action_choices = ActivityRecord.type_choices()
 
+    next_page_query = request.GET.copy()
+    next_page_query['page'] = page.next_page_number()
 
     context = {
         'paginator': paginator,
@@ -693,15 +687,12 @@ def activity(request, team):
         'team': team,
         'tab': 'activity',
         'user': request.user,
+        'next_page_query': next_page_query.urlencode(),
         'breadcrumbs': [
             BreadCrumb(team, 'teams:dashboard', team.slug),
             BreadCrumb(_('Activity')),
         ],
     }
-    if page.has_next():
-        next_page_query = request.GET.copy()
-        next_page_query['page'] = page.next_page_number()
-        context['next_page_query'] = next_page_query.urlencode()
     # tells the template to use get_old_message instead
     context['use_old_messages'] = True
     if team.is_old_style():
@@ -779,6 +770,12 @@ def manage_videos(request, team):
                                                     auto_id="id_filters_%s")
     videos = filters_form.get_queryset().select_related('teamvideo',
                                                         'teamvideo__video')
+    form_name = request.GET.get('form')
+    if form_name:
+        if form_name == 'add-videos':
+            return add_video_forms(request, team)
+        else:
+            return manage_videos_form(request, team, form_name, videos)
     enabled_forms = all_video_management_forms(team, request.user)
     paginator = AmaraPaginatorFuture(videos, VIDEOS_PER_PAGE_MANAGEMENT)
     page = paginator.get_page(request)
@@ -787,14 +784,6 @@ def manage_videos(request, team):
     for video in page:
         video.context_menu = manage_videos_context_menu(team, video,
                                                         enabled_forms)
-
-    form_name = request.GET.get('form')
-    if form_name:
-        if form_name == 'add-videos':
-            return add_video_forms(request, team)
-        else:
-            return manage_videos_form(request, team, form_name, videos, page)
-
     context = {
         'team': team,
         'page': page,
@@ -849,7 +838,7 @@ def all_video_management_forms(team, user):
 def lookup_video_managment_form(team, user, form_name):
     return get_video_management_forms(team).lookup(form_name, team, user)
 
-def manage_videos_form(request, team, form_name, videos, page):
+def manage_videos_form(request, team, form_name, videos):
     """Render a form from the action bar on the video management page.
     """
     try:
@@ -860,7 +849,7 @@ def manage_videos_form(request, team, form_name, videos, page):
     if FormClass is None:
         raise Http404()
 
-    all_selected = len(selection) >= len(page)
+    all_selected = len(selection) >= VIDEOS_PER_PAGE_MANAGEMENT
 
     if request.method == 'POST':
         form = FormClass(team, request.user, videos, selection, all_selected,

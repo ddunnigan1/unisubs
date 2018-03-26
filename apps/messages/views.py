@@ -87,8 +87,13 @@ def message(request, message_id):
                        template_name='messages/message.html',
                        template_object_name='message',
                        extra_context=extra_context)
-    if messages:
-        request.user.set_last_hidden_message_id(request, messages[0].id)
+    try:
+        last_message = messages[0]
+        max_age = 60*60*24*365
+        expires = cookie_date(time.time()+max_age)
+        response.set_cookie(Message.hide_cookie_name, last_message.pk, max_age, expires)
+    except Message.DoesNotExist:
+        pass
     return response
 
 @login_required
@@ -128,8 +133,13 @@ def inbox(request, message_pk=None):
                        template_name='messages/inbox.html',
                        template_object_name='message',
                        extra_context=extra_context)
-    if qs:
-        request.user.set_last_hidden_message_id(request, qs[0].id)
+    try:
+        last_message = qs[:1].get()
+        max_age = 60*60*24*365
+        expires = cookie_date(time.time()+max_age)
+        response.set_cookie(Message.hide_cookie_name, last_message.pk, max_age, expires)
+    except Message.DoesNotExist:
+        pass
 
     return response
 
@@ -152,16 +162,6 @@ def sent(request):
 @render_to('messages/new.html')
 def new(request):
     selected_user = None
-    reply_msg = None
-    reply = request.GET.get('reply')
-
-    if reply:
-        try:
-            reply_msg = Message.objects.get(pk=reply, user=request.user)
-            reply_msg.read = True
-            reply_msg.save()
-        except (Message.DoesNotExist, ValueError):
-            pass
 
     if request.POST:
         form = NewMessageForm(request.user, request.POST)
@@ -208,16 +208,10 @@ def new(request):
             if request.GET.get('user'):
                 selected_user = User.objects.get(username=request.GET['user'])
     else:
-        initial = {}
-        if reply_msg:
-            initial['subject'] = 'RE: {}'.format(reply_msg.subject)
-        form = NewMessageForm(request.user, initial=initial)
+        form = NewMessageForm(request.user)
 
         if request.GET.get('user'):
             selected_user = User.objects.get(username=request.GET['user'])
-
-    if not selected_user and reply_msg:
-        selected_user = reply_msg.author
 
     return {
         'selected_user': selected_user,

@@ -22,7 +22,7 @@ from urllib import urlencode
 from django.conf import settings
 DEFAULT_PROTOCOL = getattr(settings, "DEFAULT_PROTOCOL", 'https')
 
-from django.conf import settings
+from django.contrib.sites.models import Site
 from django.utils.translation import ugettext_lazy as _
 
 from localeurl.utils import universal_url
@@ -175,7 +175,7 @@ class BaseNotification(object):
         url = "%s?%s" % (url , data)
         try:
             resp, content = h.request(url, method="POST", body=data, headers={
-                'referer': '%s://%s' % (DEFAULT_PROTOCOL, settings.HOSTNAME)
+                'referer': '%s://%s' % (DEFAULT_PROTOCOL, Site.objects.get_current().domain)
             })
             success = 200 <= resp.status < 400
             if success is False:

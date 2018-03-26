@@ -18,6 +18,7 @@
 
 from django.conf import settings
 from django.conf.global_settings import LANGUAGES
+from django.contrib.sites.models import Site
 
 LANGUAGES_MAP = dict(LANGUAGES)
 
@@ -47,7 +48,7 @@ def add_config_based_js_files(context, files, compiled_file_name):
         js_files.append(full_path(compiled_file_name))
     else:
         js_files.append('{}://{}/widget/config.js'.format(settings.DEFAULT_PROTOCOL,
-                                                          settings.HOSTNAME))
+                                                          Site.objects.get_current().domain))
         js_files.extend(
             [full_path(js_file) for js_file
              in files])

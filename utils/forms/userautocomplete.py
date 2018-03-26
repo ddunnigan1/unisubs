@@ -79,4 +79,4 @@ def autocomplete_user_view(request, queryset, limit=10):
         for user in users
     ]
 
-    return HttpResponse(json.dumps(data), content_type='application/json')
+    return HttpResponse(json.dumps(data), mimetype='application/json')

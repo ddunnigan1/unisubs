@@ -15,7 +15,6 @@ Contents:
    subtitle-formats
    syncing-and-importing
    static-media
-   embedder
    dev-guide/index
 
 ============

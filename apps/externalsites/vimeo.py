@@ -19,6 +19,7 @@
 import babelsubs, unilangs
 from google import APIError
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 import base64, requests, logging
 
@@ -56,7 +57,7 @@ def get_token(code):
                ("basic " + \
                 base64.b64encode(VIMEO_API_KEY + ":" + VIMEO_API_SECRET))}
     protocol = getattr(settings, "DEFAULT_PROTOCOL", 'https')
-    host = protocol + '://' + settings.HOSTNAME
+    host = protocol + '://' + Site.objects.get_current().domain
     data = {"grant_type": "authorization_code",
             "code": code,
             "redirect_uri": get_redirect_uri(host)}

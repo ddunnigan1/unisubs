@@ -461,7 +461,7 @@ def download(request, video_id, language_code, filename, format,
     # since this is a download, we can afford not to escape tags, specially
     # true since speaker change is denoted by '>>' and that would get entirely
     # stripped out
-    response = HttpResponse(subs_text, content_type="text/plain")
+    response = HttpResponse(subs_text, mimetype="text/plain")
     response['Content-Disposition'] = 'attachment'
     return response
 
@@ -473,6 +473,6 @@ def download_all(request, video_id, filename):
     if merged_dfxp is None:
         raise Http404()
 
-    response = HttpResponse(merged_dfxp, content_type="text/plain")
+    response = HttpResponse(merged_dfxp, mimetype="text/plain")
     response['Content-Disposition'] = 'attachment'
     return response

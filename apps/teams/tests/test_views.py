@@ -92,6 +92,7 @@ class ViewsTests(TestCase):
 
         data = {
             "name": u"New team",
+            "is_visible": u"0",
             "description": u"testing",
             "logo": open(path.join(settings.STATIC_ROOT, "test/71600102.jpg"), "rb")
         }

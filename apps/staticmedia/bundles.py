@@ -34,6 +34,7 @@ import shutil
 import tempfile
 import time
 
+from django.contrib.sites.models import Site
 from django.conf import settings
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -146,7 +147,7 @@ class JavascriptBundle(Bundle):
 
     def generate_amara_conf(self):
         return render_to_string('staticmedia/amara-conf.js', {
-            'base_url': settings.HOSTNAME,
+            'base_url': Site.objects.get_current().domain,
             'static_url': utils.static_url(),
         })
 

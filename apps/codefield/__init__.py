@@ -38,6 +38,7 @@ the kind of activity and customizes the message we display for it.
 from __future__ import absolute_import
 
 from django.db import models
+from south.modelsinspector import add_introspection_rules
 
 class Code(object):
     """A possible code for a CodeField"""
@@ -79,7 +80,7 @@ class CodeField(models.PositiveSmallIntegerField):
         self.current_ext_ids = set()
         self.code_list = []
         if choices is not None:
-            self._validate_choices(choices)
+            self._check_choices(choices)
             self._add_choices(0, choices)
 
     def extend(self, ext_id, choices):
@@ -100,7 +101,7 @@ class CodeField(models.PositiveSmallIntegerField):
             Code class.
         """
         self._check_ext_id(ext_id)
-        self._validate_choices(choices)
+        self._check_choices(choices)
         self._add_choices(ext_id, choices)
 
     def _add_choices(self, ext_id, choices):
@@ -126,7 +127,7 @@ class CodeField(models.PositiveSmallIntegerField):
         if ext_id in self.current_ext_ids:
             raise ValueError("ext_id {} already taken".format(ext_id))
 
-    def _validate_choices(self, choices):
+    def _check_choices(self, choices):
         if len(choices) > self.MAX_CHOICES:
             raise ValueError(
                 "Only {} choices can be stored per extension".format(
@@ -193,3 +194,8 @@ class TinyCodeField(CodeField):
 
     def db_type(self, connection):
         return 'tinyint UNSIGNED'
+
+add_introspection_rules([], [
+    "^codefield\.CodeField$",
+    "^codefield\.TinyCodeField$",
+])

@@ -29,6 +29,7 @@ import logging
 
 from celery.task import task
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django.template.loader import render_to_string
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 def get_url_base():
     return "{}://{}".format(settings.DEFAULT_PROTOCOL,
-                            settings.HOSTNAME)
+                            Site.objects.get_current().domain)
 
 def team_sends_notification(team, notification_setting_name):
     from teams.models import Setting
@@ -86,7 +87,7 @@ def send_new_message_notification(message_id):
 
     context = {
         "message": message,
-        "domain":  settings.HOSTNAME,
+        "domain":  Site.objects.get_current().domain,
         "STATIC_URL": settings.STATIC_URL,
     }
     subject = fmt(subject, author=message.author, subject=message.subject)
@@ -767,7 +768,7 @@ def send_video_comment_notification(comment_pk_or_instance, version_pk=None):
         video = ct.video
         language = ct
 
-    domain = settings.HOSTNAME
+    domain = Site.objects.get_current().domain
     protocol = getattr(settings, 'DEFAULT_PROTOCOL', 'https')
 
     if language:

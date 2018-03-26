@@ -901,7 +901,7 @@ class SyncHistoryManager(models.Manager):
             kwargs['account_type'] = account.account_type
         return models.Manager.create(self, *args, **kwargs)
 
-    def get_queryset(self):
+    def get_query_set(self):
         return SyncHistoryQuerySet(self.model)
 
     def get_attempts_to_resync(self, team=None, user=None):

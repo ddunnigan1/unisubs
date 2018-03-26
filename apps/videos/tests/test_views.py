@@ -56,6 +56,23 @@ class TestViews(WebUseTest):
         cache.clear()
         mail.outbox = []
 
+    def test_video_url_create(self):
+        self._login()
+        self.assertEqual(self.video.videourl_set.count(), 1)
+        primary_url = self.video.get_primary_videourl_obj().url
+        # add another url
+        secondary_url = 'http://www.example.com/video2.ogv'
+        data = {
+            'url': secondary_url,
+            'video': self.video.pk
+        }
+        url = reverse('videos:video_url_create')
+        response = self.client.post(url, data)
+        self.assertNotIn('errors', response.json())
+        self.assertEquals(
+            set([vu.url for vu in self.video.get_video_urls()]),
+            set([primary_url, secondary_url]))
+
     def test_videourl_create_with_team_video(self):
         team_video = TeamVideoFactory()
         video = team_video.video
@@ -103,6 +120,31 @@ class TestViews(WebUseTest):
 
         self.assertEqual(response['Location'], 'http://testserver' +
                                                video.get_absolute_url())
+
+    def test_video_url_create(self):
+        self._login()
+        v = VideoFactory()
+
+        user = UserFactory()
+        user.notify_by_email = True
+        user.is_active = True
+        user.valid_email = True
+        user.save()
+        v.followers.add(user)
+        initial_count = len(mail.outbox)
+
+        data = {
+            'url': u'http://www.youtube.com/watch?v=po0jY4WvCIc&feature=grec_index',
+            'video': v.pk
+        }
+        url = reverse('videos:video_url_create')
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        try:
+            v.videourl_set.get(videoid='po0jY4WvCIc')
+        except ObjectDoesNotExist:
+            self.fail()
+        self.assertEqual(len(mail.outbox), initial_count + len(v.notification_list()))
 
     def test_video_url_remove(self):
         test_utils.invalidate_widget_video_cache.run_original_for_test()

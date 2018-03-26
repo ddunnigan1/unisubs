@@ -17,6 +17,7 @@
 # along with this program. If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from django.contrib.sites.models import Site
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.core.urlresolvers import reverse
@@ -35,6 +36,32 @@ class TestTemplateTags(TestCase):
         v = get_video(1)
         sl = make_subtitle_language(v, 'en')
         self.assertIsNotNone(language_url(None, sl))
+
+class ShortUrlTest(TestCase):
+    def setUp(self):
+        self.video = VideoFactory(video_url__url="http://example.com/hey.mp4")
+        site = Site.objects.get_current()
+        site.domain = "www.amara.org"
+        site.save()
+        # on production our domain might have www,
+        # make sure we have such domain and that
+        # www is not present
+        self.short_url = shortlink_for_video(self.video)
+        Site.objects.clear_cache()
+
+    def tearDown(self):
+        Site.objects.clear_cache()
+
+    def test_short_url(self):
+        response = self.client.get(self.short_url, follow=True)
+        location = response.redirect_chain[-1][0]
+        self.assertTrue(location.endswith(self.video.get_absolute_url()))
+
+    def test_short_url_no_locale(self):
+        self.assertFalse('/en/' in self.short_url)
+
+    def test_short_url_no_www(self):
+        self.assertTrue(self.short_url.startswith('%s://amara.org' % settings.DEFAULT_PROTOCOL))
 
 class PaginatorTest(WebUseTest):
     def setUp(self):

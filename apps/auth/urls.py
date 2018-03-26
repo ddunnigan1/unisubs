@@ -28,6 +28,4 @@ urlpatterns = patterns('auth.views',
     url(r'auto-login/(?P<token>[\w]{40})/$', 'token_login', name='token-login'),
     url(r'resend_confirmation_email/$', 'resend_confirmation_email', name='resend_confirmation_email'),
     url(r'login-trap/$', 'login_trap', name='login_trap'),
-    url(r'set-hidden-message-id/$', 'set_hidden_message_id',
-        name='set-hidden-message-id'),
 )

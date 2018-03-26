@@ -46,6 +46,7 @@ from widget import video_cache
 from widget.base_rpc import BaseRpc
 from widget.forms import  FinishReviewForm, FinishApproveForm
 from widget.models import SubtitlingSession
+from libs.bulkops import insert_many
 
 from functools import partial
 from subtitles import pipeline
@@ -598,6 +599,52 @@ class Rpc(BaseRpc):
                            task_approved, new_version=new_version)
             if error:
                 return error
+
+    def _save_subtitles(self, version, json_subs, forked):
+        """Create Subtitle objects into the version from the JSON subtitles."""
+
+        subtitles = []
+        for s in json_subs:
+            if not forked:
+                s = Subtitle(subtitle_id=s['subtitle_id'],
+                             subtitle_text=s['text'])
+            else:
+                # Normally this is done in Subtitle.save(), but bulk inserting
+                # doesn't call that.
+                start_time = s['start_time']
+                end_time = s['end_time']
+                # this will go way in the DRM anyways
+                if not start_time or start_time == -1:
+                    start_time = None
+                if not end_time or end_time == -1:
+                    end_time = None
+
+                s = Subtitle(subtitle_id=s['subtitle_id'],
+                             subtitle_text=s['text'],
+                             start_time=start_time,
+                             end_time=end_time,
+                             subtitle_order=s['sub_order'],
+                             start_of_paragraph=s.get('start_of_paragraph',
+                                                      False))
+            s.version_id = version.pk
+            subtitles.append(s)
+
+        # For huge sets of subtitles, adding each one to the DB one at a time
+        # can take longer than the browser timeout.  We need to do this in the
+        # background instead.  For now.  This is all going away once the new
+        # data model refactor lands.  I love hacking stuff in on the fly.
+        insert_many(subtitles)
+
+    def _copy_subtitles(self, source_version, dest_version):
+        """Copy the Subtitle objects from one version to another, unchanged.
+
+        Used when the title or description of some subs is changed but the
+        actual subtitles remain the same.
+
+        """
+        if source_version:
+            for s in source_version.subtitle_set.all():
+                s.duplicate_for(dest_version).save()
 
     def _get_new_version_for_save(self, subtitles, language, session, user, new_title, new_description, new_metadata, save_for_later=None):
         """Return a new subtitle version for this save, or None if not needed."""
