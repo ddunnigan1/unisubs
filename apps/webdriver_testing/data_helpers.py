@@ -2,11 +2,12 @@ import json
 import logging
 import time
 import requests
+
+from django.conf import settings
 from django.core import management
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.test.client import RequestFactory, Client
-from django.contrib.sites.models import Site
-from django.core.urlresolvers import reverse
 
 from subtitles import pipeline
 from babelsubs import load_from_file 
@@ -20,7 +21,7 @@ class DataHelpers(object):
 
 
     def api_url(self, url_part):
-        base_url = 'http://%s/' % Site.objects.get_current().domain
+        base_url = 'http://%s/' % settings.HOSTNAME
         self.logger.info(base_url)
         self.logger.info(url_part)
         if url_part.startswith('http'):

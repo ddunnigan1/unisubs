@@ -1,8 +1,8 @@
 import os
 import string
 
+from django.conf import settings
 from django.core import mail
-from django.contrib.sites.models import Site
 
 from utils.factories import *
 from localeurl.templatetags.localeurl_tags import rmlocale
@@ -83,7 +83,7 @@ class TestCaseRevisionNotifications(WebdriverTestCase):
         msg = str(mail.outbox[-1].message())
         self.assertIn(follower.email, email_to)
 
-        urlstart = 'http://' + Site.objects.get_current().domain
+        urlstart = 'http://' + settings.HOSTNAME
         lang = video.subtitle_language('en')
         # combine whitespace and replace it with " " for easier string
         # comparisons

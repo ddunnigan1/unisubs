@@ -35,11 +35,17 @@ class AmaraPaginator(Paginator):
     def add_links_to_page(self, page, request):
         query = request.GET.copy()
         page.first_page_link = self.make_page_link(1, query)
-        page.previous_page_link = self.make_page_link(
-            page.previous_page_number(), query)
-        page.next_page_link = self.make_page_link(page.next_page_number(),
-                                                  query)
         page.last_page_link = self.make_page_link(self.num_pages, query)
+        if page.has_previous():
+            page.previous_page_link = self.make_page_link(
+                page.previous_page_number(), query)
+        else:
+            page.previous_page_link = None
+        if page.has_next():
+            page.next_page_link = self.make_page_link(page.next_page_number(),
+                                                      query)
+        else:
+            page.next_page_link = None
 
     def make_page_link(self, page_number, query):
         query['page'] = page_number

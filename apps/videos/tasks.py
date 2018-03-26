@@ -21,7 +21,6 @@ import logging
 from celery.schedules import crontab, timedelta
 from celery.task import task
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core.files.base import ContentFile
 from django.db.models import ObjectDoesNotExist
 import requests
@@ -142,7 +141,7 @@ def subtitles_complete_changed(language_pk):
 def send_change_title_email(video_id, user_id, old_title, new_title):
     from videos.models import Video
 
-    domain = Site.objects.get_current().domain
+    domain = settings.HOSTNAME
 
     try:
         video = Video.objects.get(id=video_id)
@@ -194,7 +193,7 @@ def send_new_version_notification(version_id):
     return None
 
 def send_new_translation_notification(translation_version):
-    domain = Site.objects.get_current().domain
+    domain = settings.HOSTNAME
     video = translation_version.language.video
     language = translation_version.language
 
@@ -222,7 +221,7 @@ def _make_caption_data(new_version, old_version):
 
 
 def notify_for_version(version):
-    domain = Site.objects.get_current().domain
+    domain = settings.HOSTNAME
 
     language = version.subtitle_language
     video = language.video

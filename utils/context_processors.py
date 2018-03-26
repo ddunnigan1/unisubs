@@ -16,7 +16,6 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 from django.conf import settings
-from django.contrib.sites.models import Site
 
 from utils.translation import get_user_languages_from_request
 
@@ -28,14 +27,11 @@ def experiments(request):
     return {"EXPERIMENTS_CODE": getattr(settings, "EXPERIMENTS_CODE", False)}
 
 def current_site(request):
-    try:
-        site = Site.objects.get_current() 
-        return {
-            'BASE_URL': "%s://%s"  % (settings.DEFAULT_PROTOCOL , site.domain),
-            'current_site': site,
-        }
-    except Site.DoesNotExist:
-        return { 'current_site': '' }
+    return {
+        'HOSTNAME': settings.HOSTNAME,
+        'BASE_URL': "%s://%s"  % (settings.DEFAULT_PROTOCOL,
+                                  settings.HOSTNAME)
+    }
 
 def current_commit(request):
     return {'LAST_COMMIT_GUID': settings.LAST_COMMIT_GUID}

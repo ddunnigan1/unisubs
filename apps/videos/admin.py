@@ -106,25 +106,39 @@ class TaskStateForm(forms.ModelForm):
 
     class Meta:
         model = TaskState
+        fields = (
+            "state",
+            "task_id",
+            "name",
+            "args",
+            "kwargs",
+            "eta",
+            "runtime",
+            "worker",
+            "tstamp",
+            "result",
+            "traceback_display",
+            "expires"
+        )
+        fieldsets = (
+            (None, {
+                "fields": ("state", "task_id", "name", "args", "kwargs",
+                           "eta", "runtime", "worker", "tstamp"),
+                "classes": ("extrapretty", ),
+            }),
+            ("Details", {
+                "classes": ("collapse", "extrapretty"),
+                "fields": ("result", "traceback_display", "expires"),
+            })
+        )
+
+        readonly_fields = ("state", "task_id", "name", "args", "kwargs",
+                           "eta", "runtime", "worker", "result", "traceback_display",
+                           "expires", "tstamp")
 
 
 class FixedTaskMonitor(TaskMonitor):
     form = TaskStateForm
-    fieldsets = (
-        (None, {
-            "fields": ("state", "task_id", "name", "args", "kwargs",
-                       "eta", "runtime", "worker", "tstamp"),
-            "classes": ("extrapretty", ),
-        }),
-        ("Details", {
-            "classes": ("collapse", "extrapretty"),
-            "fields": ("result", "traceback_display", "expires"),
-        })
-    )
-
-    readonly_fields = ("state", "task_id", "name", "args", "kwargs",
-                       "eta", "runtime", "worker", "result", "traceback_display",
-                       "expires", "tstamp")
 
     def traceback_display(self, obj):
         return '<pre>%s</pre>' % obj.traceback

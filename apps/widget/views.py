@@ -24,7 +24,6 @@ import babelsubs
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.db.models import ObjectDoesNotExist
 from django.http import HttpResponse, Http404, HttpResponseServerError, HttpResponseRedirect
@@ -75,7 +74,7 @@ def embed(request, version_no=''):
         'widget/embed{0}.js'.format(version_no),
         context,
         context_instance=RequestContext(request),
-        mimetype='text/javascript')
+        content_type='text/javascript')
 
 @csrf_exempt
 def convert_subtitles(request):
@@ -111,7 +110,7 @@ def convert_subtitles(request):
     else:
         errors = {'result': "Must be a POST request"}
     res = json.dumps(errors or data)
-    return HttpResponse(res, mimetype='application/javascript')
+    return HttpResponse(res, content_type='application/javascript')
 
 def widgetizerbootloader(request):
     context = {
@@ -121,7 +120,7 @@ def widgetizerbootloader(request):
     return render_to_response(
         "widget/widgetizerbootloader.js",
         context,
-        mimetype='text/javascript',
+        content_type='text/javascript',
         context_instance=RequestContext(request))
 
 def onsite_widget(request):
@@ -289,7 +288,7 @@ def download_subtitles(request, format):
     subs_text = babelsubs.to(version.get_subtitles(), format, language=version.language_code)
     # since this is a downlaod, we can afford not to escape tags, specially true
     # since speaker change is denoted by '>>' and that would get entirely stripped out
-    response = HttpResponse(subs_text, mimetype="text/plain")
+    response = HttpResponse(subs_text, content_type="text/plain")
     original_filename = '%s.%s' % (video.lang_filename(language.language_code), format)
 
     if not 'HTTP_USER_AGENT' in request.META or u'WebKit' in request.META['HTTP_USER_AGENT']:

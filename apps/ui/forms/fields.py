@@ -20,12 +20,24 @@ import json
 
 from django.utils.encoding import force_unicode
 from django.utils.html import conditional_escape
-from django.utils.safestring import mark_safe
+from django.utils.safestring import mark_safe, SafeUnicode
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
 from utils import translation
 from ui.forms import widgets
+
+class HelpTextList(SafeUnicode):
+    """
+    Help text displayed as a bullet list
+    """
+    def __new__(cls, *items):
+        output = []
+        output.append(u'<ul class="helpList">')
+        for item in items:
+            output.extend([u'<li>', unicode(item), u'</li>'])
+        output.append(u'</ul>')
+        return SafeUnicode.__new__(cls, u''.join(output))
 
 class AmaraChoiceFieldMixin(object):
     def __init__(self, allow_search=True, border=False, max_choices=None,
@@ -178,8 +190,7 @@ class MultipleLanguageField(LanguageFieldMixin, forms.MultipleChoiceField):
 class SearchField(forms.CharField):
     widget = widgets.SearchBar
 
-    def __init__(self, **kwargs):
-        label = kwargs.pop('label')
+    def __init__(self, label=_('Search for videos'), **kwargs):
         kwargs['label'] = ''
         super(SearchField, self).__init__(**kwargs)
         if label:
@@ -187,5 +198,5 @@ class SearchField(forms.CharField):
 
 __all__ = [
     'AmaraChoiceField', 'AmaraMultipleChoiceField', 'LanguageField',
-    'MultipleLanguageField', 'SearchField',
+    'MultipleLanguageField', 'SearchField', 'HelpTextList',
 ]

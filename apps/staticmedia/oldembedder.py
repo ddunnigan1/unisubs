@@ -18,7 +18,7 @@
 
 """staticmedia.oldembedder -- Code to handle the old embedder widget"""
 
-from django.contrib.sites.models import Site
+from django.conf import settings
 from django.template.loader import render_to_string
 
 from staticmedia import bundles
@@ -28,7 +28,8 @@ def js_code():
     """Build the JS for the old embed.js file """
     bundle = bundles.get_bundle('unisubs-offsite-compiled.js')
     context = {
-        'current_site': Site.objects.get_current(),
+        'BASE_URL': "%s://%s"  % (settings.DEFAULT_PROTOCOL,
+                                  settings.HOSTNAME),
         'STATIC_URL': utils.static_url(),
         "js_file": bundle.get_url(),
     }

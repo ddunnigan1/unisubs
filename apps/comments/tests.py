@@ -18,7 +18,7 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 from django.test import TestCase
-from django.contrib.sites.models import Site
+from django.conf import settings
 from django.core import mail
 
 from localeurl.utils import universal_url, DEFAULT_PROTOCOL
@@ -27,7 +27,7 @@ from utils.factories import *
 
 class UniversalUrlsTest(TestCase):
     def test_universal_urls(self):
-        domain = Site.objects.get_current().domain
+        domain = settings.HOSTNAME
         vid = 'test-video-id'
         correct_url = "%s://%s/videos/%s/info/" % (
             DEFAULT_PROTOCOL, domain, vid)

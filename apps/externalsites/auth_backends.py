@@ -19,7 +19,7 @@
 from __future__ import absolute_import
 from collections import namedtuple
 
-from django.db import IntegrityError
+from django.db import transaction, IntegrityError
 
 from auth.backends import CustomUserBackend
 from auth.models import CustomUser as User
@@ -113,9 +113,10 @@ class OpenIDConnectBackend(CustomUserBackend):
             email = connect_info.email
         while True:
             try:
-                user = User.objects.create(username=usernames.next(),
-                                           email=email,
-                                           **connect_info.profile_data)
+                with transaction.atomic():
+                    user = User.objects.create(username=usernames.next(),
+                                               email=email,
+                                               **connect_info.profile_data)
                 break
             except IntegrityError:
                 continue

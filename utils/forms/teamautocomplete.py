@@ -70,4 +70,4 @@ def autocomplete_team_view(request, queryset=None, limit=10):
         for team in teams
     ]
 
-    return HttpResponse(json.dumps(data), mimetype='application/json')
+    return HttpResponse(json.dumps(data), content_type='application/json')

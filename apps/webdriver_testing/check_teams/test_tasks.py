@@ -3,9 +3,9 @@ import os
 import time
 import unittest
 
+from django.conf import settings
 from django.core import mail
 from django.core import management
-from django.contrib.sites.models import Site
 
 from utils.factories import *
 from webdriver_testing.data_factories import TeamLangPrefFactory, UserLangFactory
@@ -703,7 +703,7 @@ class TestCaseModeratedTasks(WebdriverTestCase):
         email_to = mail.outbox[0].to     
         msg = str(mail.outbox[0].message())
         self.assertIn(note_text, msg)
-        self.assertIn(Site.objects.get_current().domain, msg)
+        self.assertIn(settings.HOSTNAME, msg)
         email_to = mail.outbox[-1].to     
         msg = str(mail.outbox[-1].message())
         self.assertIn(self.member.email, email_to)

@@ -148,7 +148,7 @@ class RpcRouter(object):
         if not isinstance(requests, list):
                 requests = [requests]
 
-        response = HttpResponse('', mimetype="application/json")
+        response = HttpResponse('', content_type="application/json")
 
         output = []
 
@@ -200,7 +200,7 @@ class RpcRouter(object):
         <script src="{% url api_url_name %}"></script>
         """
         obj = json.dumps(self, cls=RpcRouterJSONEncoder, url_args=args, url_kwargs=kwargs)
-        return HttpResponse('jQuery.Rpc.addProvider(%s)' % obj, mimetype="text/javascript")
+        return HttpResponse('jQuery.Rpc.addProvider(%s)' % obj, content_type="text/javascript")
 
     def call_action(self, rd, request, *args, **kwargs):
         """

@@ -78,6 +78,7 @@ class CustomUserForm(forms.ModelForm):
             'last_name', 'email', 'is_active', 'is_staff', 'is_superuser',
             'groups', 'user_permissions', 'last_login', 'date_joined',
             'is_partner', 'allow_3rd_party_login', 'created_by',
+            'last_hidden_message_id',
         ]
 
 class CustomUserAdmin(admin.ModelAdmin):
@@ -93,7 +94,8 @@ class CustomUserAdmin(admin.ModelAdmin):
         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
                                        'groups', 'user_permissions')}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
-        (_('Amara'), {'fields': ('is_partner', 'allow_3rd_party_login', 'created_by')}),
+        (_('Amara'), {'fields': ('is_partner', 'allow_3rd_party_login',
+                                 'created_by', 'last_hidden_message_id')}),
     )
 
     actions = ['remove_staff_access']

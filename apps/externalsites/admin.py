@@ -89,22 +89,22 @@ class YoutubeAccountForm(forms.ModelForm):
 
     class Meta:
         model = models.YouTubeAccount
+        fields = (
+            'type',
+            'owner_id',
+            'channel_id',
+            'username',
+            'oauth_refresh_token',
+            'sync_teams',
+            'import_team',
+            'resync_subtitles',
+            'enable_language_mapping',
+            'sync_subtitles',
+            'fetch_initial_subtitles',
+        )
 
 class YouTubeAccountAdmin(admin.ModelAdmin):
     form = YoutubeAccountForm
-    fields = (
-        'type',
-        'owner_id',
-        'channel_id',
-        'username',
-        'oauth_refresh_token',
-        'sync_teams',
-        'import_team',
-        'resync_subtitles',
-        'enable_language_mapping',
-        'sync_subtitles',
-        'fetch_initial_subtitles',
-    )
 
     def save_model(self, request, obj, form, change):
         account = super(YouTubeAccountAdmin, self).save_model(
@@ -126,19 +126,19 @@ class VimeoAccountForm(forms.ModelForm):
 
     class Meta:
         model = models.VimeoSyncAccount
+        fields = (
+            'type',
+            'owner_id',
+            'username',
+            'access_token',
+            'sync_teams',
+            'resync_subtitles',
+            'sync_subtitles',
+            'fetch_initial_subtitles',
+        )
 
 class VimeoAccountAdmin(admin.ModelAdmin):
     form = VimeoAccountForm
-    fields = (
-        'type',
-        'owner_id',
-        'username',
-        'access_token',
-        'sync_teams',
-        'resync_subtitles',
-        'sync_subtitles',
-        'fetch_initial_subtitles',
-    )
 
     def save_model(self, request, obj, form, change):
         account = super(VimeoAccountAdmin, self).save_model(

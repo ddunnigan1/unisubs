@@ -12,7 +12,6 @@ PATH_RE = re.compile(r'^/(?P<locale>%s)(?=/)(?P<path>.*)$' % LOCALES_RE)
 DOMAIN_RE = re.compile(r'^(?P<locale>%s)(?=/)\.(?P<domain>.*)$' % LOCALES_RE)
 DOMAIN_MAP = dict(localeurl.settings.DOMAINS)
 DEFAULT_PROTOCOL = getattr(settings, "DEFAULT_PROTOCOL", 'https')
-from django.contrib.sites.models import Site
 
 import logging
 logger = logging.getLogger("localeurl")
@@ -127,5 +126,5 @@ def universal_url(*args, **kwargs):
     except Exception :
         logger.exception("Failed to resolve universal url") 
         return
-    return "%s://%s%s" % (protocol, Site.objects.get_current().domain,
-                     strip_path(original)[1])
+    return "%s://%s%s" % (protocol, settings.HOSTNAME,
+                          strip_path(original)[1])

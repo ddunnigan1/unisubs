@@ -47,19 +47,19 @@ class MessageManager(models.Manager):
     use_for_related_fields = True
 
     def for_user(self, user, thread_tip_only=False):
-        qs = self.get_query_set().filter(user=user, deleted_for_user=False)
+        qs = self.get_queryset().filter(user=user, deleted_for_user=False)
         if thread_tip_only:
             qs = qs.filter(has_reply_for_user=False)
         return qs
 
     def for_author(self, user, thread_tip_only=False):
-        qs = self.get_query_set().filter(author=user, deleted_for_author=False)
+        qs = self.get_queryset().filter(author=user, deleted_for_author=False)
         if thread_tip_only:
             qs = qs.filter(has_reply_for_author=False)
         return qs
 
     def for_user_or_author(self, user, thread_tip_only=False):
-        qs = self.get_query_set().filter((Q(author=user) & Q(deleted_for_author=False)) | (Q(user=user) & Q(deleted_for_user=False)))
+        qs = self.get_queryset().filter((Q(author=user) & Q(deleted_for_author=False)) | (Q(user=user) & Q(deleted_for_user=False)))
         if thread_tip_only:
             qs = qs.filter(Q(has_reply_for_author=False) | Q(has_reply_for_user=False))
         return qs
@@ -69,7 +69,7 @@ class MessageManager(models.Manager):
             thread_id = message.thread
         else:
             thread_id = message.id
-        return self.get_query_set().filter(Q(thread=thread_id) | Q(id=thread_id)).filter((Q(author=user) & Q(deleted_for_author=False)) | (Q(user=user) & Q(deleted_for_user=False)))
+        return self.get_queryset().filter(Q(thread=thread_id) | Q(id=thread_id)).filter((Q(author=user) & Q(deleted_for_author=False)) | (Q(user=user) & Q(deleted_for_user=False)))
 
     def previous_in_thread(self, message, user):
         if message.thread:
@@ -82,7 +82,7 @@ class MessageManager(models.Manager):
         return None
 
     def unread(self):
-        return self.get_query_set().filter(read=False)
+        return self.get_queryset().filter(read=False)
 
     def bulk_create(self, object_list, **kwargs):
         super(MessageManager, self).bulk_create(object_list, **kwargs)
@@ -90,10 +90,14 @@ class MessageManager(models.Manager):
             User.cache.invalidate_by_pk(user_id)
 
     def cleanup(self, days, message_type=None):
-        messages_to_clean = self.get_query_set().filter(created__lte=datetime.datetime.now() - datetime.timedelta(days=days))
+        messages_to_clean = self.get_queryset().filter(created__lte=datetime.datetime.now() - datetime.timedelta(days=days))
         if message_type:
             messages_to_clean = messages_to_clean.filter(message_type=message_type)
         messages_to_clean.delete()
+
+def validate_message_type(value):
+    if value not in MESSAGE_TYPES:
+        raise ValidationError('%s is not a valid message type' % value)
 
 class Message(models.Model):
     user = models.ForeignKey(User)
@@ -114,11 +118,7 @@ class Message(models.Model):
     thread = models.PositiveIntegerField(blank=True, null=True, db_index=True)
     has_reply_for_author = models.BooleanField(default=False)
     has_reply_for_user = models.BooleanField(default=False)
-    hide_cookie_name = 'hide_new_messages'
 
-    def validate_message_type(value):
-        if value not in MESSAGE_TYPES:
-            raise ValidationError('%s is not a valid message type' % value)
     message_type = models.CharField(max_length=1,
                                     choices=MESSAGE_TYPE_CHOICES,
                                     validators=[validate_message_type])
@@ -140,7 +140,7 @@ class Message(models.Model):
         return self.subject or ugettext('[no subject]')
 
     def get_reply_url(self):
-        return '%s?reply=%s' % (reverse('messages:inbox'), self.pk)
+        return '%s?reply=%s' % (reverse('messages:new'), self.pk)
 
     def delete_for_user(self, user):
         if self.user == user:

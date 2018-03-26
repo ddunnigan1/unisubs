@@ -22,6 +22,7 @@ from datetime import datetime
 
 from django.test import TestCase
 import mock
+from nose.tools import *
 
 from caching.tests.utils import assert_invalidates_model_cache
 from teams.models import Project, TeamVideoMigration
@@ -83,3 +84,26 @@ class TeamMoveTest(TestCase):
         self.check_migration(migrations[2], datetime(2013, 01, 03),
                              self.team, self.team2, self.project2)
 
+class AddPublicVideoTest(TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.team = TeamFactory(admin=self.user)
+        self.video = VideoFactory()
+
+    def test_add(self):
+        self.team.add_existing_video(self.video, self.user)
+        team_video = self.video.get_team_video()
+        assert_equal(team_video.team, self.team)
+        assert_equal(team_video.added_by, self.user)
+        assert_equal(team_video.project, self.team.default_project)
+
+    def test_add_to_project(self):
+        project = ProjectFactory(team=self.team)
+        self.team.add_existing_video(self.video, self.user, project)
+        assert_equal(self.video.get_team_video().project, project)
+
+    def test_prevent_duplicate_public_videos_flag(self):
+        self.team.prevent_duplicate_public_videos = True
+        self.team.save()
+        self.team.add_existing_video(self.video, self.user)
+        assert_equal(self.video.get_team_video().team, self.team)

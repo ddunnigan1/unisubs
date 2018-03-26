@@ -706,12 +706,12 @@ class ActivityQueryset(query.QuerySet):
 class ActivityManager(models.Manager):
     use_for_related_fields = True
 
-    def get_query_set(self):
+    def get_queryset(self):
         return (ActivityQueryset(self.model, using=self._db)
                 .select_related('user', 'team', 'video'))
 
     def original(self):
-        return self.get_query_set().original()
+        return self.get_queryset().original()
 
     def for_video(self, video, team=None):
         qs = self.filter(video=video).original()

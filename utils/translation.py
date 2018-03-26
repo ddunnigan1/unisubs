@@ -162,7 +162,7 @@ def get_user_languages_from_request(request, readable=False, guess=True):
     """Return a list of our best guess at languages that request.user speaks."""
     languages = []
 
-    if request.user.is_authenticated():
+    if hasattr(request, 'user') and request.user.is_authenticated():
         languages = request.user.get_languages()
 
     if guess and not languages:

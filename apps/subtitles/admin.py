@@ -86,8 +86,8 @@ class SubtitleLanguageAdmin(admin.ModelAdmin):
     tip.short_description = 'tip version'
 
 class SubtitleVersionChangeList(ChangeList):
-    def get_query_set(self, request):
-        qs = super(SubtitleVersionChangeList, self).get_query_set(request)
+    def get_queryset(self, request):
+        qs = super(SubtitleVersionChangeList, self).get_queryset(request)
         # for some reason using select_related makes MySQL choose an
         # absolutely insane way to perform the query.  Use prefetch_related()
         # instead to work around this.
@@ -107,7 +107,7 @@ class SubtitleVersionAdmin(admin.ModelAdmin):
                      'language_code', 'description', 'note']
 
     # Unfortunately Django uses .all() on related managers instead of
-    # .get_query_set().  We've disabled .all() on SubtitleVersion managers so we
+    # .get_queryset().  We've disabled .all() on SubtitleVersion managers so we
     # can't let Django do this.  This means we can't edit parents in the admin,
     # but you should never be doing that anyway.
     exclude = ['parents', 'serialized_subtitles']

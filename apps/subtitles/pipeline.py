@@ -354,11 +354,13 @@ def _get_language(video, language_code):
 
     """
     try:
-        # Use select_for_update() to lock the row for the language we're about
-        # to update.  Since we know that we're going to do some work, then
-        # update the language, locking at the start prevents deadlocks.
-        return (SubtitleLanguage.objects.select_for_update()
-              .get(video=video, language_code=language_code))
+        with transaction.atomic():
+            # Use select_for_update() to lock the row for the language we're
+            # about to update.  Since we know that we're going to do some
+            # work, then update the language, locking at the start prevents
+            # deadlocks.
+            return (SubtitleLanguage.objects.select_for_update()
+                  .get(video=video, language_code=language_code))
     except SubtitleLanguage.DoesNotExist:
         return SubtitleLanguage.objects.create(video=video,
                                                language_code=language_code)
@@ -386,34 +388,35 @@ def _add_subtitles(video, sl, subtitles, title, duration, description, author,
     This function is the meat of the subtitle pipeline.  The user-facing
     add_subtitles is a thin wrappers around this.
     """
-    # Use select_for_update() to lock the row for our video.  We know
-    # that we're going to do some work, then potentially update the video,
-    # locking at the start prevents deadlocks.
-    Video.objects.select_for_update(id=video.id)
+    with transaction.atomic():
+        # Use select_for_update() to lock the row for our video.  We know
+        # that we're going to do some work, then potentially update the video,
+        # locking at the start prevents deadlocks.
+        Video.objects.select_for_update().get(id=video.id)
 
-    data = {'title': title, 'duration': duration, 'description': description, 'author': author,
-            'visibility': visibility, 'visibility_override': visibility_override,
-            'parents': [_get_version(video, p) for p in (parents or [])],
-            'rollback_of_version_number': rollback_of_version_number,
-            'created': created, 'note': note, 'origin': origin,
-            'metadata': metadata}
-    _strip_nones(data)
-    version = sl.add_version(subtitles=subtitles, **data)
-    _perform_team_operations(version, committer, action)
-    if action:
-        action.validate(author, video, sl, version)
-        action.update_language(author, video, sl, version)
-    _update_followers(sl, author)
-    if origin in (ORIGIN_UPLOAD, ORIGIN_API):
-        _fork_dependents(sl)
-    elif origin == ORIGIN_WEB_EDITOR and _timings_changed(sl, version):
-        # fork languages when they are edited in the new editor, since it's
-        # easy to make things out-of-sync from the source language.  Once we
-        # switch over to only using the new editor, we can get rid of the
-        # entire concept of forking.
-        sl.fork()
-        _fork_dependents(sl)
-    return version
+        data = {'title': title, 'duration': duration, 'description': description, 'author': author,
+                'visibility': visibility, 'visibility_override': visibility_override,
+                'parents': [_get_version(video, p) for p in (parents or [])],
+                'rollback_of_version_number': rollback_of_version_number,
+                'created': created, 'note': note, 'origin': origin,
+                'metadata': metadata}
+        _strip_nones(data)
+        version = sl.add_version(subtitles=subtitles, **data)
+        _perform_team_operations(version, committer, action)
+        if action:
+            action.validate(author, video, sl, version)
+            action.update_language(author, video, sl, version)
+        _update_followers(sl, author)
+        if origin in (ORIGIN_UPLOAD, ORIGIN_API):
+            _fork_dependents(sl)
+        elif origin == ORIGIN_WEB_EDITOR and _timings_changed(sl, version):
+            # fork languages when they are edited in the new editor, since it's
+            # easy to make things out-of-sync from the source language.  Once we
+            # switch over to only using the new editor, we can get rid of the
+            # entire concept of forking.
+            sl.fork()
+            _fork_dependents(sl)
+        return version
 
 def _rollback_to(video, subtitle_language, version_number, rollback_author):
     current = subtitle_language.get_tip(full=True)

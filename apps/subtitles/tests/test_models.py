@@ -22,7 +22,7 @@
 from __future__ import absolute_import 
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import transaction, IntegrityError
 from django.test import TestCase
 from nose.tools import *
 
@@ -61,7 +61,12 @@ class TestSubtitleLanguage(TestCase):
 
         # Cannot have more that one SL for the same video+language.
         l2 = SubtitleLanguage(video=self.video, language_code='en')
-        self.assertRaises(IntegrityError, lambda: l2.save())
+        def save_l2():
+            # Need to put this inside transaction.atomic since we want to do
+            # more DB work
+            with transaction.atomic():
+                l2.save()
+        self.assertRaises(IntegrityError, save_l2)
 
         # But other videos and other languages are fine.
         l3 = SubtitleLanguage(video=self.video2, language_code='en')

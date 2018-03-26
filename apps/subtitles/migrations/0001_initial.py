@@ -1,314 +1,107 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+import videos.metadata
 import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
 
-class Migration(SchemaMigration):
-    
-    def forwards(self, orm):
-        
-        # Adding model 'SubtitleLanguage'
-        db.create_table('subtitles_subtitlelanguage', (
-            ('writelock_owner', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='writelocked_newlanguages', null=True, to=orm['auth.CustomUser'])),
-            ('created', self.gf('django.db.models.fields.DateTimeField')()),
-            ('writelock_session_key', self.gf('django.db.models.fields.CharField')(max_length=255, blank=True)),
-            ('writelock_time', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('video', self.gf('django.db.models.fields.related.ForeignKey')(related_name='newsubtitlelanguage_set', to=orm['videos.Video'])),
-            ('language_code', self.gf('django.db.models.fields.CharField')(max_length=16)),
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-        ))
-        db.send_create_signal('subtitles', ['SubtitleLanguage'])
 
-        # Adding unique constraint on 'SubtitleLanguage', fields ['video', 'language_code']
-        db.create_unique('subtitles_subtitlelanguage', ['video_id', 'language_code'])
+class Migration(migrations.Migration):
 
-        # Adding M2M table for field collaborators on 'SubtitleLanguage'
-        db.create_table('subtitles_subtitlelanguage_collaborators', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('subtitlelanguage', models.ForeignKey(orm['subtitles.subtitlelanguage'], null=False)),
-            ('customuser', models.ForeignKey(orm['auth.customuser'], null=False))
-        ))
-        db.create_unique('subtitles_subtitlelanguage_collaborators', ['subtitlelanguage_id', 'customuser_id'])
+    dependencies = [
+        ('amara_auth', '0001_initial'),
+        ('videos', '0001_initial'),
+    ]
 
-        # Adding M2M table for field followers on 'SubtitleLanguage'
-        db.create_table('subtitles_subtitlelanguage_followers', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('subtitlelanguage', models.ForeignKey(orm['subtitles.subtitlelanguage'], null=False)),
-            ('customuser', models.ForeignKey(orm['auth.customuser'], null=False))
-        ))
-        db.create_unique('subtitles_subtitlelanguage_followers', ['subtitlelanguage_id', 'customuser_id'])
-
-        # Adding model 'SubtitleVersion'
-        db.create_table('subtitles_subtitleversion', (
-            ('version_number', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
-            ('description', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('author', self.gf('django.db.models.fields.related.ForeignKey')(related_name='newsubtitleversion_set', to=orm['auth.CustomUser'])),
-            ('title', self.gf('django.db.models.fields.CharField')(max_length=2048, blank=True)),
-            ('serialized_lineage', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('visibility', self.gf('django.db.models.fields.CharField')(default='public', max_length=10)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')()),
-            ('serialized_subtitles', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('video', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['videos.Video'])),
-            ('language_code', self.gf('django.db.models.fields.CharField')(max_length=16)),
-            ('subtitle_language', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['subtitles.SubtitleLanguage'])),
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-        ))
-        db.send_create_signal('subtitles', ['SubtitleVersion'])
-
-        # Adding unique constraint on 'SubtitleVersion', fields ['video', 'language_code', 'version_number']
-        db.create_unique('subtitles_subtitleversion', ['video_id', 'language_code', 'version_number'])
-
-        # Adding M2M table for field parents on 'SubtitleVersion'
-        db.create_table('subtitles_subtitleversion_parents', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('from_subtitleversion', models.ForeignKey(orm['subtitles.subtitleversion'], null=False)),
-            ('to_subtitleversion', models.ForeignKey(orm['subtitles.subtitleversion'], null=False))
-        ))
-        db.create_unique('subtitles_subtitleversion_parents', ['from_subtitleversion_id', 'to_subtitleversion_id'])
-    
-    
-    def backwards(self, orm):
-        
-        # Deleting model 'SubtitleLanguage'
-        db.delete_table('subtitles_subtitlelanguage')
-
-        # Removing unique constraint on 'SubtitleLanguage', fields ['video', 'language_code']
-        db.delete_unique('subtitles_subtitlelanguage', ['video_id', 'language_code'])
-
-        # Removing M2M table for field collaborators on 'SubtitleLanguage'
-        db.delete_table('subtitles_subtitlelanguage_collaborators')
-
-        # Removing M2M table for field followers on 'SubtitleLanguage'
-        db.delete_table('subtitles_subtitlelanguage_followers')
-
-        # Deleting model 'SubtitleVersion'
-        db.delete_table('subtitles_subtitleversion')
-
-        # Removing unique constraint on 'SubtitleVersion', fields ['video', 'language_code', 'version_number']
-        db.delete_unique('subtitles_subtitleversion', ['video_id', 'language_code', 'version_number'])
-
-        # Removing M2M table for field parents on 'SubtitleVersion'
-        db.delete_table('subtitles_subtitleversion_parents')
-    
-    
-    models = {
-        'accountlinker.thirdpartyaccount': {
-            'Meta': {'unique_together': "(('type', 'username'),)", 'object_name': 'ThirdPartyAccount'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'oauth_access_token': ('django.db.models.fields.CharField', [], {'max_length': '255', 'db_index': 'True'}),
-            'oauth_refresh_token': ('django.db.models.fields.CharField', [], {'max_length': '255', 'db_index': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'max_length': '10'}),
-            'username': ('django.db.models.fields.CharField', [], {'max_length': '255', 'db_index': 'True'})
-        },
-        'auth.customuser': {
-            'Meta': {'object_name': 'CustomUser', '_ormbases': ['auth.User']},
-            'autoplay_preferences': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'award_points': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'biography': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'can_send_messages': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'full_name': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '63', 'blank': 'True'}),
-            'homepage': ('django.db.models.fields.URLField', [], {'max_length': '200', 'blank': 'True'}),
-            'is_partner': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'last_ip': ('django.db.models.fields.IPAddressField', [], {'max_length': '15', 'null': 'True', 'blank': 'True'}),
-            'notify_by_email': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'notify_by_message': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'partner': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '32', 'null': 'True', 'blank': 'True'}),
-            'picture': ('utils.amazon.fields.S3EnabledImageField', [], {'thumb_options': "{'upscale': True, 'crop': 'smart'}", 'max_length': '100', 'blank': 'True'}),
-            'preferred_language': ('django.db.models.fields.CharField', [], {'max_length': '16', 'blank': 'True'}),
-            'user_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['auth.User']", 'unique': 'True', 'primary_key': 'True'}),
-            'valid_email': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'videos': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['videos.Video']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        'auth.permission': {
-            'Meta': {'unique_together': "(('content_type', 'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['contenttypes.ContentType']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        'contenttypes.contenttype': {
-            'Meta': {'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        'subtitles.subtitlelanguage': {
-            'Meta': {'unique_together': "[('video', 'language_code')]", 'object_name': 'SubtitleLanguage'},
-            'collaborators': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'collab_newlanguages'", 'blank': 'True', 'to': "orm['auth.CustomUser']"}),
-            'created': ('django.db.models.fields.DateTimeField', [], {}),
-            'followers': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'followed_newlanguages'", 'blank': 'True', 'to': "orm['auth.CustomUser']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'language_code': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
-            'video': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'newsubtitlelanguage_set'", 'to': "orm['videos.Video']"}),
-            'writelock_owner': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'writelocked_newlanguages'", 'null': 'True', 'to': "orm['auth.CustomUser']"}),
-            'writelock_session_key': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            'writelock_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'})
-        },
-        'subtitles.subtitleversion': {
-            'Meta': {'unique_together': "[('video', 'language_code', 'version_number')]", 'object_name': 'SubtitleVersion'},
-            'author': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'newsubtitleversion_set'", 'to': "orm['auth.CustomUser']"}),
-            'created': ('django.db.models.fields.DateTimeField', [], {}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'language_code': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
-            'parents': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['subtitles.SubtitleVersion']", 'symmetrical': 'False'}),
-            'serialized_lineage': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'serialized_subtitles': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'subtitle_language': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['subtitles.SubtitleLanguage']"}),
-            'title': ('django.db.models.fields.CharField', [], {'max_length': '2048', 'blank': 'True'}),
-            'version_number': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'video': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['videos.Video']"}),
-            'visibility': ('django.db.models.fields.CharField', [], {'default': "'public'", 'max_length': '10'})
-        },
-        'teams.application': {
-            'Meta': {'unique_together': "(('team', 'user'),)", 'object_name': 'Application'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'note': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'applications'", 'to': "orm['teams.Team']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'team_applications'", 'to': "orm['auth.CustomUser']"})
-        },
-        'teams.project': {
-            'Meta': {'unique_together': "(('team', 'name'), ('team', 'slug'))", 'object_name': 'Project'},
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'max_length': '2048', 'null': 'True', 'blank': 'True'}),
-            'guidelines': ('django.db.models.fields.TextField', [], {'max_length': '2048', 'null': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'modified': ('django.db.models.fields.DateTimeField', [], {'blank': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'order': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'db_index': 'True', 'max_length': '50', 'blank': 'True'}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['teams.Team']"}),
-            'workflow_enabled': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'})
-        },
-        'teams.team': {
-            'Meta': {'object_name': 'Team'},
-            'applicants': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'applicated_teams'", 'symmetrical': 'False', 'through': "orm['teams.Application']", 'to': "orm['auth.CustomUser']"}),
-            'application_text': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'auth_provider_code': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '24', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'header_html_text': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
-            'highlight': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_moderated': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'is_visible': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'last_notification_time': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'logo': ('utils.amazon.fields.S3EnabledImageField', [], {'thumb_options': "{'upscale': True, 'autocrop': True}", 'max_length': '100', 'blank': 'True'}),
-            'max_tasks_per_member': ('django.db.models.fields.PositiveIntegerField', [], {'default': 'None', 'null': 'True', 'blank': 'True'}),
-            'membership_policy': ('django.db.models.fields.IntegerField', [], {'default': '4'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '250'}),
-            'page_content': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'points': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'projects_enabled': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50', 'db_index': 'True'}),
-            'subtitle_policy': ('django.db.models.fields.IntegerField', [], {'default': '10'}),
-            'task_assign_policy': ('django.db.models.fields.IntegerField', [], {'default': '10'}),
-            'task_expiration': ('django.db.models.fields.PositiveIntegerField', [], {'default': 'None', 'null': 'True', 'blank': 'True'}),
-            'third_party_accounts': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'tseams'", 'symmetrical': 'False', 'to': "orm['accountlinker.ThirdPartyAccount']"}),
-            'translate_policy': ('django.db.models.fields.IntegerField', [], {'default': '10'}),
-            'users': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'teams'", 'symmetrical': 'False', 'through': "orm['teams.TeamMember']", 'to': "orm['auth.CustomUser']"}),
-            'video': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'intro_for_teams'", 'null': 'True', 'to': "orm['videos.Video']"}),
-            'video_policy': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'videos': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['videos.Video']", 'through': "orm['teams.TeamVideo']", 'symmetrical': 'False'}),
-            'workflow_enabled': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'})
-        },
-        'teams.teammember': {
-            'Meta': {'unique_together': "(('team', 'user'),)", 'object_name': 'TeamMember'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'role': ('django.db.models.fields.CharField', [], {'default': "'contributor'", 'max_length': '16', 'db_index': 'True'}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'members'", 'to': "orm['teams.Team']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'team_members'", 'to': "orm['auth.CustomUser']"})
-        },
-        'teams.teamvideo': {
-            'Meta': {'unique_together': "(('team', 'video'),)", 'object_name': 'TeamVideo'},
-            'added_by': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.CustomUser']"}),
-            'all_languages': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'completed_languages': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['videos.SubtitleLanguage']", 'symmetrical': 'False', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'partner_id': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '100', 'blank': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['teams.Project']"}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['teams.Team']"}),
-            'thumbnail': ('utils.amazon.fields.S3EnabledImageField', [], {'max_length': '100', 'thumb_options': "{'upscale': True, 'crop': 'smart'}", 'null': 'True', 'thumb_sizes': '((290, 165), (120, 90))', 'blank': 'True'}),
-            'title': ('django.db.models.fields.CharField', [], {'max_length': '2048', 'blank': 'True'}),
-            'video': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['videos.Video']", 'unique': 'True'})
-        },
-        'videos.subtitlelanguage': {
-            'Meta': {'unique_together': "(('video', 'language', 'standard_language'),)", 'object_name': 'SubtitleLanguage'},
-            'created': ('django.db.models.fields.DateTimeField', [], {}),
-            'followers': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'followed_languages'", 'blank': 'True', 'to': "orm['auth.CustomUser']"}),
-            'had_version': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'has_version': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_complete': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'is_forked': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'is_original': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'language': ('django.db.models.fields.CharField', [], {'max_length': '16', 'blank': 'True'}),
-            'percent_done': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'standard_language': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['videos.SubtitleLanguage']", 'null': 'True', 'blank': 'True'}),
-            'subtitle_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'subtitles_fetched_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'video': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['videos.Video']"}),
-            'writelock_owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.CustomUser']", 'null': 'True', 'blank': 'True'}),
-            'writelock_session_key': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            'writelock_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'})
-        },
-        'videos.video': {
-            'Meta': {'object_name': 'Video'},
-            'allow_community_edits': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'allow_video_urls_edit': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'complete_date': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'duration': ('django.db.models.fields.PositiveIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'edited': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'featured': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'followers': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'followed_videos'", 'blank': 'True', 'to': "orm['auth.CustomUser']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_public': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
-            'is_subtitled': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
-            'languages_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'moderated_by': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'moderating'", 'null': 'True', 'to': "orm['teams.Team']"}),
-            's3_thumbnail': ('utils.amazon.fields.S3EnabledImageField', [], {'thumb_options': "{'upscale': True, 'crop': 'smart'}", 'max_length': '100', 'thumb_sizes': '((290, 165), (120, 90))', 'blank': 'True'}),
-            'small_thumbnail': ('django.db.models.fields.CharField', [], {'max_length': '500', 'blank': 'True'}),
-            'subtitles_fetched_count': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'thumbnail': ('django.db.models.fields.CharField', [], {'max_length': '500', 'blank': 'True'}),
-            'title': ('django.db.models.fields.CharField', [], {'max_length': '2048', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.CustomUser']", 'null': 'True', 'blank': 'True'}),
-            'video_id': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
-            'view_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'was_subtitled': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True', 'blank': 'True'}),
-            'widget_views_count': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'writelock_owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'writelock_owners'", 'null': 'True', 'to': "orm['auth.CustomUser']"}),
-            'writelock_session_key': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'writelock_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'})
-        }
-    }
-    
-    complete_apps = ['subtitles']
+    operations = [
+        migrations.CreateModel(
+            name='SubtitleLanguage',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('language_code', models.CharField(max_length=16, choices=[(b'ab', 'Abkhazian'), (b'ace', 'Acehnese'), (b'aa', 'Afar'), (b'af', 'Afrikaans'), (b'aka', 'Akan'), (b'sq', 'Albanian'), (b'arq', 'Algerian Arabic'), (b'ase', 'American Sign Language'), (b'amh', 'Amharic'), (b'am', 'Amharic'), (b'ami', 'Amis'), (b'ar', 'Arabic'), (b'an', 'Aragonese'), (b'arc', 'Aramaic'), (b'hy', 'Armenian'), (b'as', 'Assamese'), (b'ast', 'Asturian'), (b'av', 'Avaric'), (b'ae', 'Avestan'), (b'ay', 'Aymara'), (b'az', 'Azerbaijani'), (b'bam', 'Bambara'), (b'ba', 'Bashkir'), (b'eu', 'Basque'), (b'be', 'Belarusian'), (b'bem', 'Bemba (Zambia)'), (b'bn', 'Bengali'), (b'ber', 'Berber'), (b'bh', 'Bihari'), (b'bi', 'Bislama'), (b'bs', 'Bosnian'), (b'br', 'Breton'), (b'bug', 'Buginese'), (b'bg', 'Bulgarian'), (b'my', 'Burmese'), (b'cak', 'Cakchiquel, Central'), (b'ca', 'Catalan'), (b'ceb', 'Cebuano'), (b'ch', 'Chamorro'), (b'ce', 'Chechen'), (b'chr', 'Cherokee'), (b'nya', 'Chewa'), (b'ctd', 'Chin, Tedim'), (b'zh-hans', b'Chinese (Simplified Han)'), (b'zh-hant', b'Chinese (Traditional Han)'), (b'zh-cn', 'Chinese, Simplified'), (b'zh-sg', 'Chinese, Simplified (Singaporean)'), (b'zh-tw', 'Chinese, Traditional'), (b'zh-hk', 'Chinese, Traditional (Hong Kong)'), (b'zh', 'Chinese, Yue'), (b'cho', 'Choctaw'), (b'ctu', 'Chol, Tumbal\xe1'), (b'cu', 'Church Slavic'), (b'cv', 'Chuvash'), (b'ksh', 'Colognian'), (b'rar', 'Cook Islands M\u0101ori'), (b'kw', 'Cornish'), (b'co', 'Corsican'), (b'cr', 'Cree'), (b'ht', 'Creole, Haitian'), (b'hr', 'Croatian'), (b'cs', 'Czech'), (b'da', 'Danish'), (b'prs', 'Dari'), (b'din', 'Dinka'), (b'dv', 'Divehi'), (b'nl', 'Dutch'), (b'nl-be', 'Dutch (Belgium)'), (b'dz', 'Dzongkha'), (b'cly', 'Eastern Chatino'), (b'efi', 'Efik'), (b'arz', 'Egyptian Arabic'), (b'en', 'English'), (b'en-au', 'English (Australia)'), (b'en-ca', 'English (Canada)'), (b'en-in', 'English (India)'), (b'en-ie', 'English (Ireland)'), (b'en-us', 'English (United States)'), (b'en-gb', 'English, British'), (b'eo', 'Esperanto'), (b'et', 'Estonian'), (b'ee', 'Ewe'), (b'fo', 'Faroese'), (b'fj', 'Fijian'), (b'fil', 'Filipino'), (b'fi', 'Finnish'), (b'vls', 'Flemish'), (b'fr', 'French'), (b'fr-be', 'French (Belgium)'), (b'fr-ca', 'French (Canada)'), (b'fr-ch', 'French (Switzerland)'), (b'fy-nl', 'Frisian'), (b'ful', 'Fula'), (b'ff', 'Fulah'), (b'gl', 'Galician'), (b'lg', 'Ganda'), (b'ka', 'Georgian'), (b'de', 'German'), (b'de-at', 'German (Austria)'), (b'de-ch', 'German (Switzerland)'), (b'kik', 'Gikuyu'), (b'got', 'Gothic'), (b'el', 'Greek'), (b'kl', 'Greenlandic'), (b'gn', 'Guaran'), (b'gu', 'Gujarati'), (b'hai', 'Haida'), (b'cnh', 'Hakha Chin'), (b'hb', 'HamariBoli (Roman Hindi-Urdu)'), (b'hau', 'Hausa'), (b'ha', b'Hausa'), (b'hwc', "Hawai'i Creole English"), (b'haw', 'Hawaiian'), (b'haz', 'Hazaragi'), (b'iw', b'Hebrew'), (b'he', 'Hebrew'), (b'hz', 'Herero'), (b'hi', 'Hindi'), (b'ho', 'Hiri Motu'), (b'hmn', 'Hmong'), (b'nan', 'Hokkien'), (b'hus', 'Huastec, Veracruz'), (b'hch', 'Huichol'), (b'hu', 'Hungarian'), (b'hup', 'Hupa'), (b'bnt', 'Ibibio'), (b'is', 'Icelandic'), (b'io', 'Ido'), (b'ibo', 'Igbo'), (b'ilo', 'Ilocano'), (b'id', 'Indonesian'), (b'inh', 'Ingush'), (b'ia', 'Interlingua'), (b'ie', 'Interlingue'), (b'iu', 'Inuktitut'), (b'ik', 'Inupia'), (b'ga', 'Irish'), (b'iro', 'Iroquoian languages'), (b'it', 'Italian'), (b'ja', 'Japanese'), (b'jv', 'Javanese'), (b'kn', 'Kannada'), (b'kau', 'Kanuri'), (b'pam', 'Kapampangan'), (b'kaa', 'Karakalpak'), (b'kar', 'Karen'), (b'ks', 'Kashmiri'), (b'kk', 'Kazakh'), (b'km', 'Khmer'), (b'rw', b'Kinyarwanda'), (b'tlh', 'Klingon'), (b'cku', 'Koasati'), (b'kv', 'Komi'), (b'kon', 'Kongo'), (b'ko', 'Korean'), (b'kj', 'Kuanyama, Kwanyama'), (b'ku', 'Kurdish'), (b'ckb', 'Kurdish (Central)'), (b'ky', 'Kyrgyz'), (b'lld', 'Ladin'), (b'lkt', 'Lakota'), (b'lo', 'Lao'), (b'ltg', 'Latgalian'), (b'la', 'Latin'), (b'lv', 'Latvian'), (b'li', 'Limburgish'), (b'ln', b'Lingala'), (b'lin', 'Lingala'), (b'lt', 'Lithuanian'), (b'dsb', b'Lower Sorbian'), (b'loz', 'Lozi'), (b'lua', 'Luba-Kasai'), (b'lu', 'Luba-Katagana'), (b'luy', 'Luhya'), (b'luo', 'Luo'), (b'lut', 'Lushootseed'), (b'lb', 'Luxembourgish'), (b'rup', 'Macedo'), (b'mk', 'Macedonian'), (b'mad', 'Madurese'), (b'mg', b'Malagasy'), (b'mlg', 'Malagasy'), (b'ms', 'Malay'), (b'ml', 'Malayalam'), (b'mt', 'Maltese'), (b'mnk', 'Mandinka'), (b'mni', 'Manipuri'), (b'gv', 'Manx'), (b'mi', 'Maori'), (b'mr', 'Marathi'), (b'mh', 'Marshallese'), (b'mfe', b'Mauritian Creole'), (b'yua', 'Maya, Yucat\xe1n'), (b'meta-audio', 'Metadata: Audio Description'), (b'meta-geo', 'Metadata: Geo'), (b'meta-tw', 'Metadata: Twitter'), (b'meta-video', 'Metadata: Video Description'), (b'meta-wiki', 'Metadata: Wikipedia'), (b'lus', 'Mizo'), (b'moh', 'Mohawk'), (b'mo', 'Moldavian, Moldovan'), (b'mn', 'Mongolian'), (b'srp', 'Montenegrin'), (b'mos', 'Mossi'), (b'mus', 'Muscogee'), (b'nci', 'Nahuatl, Classical'), (b'ncj', 'Nahuatl, Northern Puebla'), (b'na', 'Naurunan'), (b'nv', 'Navajo'), (b'ng', 'Ndonga'), (b'ne', 'Nepali'), (b'pcm', 'Nigerian Pidgin'), (b'nd', 'North Ndebele'), (b'se', 'Northern Sami'), (b'nso', 'Northern Sotho'), (b'no', 'Norwegian'), (b'nb', 'Norwegian Bokmal'), (b'nn', 'Norwegian Nynorsk'), (b'oc', 'Occitan'), (b'oji', 'Ojibwe'), (b'or', 'Oriya'), (b'orm', 'Oromo'), (b'om', b'Oromo'), (b'os', 'Ossetian, Ossetic'), (b'x-other', 'Other'), (b'pi', 'Pali'), (b'pap', 'Papiamento'), (b'ps', 'Pashto'), (b'fa', 'Persian'), (b'fa-af', 'Persian (Afghanistan)'), (b'pcd', 'Picard'), (b'pl', 'Polish'), (b'pt', 'Portuguese'), (b'pt-pt', b'Portuguese (Portugal)'), (b'pt-br', 'Portuguese, Brazilian'), (b'pa', b'Punjabi'), (b'pan', 'Punjabi'), (b'tsz', 'Purepecha'), (b'tob', b'Qom (Toba)'), (b'que', 'Quechua'), (b'qu', b'Quechua'), (b'qvi', 'Quichua, Imbabura Highland'), (b'raj', 'Rajasthani'), (b'ro', 'Romanian'), (b'rm', 'Romansh'), (b'rn', b'Rundi'), (b'run', 'Rundi'), (b'ru', 'Russian'), (b'ry', 'Rusyn'), (b'kin', 'Rwandi'), (b'sm', 'Samoan'), (b'sg', 'Sango'), (b'sa', 'Sanskrit'), (b'sc', 'Sardinian'), (b'sco', 'Scots'), (b'gd', 'Scottish Gaelic'), (b'trv', 'Seediq'), (b'skx', 'Seko Padang'), (b'sr', 'Serbian'), (b'sr-latn', 'Serbian, Latin'), (b'sh', 'Serbo-Croatian'), (b'crs', 'Seselwa Creole French'), (b'shp', 'Shipibo-Conibo'), (b'sna', 'Shona'), (b'sn', b'Shona'), (b'ii', 'Sichuan Yi'), (b'scn', 'Sicilian'), (b'sgn', 'Sign Languages'), (b'szl', 'Silesian'), (b'sd', 'Sindhi'), (b'si', 'Sinhala'), (b'sk', 'Slovak'), (b'sl', 'Slovenian'), (b'sby', 'Soli'), (b'so', b'Somali'), (b'som', 'Somali'), (b'sot', 'Sotho'), (b'nr', 'Southern Ndebele'), (b'st', 'Southern Sotho'), (b'es', 'Spanish'), (b'es-ec', 'Spanish (Ecuador)'), (b'es-419', 'Spanish (Latin America)'), (b'es-es', b'Spanish (Spain)'), (b'es-ar', 'Spanish, Argentinian'), (b'es-mx', 'Spanish, Mexican'), (b'es-ni', 'Spanish, Nicaraguan'), (b'su', 'Sundanese'), (b'sw', b'Swahili'), (b'swa', 'Swahili'), (b'ss', 'Swati'), (b'sv', 'Swedish'), (b'gsw', 'Swiss German'), (b'tl', 'Tagalog'), (b'ty', 'Tahitian'), (b'tg', 'Tajik'), (b'ta', 'Tamil'), (b'tar', 'Tarahumara, Central'), (b'cta', 'Tataltepec Chatino'), (b'tt', 'Tatar'), (b'te', 'Telugu'), (b'tet', 'Tetum'), (b'th', 'Thai'), (b'bo', 'Tibetan'), (b'ti', b'Tigrinya'), (b'tir', 'Tigrinya'), (b'toj', 'Tojolabal'), (b'to', 'Tonga'), (b'ts', 'Tsonga'), (b'tn', b'Tswana'), (b'tsn', 'Tswana'), (b'aeb', 'Tunisian Arabic'), (b'tr', 'Turkish'), (b'tk', 'Turkmen'), (b'tw', 'Twi'), (b'tzh', 'Tzeltal, Oxchuc'), (b'tzo', 'Tzotzil, Venustiano Carranza'), (b'uk', 'Ukrainian'), (b'umb', 'Umbundu'), (b'hsb', b'Upper Sorbian'), (b'ur', 'Urdu'), (b'ug', 'Uyghur'), (b'uz', 'Uzbek'), (b've', 'Venda'), (b'vi', 'Vietnamese'), (b'vo', 'Volapuk'), (b'wbl', 'Wakhi'), (b'wa', 'Walloon'), (b'wau', 'Wauja'), (b'cy', 'Welsh'), (b'fy', b'Western Frisian'), (b'pnb', 'Western Punjabi'), (b'wol', 'Wolof'), (b'wo', b'Wolof'), (b'xho', 'Xhosa'), (b'xh', b'Xhosa'), (b'tao', 'Yami (Tao)'), (b'yaq', 'Yaqui'), (b'yi', 'Yiddish'), (b'yo', b'Yoruba'), (b'yor', 'Yoruba'), (b'zam', 'Zapotec, Miahuatl\xe1n'), (b'zza', 'Zazaki'), (b'czn', 'Zenzontepec Chatino'), (b'za', 'Zhuang, Chuang'), (b'zu', b'Zulu'), (b'zul', 'Zulu')])),
+                ('created', models.DateTimeField(editable=False)),
+                ('subtitles_complete', models.BooleanField(default=False)),
+                ('is_forked', models.BooleanField(default=False)),
+                ('writelock_time', models.DateTimeField(null=True, editable=False, blank=True)),
+                ('writelock_session_key', models.CharField(max_length=255, editable=False, blank=True)),
+                ('followers', models.ManyToManyField(related_name='new_followed_languages', editable=False, to='amara_auth.CustomUser', blank=True)),
+                ('video', models.ForeignKey(related_name='newsubtitlelanguage_set', to='videos.Video')),
+                ('writelock_owner', models.ForeignKey(related_name='writelocked_newlanguages', blank=True, editable=False, to='amara_auth.CustomUser', null=True)),
+            ],
+            options={
+                'permissions': (('access_restricted_subtitle_format', 'Can access restricted subtitle format'),),
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='SubtitleNote',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('language_code', models.CharField(max_length=16, choices=[(b'ab', 'Abkhazian'), (b'ace', 'Acehnese'), (b'aa', 'Afar'), (b'af', 'Afrikaans'), (b'aka', 'Akan'), (b'sq', 'Albanian'), (b'arq', 'Algerian Arabic'), (b'ase', 'American Sign Language'), (b'amh', 'Amharic'), (b'am', 'Amharic'), (b'ami', 'Amis'), (b'ar', 'Arabic'), (b'an', 'Aragonese'), (b'arc', 'Aramaic'), (b'hy', 'Armenian'), (b'as', 'Assamese'), (b'ast', 'Asturian'), (b'av', 'Avaric'), (b'ae', 'Avestan'), (b'ay', 'Aymara'), (b'az', 'Azerbaijani'), (b'bam', 'Bambara'), (b'ba', 'Bashkir'), (b'eu', 'Basque'), (b'be', 'Belarusian'), (b'bem', 'Bemba (Zambia)'), (b'bn', 'Bengali'), (b'ber', 'Berber'), (b'bh', 'Bihari'), (b'bi', 'Bislama'), (b'bs', 'Bosnian'), (b'br', 'Breton'), (b'bug', 'Buginese'), (b'bg', 'Bulgarian'), (b'my', 'Burmese'), (b'cak', 'Cakchiquel, Central'), (b'ca', 'Catalan'), (b'ceb', 'Cebuano'), (b'ch', 'Chamorro'), (b'ce', 'Chechen'), (b'chr', 'Cherokee'), (b'nya', 'Chewa'), (b'ctd', 'Chin, Tedim'), (b'zh-hans', b'Chinese (Simplified Han)'), (b'zh-hant', b'Chinese (Traditional Han)'), (b'zh-cn', 'Chinese, Simplified'), (b'zh-sg', 'Chinese, Simplified (Singaporean)'), (b'zh-tw', 'Chinese, Traditional'), (b'zh-hk', 'Chinese, Traditional (Hong Kong)'), (b'zh', 'Chinese, Yue'), (b'cho', 'Choctaw'), (b'ctu', 'Chol, Tumbal\xe1'), (b'cu', 'Church Slavic'), (b'cv', 'Chuvash'), (b'ksh', 'Colognian'), (b'rar', 'Cook Islands M\u0101ori'), (b'kw', 'Cornish'), (b'co', 'Corsican'), (b'cr', 'Cree'), (b'ht', 'Creole, Haitian'), (b'hr', 'Croatian'), (b'cs', 'Czech'), (b'da', 'Danish'), (b'prs', 'Dari'), (b'din', 'Dinka'), (b'dv', 'Divehi'), (b'nl', 'Dutch'), (b'nl-be', 'Dutch (Belgium)'), (b'dz', 'Dzongkha'), (b'cly', 'Eastern Chatino'), (b'efi', 'Efik'), (b'arz', 'Egyptian Arabic'), (b'en', 'English'), (b'en-au', 'English (Australia)'), (b'en-ca', 'English (Canada)'), (b'en-in', 'English (India)'), (b'en-ie', 'English (Ireland)'), (b'en-us', 'English (United States)'), (b'en-gb', 'English, British'), (b'eo', 'Esperanto'), (b'et', 'Estonian'), (b'ee', 'Ewe'), (b'fo', 'Faroese'), (b'fj', 'Fijian'), (b'fil', 'Filipino'), (b'fi', 'Finnish'), (b'vls', 'Flemish'), (b'fr', 'French'), (b'fr-be', 'French (Belgium)'), (b'fr-ca', 'French (Canada)'), (b'fr-ch', 'French (Switzerland)'), (b'fy-nl', 'Frisian'), (b'ful', 'Fula'), (b'ff', 'Fulah'), (b'gl', 'Galician'), (b'lg', 'Ganda'), (b'ka', 'Georgian'), (b'de', 'German'), (b'de-at', 'German (Austria)'), (b'de-ch', 'German (Switzerland)'), (b'kik', 'Gikuyu'), (b'got', 'Gothic'), (b'el', 'Greek'), (b'kl', 'Greenlandic'), (b'gn', 'Guaran'), (b'gu', 'Gujarati'), (b'hai', 'Haida'), (b'cnh', 'Hakha Chin'), (b'hb', 'HamariBoli (Roman Hindi-Urdu)'), (b'hau', 'Hausa'), (b'ha', b'Hausa'), (b'hwc', "Hawai'i Creole English"), (b'haw', 'Hawaiian'), (b'haz', 'Hazaragi'), (b'iw', b'Hebrew'), (b'he', 'Hebrew'), (b'hz', 'Herero'), (b'hi', 'Hindi'), (b'ho', 'Hiri Motu'), (b'hmn', 'Hmong'), (b'nan', 'Hokkien'), (b'hus', 'Huastec, Veracruz'), (b'hch', 'Huichol'), (b'hu', 'Hungarian'), (b'hup', 'Hupa'), (b'bnt', 'Ibibio'), (b'is', 'Icelandic'), (b'io', 'Ido'), (b'ibo', 'Igbo'), (b'ilo', 'Ilocano'), (b'id', 'Indonesian'), (b'inh', 'Ingush'), (b'ia', 'Interlingua'), (b'ie', 'Interlingue'), (b'iu', 'Inuktitut'), (b'ik', 'Inupia'), (b'ga', 'Irish'), (b'iro', 'Iroquoian languages'), (b'it', 'Italian'), (b'ja', 'Japanese'), (b'jv', 'Javanese'), (b'kn', 'Kannada'), (b'kau', 'Kanuri'), (b'pam', 'Kapampangan'), (b'kaa', 'Karakalpak'), (b'kar', 'Karen'), (b'ks', 'Kashmiri'), (b'kk', 'Kazakh'), (b'km', 'Khmer'), (b'rw', b'Kinyarwanda'), (b'tlh', 'Klingon'), (b'cku', 'Koasati'), (b'kv', 'Komi'), (b'kon', 'Kongo'), (b'ko', 'Korean'), (b'kj', 'Kuanyama, Kwanyama'), (b'ku', 'Kurdish'), (b'ckb', 'Kurdish (Central)'), (b'ky', 'Kyrgyz'), (b'lld', 'Ladin'), (b'lkt', 'Lakota'), (b'lo', 'Lao'), (b'ltg', 'Latgalian'), (b'la', 'Latin'), (b'lv', 'Latvian'), (b'li', 'Limburgish'), (b'ln', b'Lingala'), (b'lin', 'Lingala'), (b'lt', 'Lithuanian'), (b'dsb', b'Lower Sorbian'), (b'loz', 'Lozi'), (b'lua', 'Luba-Kasai'), (b'lu', 'Luba-Katagana'), (b'luy', 'Luhya'), (b'luo', 'Luo'), (b'lut', 'Lushootseed'), (b'lb', 'Luxembourgish'), (b'rup', 'Macedo'), (b'mk', 'Macedonian'), (b'mad', 'Madurese'), (b'mg', b'Malagasy'), (b'mlg', 'Malagasy'), (b'ms', 'Malay'), (b'ml', 'Malayalam'), (b'mt', 'Maltese'), (b'mnk', 'Mandinka'), (b'mni', 'Manipuri'), (b'gv', 'Manx'), (b'mi', 'Maori'), (b'mr', 'Marathi'), (b'mh', 'Marshallese'), (b'mfe', b'Mauritian Creole'), (b'yua', 'Maya, Yucat\xe1n'), (b'meta-audio', 'Metadata: Audio Description'), (b'meta-geo', 'Metadata: Geo'), (b'meta-tw', 'Metadata: Twitter'), (b'meta-video', 'Metadata: Video Description'), (b'meta-wiki', 'Metadata: Wikipedia'), (b'lus', 'Mizo'), (b'moh', 'Mohawk'), (b'mo', 'Moldavian, Moldovan'), (b'mn', 'Mongolian'), (b'srp', 'Montenegrin'), (b'mos', 'Mossi'), (b'mus', 'Muscogee'), (b'nci', 'Nahuatl, Classical'), (b'ncj', 'Nahuatl, Northern Puebla'), (b'na', 'Naurunan'), (b'nv', 'Navajo'), (b'ng', 'Ndonga'), (b'ne', 'Nepali'), (b'pcm', 'Nigerian Pidgin'), (b'nd', 'North Ndebele'), (b'se', 'Northern Sami'), (b'nso', 'Northern Sotho'), (b'no', 'Norwegian'), (b'nb', 'Norwegian Bokmal'), (b'nn', 'Norwegian Nynorsk'), (b'oc', 'Occitan'), (b'oji', 'Ojibwe'), (b'or', 'Oriya'), (b'orm', 'Oromo'), (b'om', b'Oromo'), (b'os', 'Ossetian, Ossetic'), (b'x-other', 'Other'), (b'pi', 'Pali'), (b'pap', 'Papiamento'), (b'ps', 'Pashto'), (b'fa', 'Persian'), (b'fa-af', 'Persian (Afghanistan)'), (b'pcd', 'Picard'), (b'pl', 'Polish'), (b'pt', 'Portuguese'), (b'pt-pt', b'Portuguese (Portugal)'), (b'pt-br', 'Portuguese, Brazilian'), (b'pa', b'Punjabi'), (b'pan', 'Punjabi'), (b'tsz', 'Purepecha'), (b'tob', b'Qom (Toba)'), (b'que', 'Quechua'), (b'qu', b'Quechua'), (b'qvi', 'Quichua, Imbabura Highland'), (b'raj', 'Rajasthani'), (b'ro', 'Romanian'), (b'rm', 'Romansh'), (b'rn', b'Rundi'), (b'run', 'Rundi'), (b'ru', 'Russian'), (b'ry', 'Rusyn'), (b'kin', 'Rwandi'), (b'sm', 'Samoan'), (b'sg', 'Sango'), (b'sa', 'Sanskrit'), (b'sc', 'Sardinian'), (b'sco', 'Scots'), (b'gd', 'Scottish Gaelic'), (b'trv', 'Seediq'), (b'skx', 'Seko Padang'), (b'sr', 'Serbian'), (b'sr-latn', 'Serbian, Latin'), (b'sh', 'Serbo-Croatian'), (b'crs', 'Seselwa Creole French'), (b'shp', 'Shipibo-Conibo'), (b'sna', 'Shona'), (b'sn', b'Shona'), (b'ii', 'Sichuan Yi'), (b'scn', 'Sicilian'), (b'sgn', 'Sign Languages'), (b'szl', 'Silesian'), (b'sd', 'Sindhi'), (b'si', 'Sinhala'), (b'sk', 'Slovak'), (b'sl', 'Slovenian'), (b'sby', 'Soli'), (b'so', b'Somali'), (b'som', 'Somali'), (b'sot', 'Sotho'), (b'nr', 'Southern Ndebele'), (b'st', 'Southern Sotho'), (b'es', 'Spanish'), (b'es-ec', 'Spanish (Ecuador)'), (b'es-419', 'Spanish (Latin America)'), (b'es-es', b'Spanish (Spain)'), (b'es-ar', 'Spanish, Argentinian'), (b'es-mx', 'Spanish, Mexican'), (b'es-ni', 'Spanish, Nicaraguan'), (b'su', 'Sundanese'), (b'sw', b'Swahili'), (b'swa', 'Swahili'), (b'ss', 'Swati'), (b'sv', 'Swedish'), (b'gsw', 'Swiss German'), (b'tl', 'Tagalog'), (b'ty', 'Tahitian'), (b'tg', 'Tajik'), (b'ta', 'Tamil'), (b'tar', 'Tarahumara, Central'), (b'cta', 'Tataltepec Chatino'), (b'tt', 'Tatar'), (b'te', 'Telugu'), (b'tet', 'Tetum'), (b'th', 'Thai'), (b'bo', 'Tibetan'), (b'ti', b'Tigrinya'), (b'tir', 'Tigrinya'), (b'toj', 'Tojolabal'), (b'to', 'Tonga'), (b'ts', 'Tsonga'), (b'tn', b'Tswana'), (b'tsn', 'Tswana'), (b'aeb', 'Tunisian Arabic'), (b'tr', 'Turkish'), (b'tk', 'Turkmen'), (b'tw', 'Twi'), (b'tzh', 'Tzeltal, Oxchuc'), (b'tzo', 'Tzotzil, Venustiano Carranza'), (b'uk', 'Ukrainian'), (b'umb', 'Umbundu'), (b'hsb', b'Upper Sorbian'), (b'ur', 'Urdu'), (b'ug', 'Uyghur'), (b'uz', 'Uzbek'), (b've', 'Venda'), (b'vi', 'Vietnamese'), (b'vo', 'Volapuk'), (b'wbl', 'Wakhi'), (b'wa', 'Walloon'), (b'wau', 'Wauja'), (b'cy', 'Welsh'), (b'fy', b'Western Frisian'), (b'pnb', 'Western Punjabi'), (b'wol', 'Wolof'), (b'wo', b'Wolof'), (b'xho', 'Xhosa'), (b'xh', b'Xhosa'), (b'tao', 'Yami (Tao)'), (b'yaq', 'Yaqui'), (b'yi', 'Yiddish'), (b'yo', b'Yoruba'), (b'yor', 'Yoruba'), (b'zam', 'Zapotec, Miahuatl\xe1n'), (b'zza', 'Zazaki'), (b'czn', 'Zenzontepec Chatino'), (b'za', 'Zhuang, Chuang'), (b'zu', b'Zulu'), (b'zul', 'Zulu')])),
+                ('body', models.TextField()),
+                ('created', models.DateTimeField(default=datetime.datetime.now)),
+                ('user', models.ForeignKey(related_name='+', to='amara_auth.CustomUser', null=True)),
+                ('video', models.ForeignKey(related_name='+', to='videos.Video')),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='SubtitleVersion',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('language_code', models.CharField(max_length=16, choices=[(b'ab', 'Abkhazian'), (b'ace', 'Acehnese'), (b'aa', 'Afar'), (b'af', 'Afrikaans'), (b'aka', 'Akan'), (b'sq', 'Albanian'), (b'arq', 'Algerian Arabic'), (b'ase', 'American Sign Language'), (b'amh', 'Amharic'), (b'am', 'Amharic'), (b'ami', 'Amis'), (b'ar', 'Arabic'), (b'an', 'Aragonese'), (b'arc', 'Aramaic'), (b'hy', 'Armenian'), (b'as', 'Assamese'), (b'ast', 'Asturian'), (b'av', 'Avaric'), (b'ae', 'Avestan'), (b'ay', 'Aymara'), (b'az', 'Azerbaijani'), (b'bam', 'Bambara'), (b'ba', 'Bashkir'), (b'eu', 'Basque'), (b'be', 'Belarusian'), (b'bem', 'Bemba (Zambia)'), (b'bn', 'Bengali'), (b'ber', 'Berber'), (b'bh', 'Bihari'), (b'bi', 'Bislama'), (b'bs', 'Bosnian'), (b'br', 'Breton'), (b'bug', 'Buginese'), (b'bg', 'Bulgarian'), (b'my', 'Burmese'), (b'cak', 'Cakchiquel, Central'), (b'ca', 'Catalan'), (b'ceb', 'Cebuano'), (b'ch', 'Chamorro'), (b'ce', 'Chechen'), (b'chr', 'Cherokee'), (b'nya', 'Chewa'), (b'ctd', 'Chin, Tedim'), (b'zh-hans', b'Chinese (Simplified Han)'), (b'zh-hant', b'Chinese (Traditional Han)'), (b'zh-cn', 'Chinese, Simplified'), (b'zh-sg', 'Chinese, Simplified (Singaporean)'), (b'zh-tw', 'Chinese, Traditional'), (b'zh-hk', 'Chinese, Traditional (Hong Kong)'), (b'zh', 'Chinese, Yue'), (b'cho', 'Choctaw'), (b'ctu', 'Chol, Tumbal\xe1'), (b'cu', 'Church Slavic'), (b'cv', 'Chuvash'), (b'ksh', 'Colognian'), (b'rar', 'Cook Islands M\u0101ori'), (b'kw', 'Cornish'), (b'co', 'Corsican'), (b'cr', 'Cree'), (b'ht', 'Creole, Haitian'), (b'hr', 'Croatian'), (b'cs', 'Czech'), (b'da', 'Danish'), (b'prs', 'Dari'), (b'din', 'Dinka'), (b'dv', 'Divehi'), (b'nl', 'Dutch'), (b'nl-be', 'Dutch (Belgium)'), (b'dz', 'Dzongkha'), (b'cly', 'Eastern Chatino'), (b'efi', 'Efik'), (b'arz', 'Egyptian Arabic'), (b'en', 'English'), (b'en-au', 'English (Australia)'), (b'en-ca', 'English (Canada)'), (b'en-in', 'English (India)'), (b'en-ie', 'English (Ireland)'), (b'en-us', 'English (United States)'), (b'en-gb', 'English, British'), (b'eo', 'Esperanto'), (b'et', 'Estonian'), (b'ee', 'Ewe'), (b'fo', 'Faroese'), (b'fj', 'Fijian'), (b'fil', 'Filipino'), (b'fi', 'Finnish'), (b'vls', 'Flemish'), (b'fr', 'French'), (b'fr-be', 'French (Belgium)'), (b'fr-ca', 'French (Canada)'), (b'fr-ch', 'French (Switzerland)'), (b'fy-nl', 'Frisian'), (b'ful', 'Fula'), (b'ff', 'Fulah'), (b'gl', 'Galician'), (b'lg', 'Ganda'), (b'ka', 'Georgian'), (b'de', 'German'), (b'de-at', 'German (Austria)'), (b'de-ch', 'German (Switzerland)'), (b'kik', 'Gikuyu'), (b'got', 'Gothic'), (b'el', 'Greek'), (b'kl', 'Greenlandic'), (b'gn', 'Guaran'), (b'gu', 'Gujarati'), (b'hai', 'Haida'), (b'cnh', 'Hakha Chin'), (b'hb', 'HamariBoli (Roman Hindi-Urdu)'), (b'hau', 'Hausa'), (b'ha', b'Hausa'), (b'hwc', "Hawai'i Creole English"), (b'haw', 'Hawaiian'), (b'haz', 'Hazaragi'), (b'iw', b'Hebrew'), (b'he', 'Hebrew'), (b'hz', 'Herero'), (b'hi', 'Hindi'), (b'ho', 'Hiri Motu'), (b'hmn', 'Hmong'), (b'nan', 'Hokkien'), (b'hus', 'Huastec, Veracruz'), (b'hch', 'Huichol'), (b'hu', 'Hungarian'), (b'hup', 'Hupa'), (b'bnt', 'Ibibio'), (b'is', 'Icelandic'), (b'io', 'Ido'), (b'ibo', 'Igbo'), (b'ilo', 'Ilocano'), (b'id', 'Indonesian'), (b'inh', 'Ingush'), (b'ia', 'Interlingua'), (b'ie', 'Interlingue'), (b'iu', 'Inuktitut'), (b'ik', 'Inupia'), (b'ga', 'Irish'), (b'iro', 'Iroquoian languages'), (b'it', 'Italian'), (b'ja', 'Japanese'), (b'jv', 'Javanese'), (b'kn', 'Kannada'), (b'kau', 'Kanuri'), (b'pam', 'Kapampangan'), (b'kaa', 'Karakalpak'), (b'kar', 'Karen'), (b'ks', 'Kashmiri'), (b'kk', 'Kazakh'), (b'km', 'Khmer'), (b'rw', b'Kinyarwanda'), (b'tlh', 'Klingon'), (b'cku', 'Koasati'), (b'kv', 'Komi'), (b'kon', 'Kongo'), (b'ko', 'Korean'), (b'kj', 'Kuanyama, Kwanyama'), (b'ku', 'Kurdish'), (b'ckb', 'Kurdish (Central)'), (b'ky', 'Kyrgyz'), (b'lld', 'Ladin'), (b'lkt', 'Lakota'), (b'lo', 'Lao'), (b'ltg', 'Latgalian'), (b'la', 'Latin'), (b'lv', 'Latvian'), (b'li', 'Limburgish'), (b'ln', b'Lingala'), (b'lin', 'Lingala'), (b'lt', 'Lithuanian'), (b'dsb', b'Lower Sorbian'), (b'loz', 'Lozi'), (b'lua', 'Luba-Kasai'), (b'lu', 'Luba-Katagana'), (b'luy', 'Luhya'), (b'luo', 'Luo'), (b'lut', 'Lushootseed'), (b'lb', 'Luxembourgish'), (b'rup', 'Macedo'), (b'mk', 'Macedonian'), (b'mad', 'Madurese'), (b'mg', b'Malagasy'), (b'mlg', 'Malagasy'), (b'ms', 'Malay'), (b'ml', 'Malayalam'), (b'mt', 'Maltese'), (b'mnk', 'Mandinka'), (b'mni', 'Manipuri'), (b'gv', 'Manx'), (b'mi', 'Maori'), (b'mr', 'Marathi'), (b'mh', 'Marshallese'), (b'mfe', b'Mauritian Creole'), (b'yua', 'Maya, Yucat\xe1n'), (b'meta-audio', 'Metadata: Audio Description'), (b'meta-geo', 'Metadata: Geo'), (b'meta-tw', 'Metadata: Twitter'), (b'meta-video', 'Metadata: Video Description'), (b'meta-wiki', 'Metadata: Wikipedia'), (b'lus', 'Mizo'), (b'moh', 'Mohawk'), (b'mo', 'Moldavian, Moldovan'), (b'mn', 'Mongolian'), (b'srp', 'Montenegrin'), (b'mos', 'Mossi'), (b'mus', 'Muscogee'), (b'nci', 'Nahuatl, Classical'), (b'ncj', 'Nahuatl, Northern Puebla'), (b'na', 'Naurunan'), (b'nv', 'Navajo'), (b'ng', 'Ndonga'), (b'ne', 'Nepali'), (b'pcm', 'Nigerian Pidgin'), (b'nd', 'North Ndebele'), (b'se', 'Northern Sami'), (b'nso', 'Northern Sotho'), (b'no', 'Norwegian'), (b'nb', 'Norwegian Bokmal'), (b'nn', 'Norwegian Nynorsk'), (b'oc', 'Occitan'), (b'oji', 'Ojibwe'), (b'or', 'Oriya'), (b'orm', 'Oromo'), (b'om', b'Oromo'), (b'os', 'Ossetian, Ossetic'), (b'x-other', 'Other'), (b'pi', 'Pali'), (b'pap', 'Papiamento'), (b'ps', 'Pashto'), (b'fa', 'Persian'), (b'fa-af', 'Persian (Afghanistan)'), (b'pcd', 'Picard'), (b'pl', 'Polish'), (b'pt', 'Portuguese'), (b'pt-pt', b'Portuguese (Portugal)'), (b'pt-br', 'Portuguese, Brazilian'), (b'pa', b'Punjabi'), (b'pan', 'Punjabi'), (b'tsz', 'Purepecha'), (b'tob', b'Qom (Toba)'), (b'que', 'Quechua'), (b'qu', b'Quechua'), (b'qvi', 'Quichua, Imbabura Highland'), (b'raj', 'Rajasthani'), (b'ro', 'Romanian'), (b'rm', 'Romansh'), (b'rn', b'Rundi'), (b'run', 'Rundi'), (b'ru', 'Russian'), (b'ry', 'Rusyn'), (b'kin', 'Rwandi'), (b'sm', 'Samoan'), (b'sg', 'Sango'), (b'sa', 'Sanskrit'), (b'sc', 'Sardinian'), (b'sco', 'Scots'), (b'gd', 'Scottish Gaelic'), (b'trv', 'Seediq'), (b'skx', 'Seko Padang'), (b'sr', 'Serbian'), (b'sr-latn', 'Serbian, Latin'), (b'sh', 'Serbo-Croatian'), (b'crs', 'Seselwa Creole French'), (b'shp', 'Shipibo-Conibo'), (b'sna', 'Shona'), (b'sn', b'Shona'), (b'ii', 'Sichuan Yi'), (b'scn', 'Sicilian'), (b'sgn', 'Sign Languages'), (b'szl', 'Silesian'), (b'sd', 'Sindhi'), (b'si', 'Sinhala'), (b'sk', 'Slovak'), (b'sl', 'Slovenian'), (b'sby', 'Soli'), (b'so', b'Somali'), (b'som', 'Somali'), (b'sot', 'Sotho'), (b'nr', 'Southern Ndebele'), (b'st', 'Southern Sotho'), (b'es', 'Spanish'), (b'es-ec', 'Spanish (Ecuador)'), (b'es-419', 'Spanish (Latin America)'), (b'es-es', b'Spanish (Spain)'), (b'es-ar', 'Spanish, Argentinian'), (b'es-mx', 'Spanish, Mexican'), (b'es-ni', 'Spanish, Nicaraguan'), (b'su', 'Sundanese'), (b'sw', b'Swahili'), (b'swa', 'Swahili'), (b'ss', 'Swati'), (b'sv', 'Swedish'), (b'gsw', 'Swiss German'), (b'tl', 'Tagalog'), (b'ty', 'Tahitian'), (b'tg', 'Tajik'), (b'ta', 'Tamil'), (b'tar', 'Tarahumara, Central'), (b'cta', 'Tataltepec Chatino'), (b'tt', 'Tatar'), (b'te', 'Telugu'), (b'tet', 'Tetum'), (b'th', 'Thai'), (b'bo', 'Tibetan'), (b'ti', b'Tigrinya'), (b'tir', 'Tigrinya'), (b'toj', 'Tojolabal'), (b'to', 'Tonga'), (b'ts', 'Tsonga'), (b'tn', b'Tswana'), (b'tsn', 'Tswana'), (b'aeb', 'Tunisian Arabic'), (b'tr', 'Turkish'), (b'tk', 'Turkmen'), (b'tw', 'Twi'), (b'tzh', 'Tzeltal, Oxchuc'), (b'tzo', 'Tzotzil, Venustiano Carranza'), (b'uk', 'Ukrainian'), (b'umb', 'Umbundu'), (b'hsb', b'Upper Sorbian'), (b'ur', 'Urdu'), (b'ug', 'Uyghur'), (b'uz', 'Uzbek'), (b've', 'Venda'), (b'vi', 'Vietnamese'), (b'vo', 'Volapuk'), (b'wbl', 'Wakhi'), (b'wa', 'Walloon'), (b'wau', 'Wauja'), (b'cy', 'Welsh'), (b'fy', b'Western Frisian'), (b'pnb', 'Western Punjabi'), (b'wol', 'Wolof'), (b'wo', b'Wolof'), (b'xho', 'Xhosa'), (b'xh', b'Xhosa'), (b'tao', 'Yami (Tao)'), (b'yaq', 'Yaqui'), (b'yi', 'Yiddish'), (b'yo', b'Yoruba'), (b'yor', 'Yoruba'), (b'zam', 'Zapotec, Miahuatl\xe1n'), (b'zza', 'Zazaki'), (b'czn', 'Zenzontepec Chatino'), (b'za', 'Zhuang, Chuang'), (b'zu', b'Zulu'), (b'zul', 'Zulu')])),
+                ('visibility', models.CharField(default=b'public', max_length=10, choices=[(b'public', b'public'), (b'private', b'private')])),
+                ('visibility_override', models.CharField(default=b'', max_length=10, blank=True, choices=[(b'public', b'public'), (b'private', b'private'), (b'deleted', b'deleted')])),
+                ('version_number', models.PositiveIntegerField(default=1)),
+                ('title', models.CharField(max_length=2048, blank=True)),
+                ('description', models.TextField(blank=True)),
+                ('note', models.CharField(default=b'', max_length=512, blank=True)),
+                ('rollback_of_version_number', models.PositiveIntegerField(default=None, null=True, blank=True)),
+                ('origin', models.CharField(default=b'', max_length=255, blank=True, choices=[(b'api', 'API'), (b'web-legacy-editor', 'Edited (legacy editor)'), (b'imported', 'Imported'), (b'provider', 'Provider'), (b'rollback', 'Rollback'), (b'scripted', 'Scripted'), (b'tern', 'Tern'), (b'upload', 'Uploaded'), (b'web-editor', 'Edited')])),
+                ('subtitle_count', models.PositiveIntegerField(default=0)),
+                ('created', models.DateTimeField(editable=False)),
+                ('meta_1_content', videos.metadata.MetadataContentField(default=b'', max_length=255, blank=True)),
+                ('meta_2_content', videos.metadata.MetadataContentField(default=b'', max_length=255, blank=True)),
+                ('meta_3_content', videos.metadata.MetadataContentField(default=b'', max_length=255, blank=True)),
+                ('serialized_subtitles', models.TextField()),
+                ('serialized_lineage', models.TextField(blank=True)),
+                ('author', models.ForeignKey(related_name='newsubtitleversion_set', to='amara_auth.CustomUser')),
+                ('parents', models.ManyToManyField(to='subtitles.SubtitleVersion', blank=True)),
+                ('subtitle_language', models.ForeignKey(to='subtitles.SubtitleLanguage')),
+                ('video', models.ForeignKey(related_name='newsubtitleversion_set', to='videos.Video')),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='SubtitleVersionMetadata',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('key', models.PositiveIntegerField(choices=[(100, b'reviewed_by'), (101, b'approved_by'), (200, b'workflow_origin')])),
+                ('data', models.TextField(blank=True)),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('modified', models.DateTimeField(auto_now=True)),
+                ('subtitle_version', models.ForeignKey(related_name='metadata', to='subtitles.SubtitleVersion')),
+            ],
+            options={
+                'verbose_name_plural': 'subtitle version metadata',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.AlterUniqueTogether(
+            name='subtitleversionmetadata',
+            unique_together=set([('key', 'subtitle_version')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='subtitleversion',
+            unique_together=set([('video', 'language_code', 'version_number'), ('video', 'subtitle_language', 'version_number')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='subtitlelanguage',
+            unique_together=set([('video', 'language_code')]),
+        ),
+    ]

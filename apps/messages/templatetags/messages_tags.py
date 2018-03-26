@@ -29,11 +29,8 @@ register = template.Library()
 def messages(context, futureui=False):
     user = context['user']
     request = context['request']
-    hidden_message_id = request.COOKIES.get(Message.hide_cookie_name)
     if not user.is_authenticated():
         return ''
-    if hidden_message_id == '':
-        hidden_message_id = None
 
     if futureui:
         cache_key = 'messages-future-{}'.format(get_language())
@@ -43,20 +40,18 @@ def messages(context, futureui=False):
         template_name = 'messages/_messages.html'
 
     cached = user.cache.get(cache_key)
-    if isinstance(cached, tuple) and cached[0] == hidden_message_id:
+    if isinstance(cached, tuple) and cached[0] == user.last_hidden_message_id:
         return cached[1]
 
-    last_unread = user.last_unread_message_id(hidden_message_id)
-    if last_unread < hidden_message_id:
-        last_unread = ''
-    count = user.unread_messages_count(hidden_message_id)
+    count = user.new_messages_count()
+    if count == 0:
+        return ''
     
     content = render_to_string(template_name,  {
         'msg_count': count,
-        'last_unread': last_unread,
-        'cookie_name': Message.hide_cookie_name
+        'last_message_id': user.last_message_id(),
     })
-    user.cache.set(cache_key, (hidden_message_id, content), 30 * 60)
+    user.cache.set(cache_key, (user.last_hidden_message_id, content), 30 * 60)
     return content
 
 @register.simple_tag(takes_context=True)

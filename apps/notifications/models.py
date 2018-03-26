@@ -18,7 +18,7 @@
 
 import json
 
-from django.db import models, IntegrityError
+from django.db import models, transaction, IntegrityError
 from django.db.models import Max
 from django.utils.translation import ugettext_lazy as _, ugettext
 
@@ -83,10 +83,11 @@ class TeamNotification(models.Model):
         # then try with the next number.
         for i in range(10):
             try:
-                data['number'] = obj.number
-                obj.data = json.dumps(data)
-                obj.save()
-                return obj
+                with transaction.atomic():
+                    data['number'] = obj.number
+                    obj.data = json.dumps(data)
+                    obj.save()
+                    return obj
             except IntegrityError:
                 obj.number = obj.number + 1
         raise IntegrityError("Couldn't find unused number")

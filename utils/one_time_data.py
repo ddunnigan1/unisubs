@@ -18,7 +18,6 @@
 
 import uuid
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
@@ -30,7 +29,7 @@ def set_one_time_data(data):
     key = _mk_key(token)
     cache.set(key, data, 60)
     return '{}://{}{}'.format(settings.DEFAULT_PROTOCOL,
-                                 Site.objects.get_current().domain,
+                                 settings.HOSTNAME,
                                  reverse("one_time_url", kwargs={"token": token}))
 
 def get_one_time_data(token):

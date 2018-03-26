@@ -23,7 +23,6 @@ import re
 
 from django import forms
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
@@ -45,6 +44,8 @@ from activity.models import ActivityRecord
 from messages.models import Message, SYSTEM_NOTIFICATION
 from messages.tasks import send_new_messages_notifications
 from subtitles.forms import SubtitlesUploadForm
+from subtitles.models import ORIGIN_MANAGEMENT_PAGE
+from subtitles.pipeline import add_subtitles
 from teams.models import (
     Team, TeamMember, TeamVideo, Task, Project, Workflow, Invite,
     BillingReport, MembershipNarrowing, Application, TeamVisibility,
@@ -55,14 +56,15 @@ from teams.exceptions import ApplicationInvalidException
 from teams.fields import TeamMemberInput
 from teams.permissions import (
     roles_user_can_invite, can_delete_task, can_add_video, can_perform_task,
-    can_assign_task, can_remove_video,
+    can_assign_task, can_remove_video, can_change_video_titles,
     can_add_video_somewhere
 )
 from teams.permissions_const import ROLE_NAMES
 from teams.signals import member_remove
 from teams.workflows import TeamWorkflow
 from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
-                      AmaraRadioSelect, SearchField, AmaraClearableFileInput, AmaraFileInput)
+                      AmaraRadioSelect, SearchField, AmaraClearableFileInput,
+                      AmaraFileInput, HelpTextList)
 from ui.forms import LanguageField as NewLanguageField
 from utils import send_templated_email
 from utils.forms import (ErrorableModelForm, get_label_for_value,
@@ -856,6 +858,15 @@ class GeneralSettingsForm(forms.ModelForm):
         choices=VideoVisibility.choices(),
         label=_('Video visibility'),
         help_text=_("Can non-members view your team videos?"))
+    prevent_duplicate_public_videos = forms.BooleanField(
+        label=_('Prevent duplicate copies of your team videos in '
+                'the Amara public area.'), required=False, 
+        help_text=HelpTextList(
+            _("Don't allow Amara users to post copies of your "
+              "team videos in the public area."),
+            _("When adding team videos, move videos from the public "
+              "area to your team rather than creating copies."),
+        ))
 
     def __init__(self, allow_rename, *args, **kwargs):
         super(GeneralSettingsForm, self).__init__(*args, **kwargs)
@@ -863,6 +874,12 @@ class GeneralSettingsForm(forms.ModelForm):
         self.initial_video_visibility = self.instance.video_visibility
         if not allow_rename:
             del self.fields['name']
+
+    def prevent_duplicate_public_videos_set(self):
+        if self.is_bound:
+            return bool(self.data.get('prevent_duplicate_public_videos'))
+        else:
+            return self.instance.prevent_duplicate_public_videos
 
     def save(self, user):
         with transaction.atomic():
@@ -876,7 +893,8 @@ class GeneralSettingsForm(forms.ModelForm):
     class Meta:
         model = Team
         fields = ('name', 'description', 'logo', 'square_logo',
-                  'team_visibility', 'video_visibility', 'sync_metadata')
+                  'team_visibility', 'video_visibility', 'sync_metadata',
+                  'prevent_duplicate_public_videos')
 
 
 class WorkflowForm(forms.ModelForm):
@@ -1838,7 +1856,8 @@ class ApplicationForm(forms.Form):
 
     def notify(self):
         send_to = [tm.user for tm in self.application.team.members.admins()]
-        url_base = '{}://{}'.format(settings.DEFAULT_PROTOCOL, Site.objects.get_current().domain)
+        url_base = '{}://{}'.format(settings.DEFAULT_PROTOCOL,
+                                    settings.HOSTNAME)
         context = {
             'application': self.application,
             'applicant': self.application.user,
@@ -1927,6 +1946,8 @@ class EditVideosForm(VideoManagementForm):
     label = _('Edit')
     permissions_check = staticmethod(permissions.can_edit_videos)
 
+    title = forms.CharField(max_length=2048, label=_('Edit video title'),
+                            required=False)
     language = NewLanguageField(label=_("Video Language"), required=False,
                                 options="null popular all",
                                 placeholder=_('No change'))
@@ -1937,6 +1958,8 @@ class EditVideosForm(VideoManagementForm):
 
     def setup_fields(self):
         self.fields['project'].setup(self.team)
+        if not self.single_selection():
+            del self.fields['title']
 
     def setup_single_selection(self, video):
         team_video = video.teamvideo
@@ -1946,6 +1969,11 @@ class EditVideosForm(VideoManagementForm):
         self.fields['language'].set_placeholder(_('No language set'))
         self.fields['language'].initial = video.primary_audio_language_code
 
+        if can_change_video_titles(self.user, team_video):
+            self.fields['title'].widget.attrs['value'] = team_video.video.title
+        else:
+            del self.fields['title']
+
     def perform_submit(self, qs):
         project = self.cleaned_data.get('project')
         language = self.cleaned_data['language']
@@ -1953,8 +1981,12 @@ class EditVideosForm(VideoManagementForm):
         if language is None and self.single_selection():
             language = ''
 
+
         for video in qs:
             team_video = video.teamvideo
+
+            if self.fields.get('title', None) and self.cleaned_data['title']:
+                self._update_video_title(video, self.cleaned_data['title'])
 
             if project is not None and project != team_video.project:
                 team_video.project = project
@@ -1965,6 +1997,21 @@ class EditVideosForm(VideoManagementForm):
                 video.save()
             if thumbnail:
                 team_video.video.s3_thumbnail.save(thumbnail.name, thumbnail)
+
+    def _update_video_title(self, video, title):
+        with transaction.atomic():
+            video.title = self.cleaned_data['title']
+            video.save()
+            subtitle_language = video.get_primary_audio_subtitle_language()
+            if subtitle_language:
+                version = subtitle_language.get_tip(full=True)
+                if version:
+                    subtitles = version.get_subtitles()
+                    add_subtitles(video, subtitle_language.language_code, subtitles,
+                                  title=video.title, author=self.user, committer=self.user,
+                                  visibility=version.visibility,
+                                  origin=ORIGIN_MANAGEMENT_PAGE,
+                                  visibility_override=version.visibility_override)
 
     def message(self):
         msg = ungettext('Video has been edited',

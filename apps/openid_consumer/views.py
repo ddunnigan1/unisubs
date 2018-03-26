@@ -102,9 +102,14 @@ def begin(request, confirmed=True, redirect_to=None, on_failure=None, user_url=N
     
     consumer = Consumer(request.session, DjangoOpenIDStore())
     try:
-        auth_request = consumer.begin(user_url)
+        # attempt to convert to unicode here to catch exception before calling begin
+        auth_request = consumer.begin(unicode(user_url))
     except DiscoveryFailure:
         return on_failure(request, _('The OpenID was invalid'))
+    except UnicodeDecodeError:
+        # convert from utf-8 instead
+        user_url = unicode(user_url, 'utf-8')
+        auth_request = consumer.begin(user_url)
     
     sreg = getattr(settings, 'OPENID_SREG', False)
     

@@ -32,7 +32,6 @@ def get_user(request):
             request._cached_user = AnonymousUser()
     return request._cached_user
 
-
 from auth.models import CustomUser as User
 
 class AmaraAuthenticationMiddleware(object):

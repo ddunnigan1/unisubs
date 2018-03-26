@@ -20,12 +20,11 @@ import os
 import logging
 import time
 
+from django.conf import settings
+from django.core import management
 from django.test import LiveServerTestCase
 from django.test.testcases import (TestCase)
 from selenium import webdriver
-from django.conf import settings
-from django.contrib.sites.models import Site
-from django.core import management
 
 from utils import test_utils
 
@@ -41,12 +40,9 @@ class WebdriverTestCase(LiveServerTestCase, TestCase):
     def setUpClass(cls):
         super(WebdriverTestCase, cls).setUpClass()
         management.call_command('flush', interactive=False)
-        site_obj = Site.objects.get_current()
-        Site.objects.clear_cache()
-        site_obj.domain = ('%s:%s' % (cls.server_thread.host,
-                                      cls.server_thread.port))
-        site_obj.save()
-        cls.base_url = ('http://%s/' % site_obj.domain)
+        settings.HOSTNAME = ('%s:%s' % (cls.server_thread.host,
+                                        cls.server_thread.port))
+        cls.base_url = ('http://%s/' % settings.HOSTNAME)
         cls.logger = logging.getLogger('test_steps')
         cls.logger.setLevel(logging.INFO)
         if not cls.NEW_BROWSER_PER_TEST_CASE:

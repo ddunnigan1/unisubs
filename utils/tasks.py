@@ -33,4 +33,4 @@ def send_templated_email_async(to, subject, body_template, body_dict,
 
 @task
 def test():
-    logger.warn("IN TEST TASK")
+    print('in test task')
