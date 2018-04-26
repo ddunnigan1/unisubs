@@ -162,6 +162,9 @@ var angular = angular || null;
         };
         $scope.toggleTutorial = function(shown) {
            $scope.tutorialShown = (typeof shown === "undefined") ? (!$scope.tutorialShown) : shown;
+           if($scope.tutorialShown) {
+               $scope.timelineShown = (!$scope.isTyping() && !$scope.isTranslatingTyping());
+           }
         };
         $scope.keepHeaderSizeSync = function() {
             var newHeaderSize = Math.max($('div.subtitles.reference .content').outerHeight(),

@@ -1,10 +1,14 @@
 import json
-import sys, traceback
+import sys
+import traceback
+import logging
 
 from django.conf import settings
 from django.db.models.base import ObjectDoesNotExist
 from django.http import HttpResponse, Http404
 from django.utils.translation import ugettext as _
+
+error_logger = logging.getLogger('unhandled_error')
 
 class AjaxErrorMiddleware(object):
     '''Return AJAX errors to the browser in a sensible way.
@@ -20,6 +24,8 @@ class AjaxErrorMiddleware(object):
 
     def process_exception(self, request, exception):
         if not request.is_ajax(): return
+
+        error_logger.exception('Error in AJAX request')
 
         if isinstance(exception, (ObjectDoesNotExist, Http404)):
             return self.not_found(request, exception)

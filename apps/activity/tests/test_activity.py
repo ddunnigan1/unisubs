@@ -113,6 +113,19 @@ class ActivityCreationTest(TestCase):
         assert_false(
             ActivityRecord.objects.filter(type='video-url-added').exists())
 
+    def test_video_title_edited(self):
+        video = VideoFactory()
+        user = UserFactory()
+        clear_activity()
+        video.title = 'new_title'
+        video.save()
+        videos.signals.video_title_edited.send(sender=video, user=user, old_title='old_title')
+        record = ActivityRecord.objects.get(type='video-title-changed')
+        assert_equal(record.user, user)
+        assert_equal(record.video, video)
+        assert_equal(record.language_code, '')
+        assert_equal(record.created, dates.now.last_returned)
+
     def test_member_joined(self):
         member = TeamMemberFactory(role=ROLE_MANAGER)
         record = ActivityRecord.objects.get(type='member-joined')

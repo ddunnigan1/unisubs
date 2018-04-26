@@ -6,7 +6,7 @@
     <tr>
       <td>{% include "future/users/icon-link.html" with user=record.user %}</td>
       <td>{{ record.get_message|safe }}</td>
-      <td>{{ record.created|format_time }}</td>
+      <td>{{ record.created|datetime }}</td>
     </tr>
     {% endwith %}
     {% endfor %}

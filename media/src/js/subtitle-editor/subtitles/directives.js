@@ -494,6 +494,26 @@ var USER_IDLE_MINUTES = 15;
                 }
             }
 
+            $scope.canSplitSubtitle = function(subtitle) {
+                var li = subtitleMap[subtitle.id];
+                if(!li) {
+                    return false;
+                }
+                var textarea = $('textarea.subtitle-edit', li);
+                return textarea.length > 0;
+            }
+
+            $scope.calcSubtitleSplit = function(subtitle) {
+                var li = subtitleMap[subtitle.id];
+                var textarea = $('textarea.subtitle-edit', li);
+                var selectionRange = DomUtil.getSelectionRange(textarea[0]);
+                var markdown = textarea.val();
+                return {
+                    first: markdown.substring(0, selectionRange.start).replace(/\s+$/, ''),
+                    second: markdown.substring(selectionRange.start).replace(/^\s+/, '')
+                };
+            }
+
             function reloadSubtitles() {
                 elm.empty();
                 subtitleMap = {}

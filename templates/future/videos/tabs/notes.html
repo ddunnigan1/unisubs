@@ -13,7 +13,7 @@
     <div class="col-xs-8">
       <div class="commentBody">
         {{ note.body|linebreaks }}
-        <span>{{ note.created|format_time }}</span>
+        <span>{{ note.created|datetime }}</span>
       </div>
     </div>
   </li>

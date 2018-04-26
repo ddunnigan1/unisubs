@@ -35,8 +35,8 @@ def elapsed_time(dt):
     return ui.dates.elapsed_time(dt)
 
 @register.filter
-def format_time(dt):
-    return ui.dates.format_time(dt)
+def datetime(dt):
+    return ui.dates.datetime(dt)
 
 @register.simple_tag(takes_context=True)
 def header_links(context):

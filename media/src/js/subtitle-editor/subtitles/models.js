@@ -533,6 +533,34 @@ var angular = angular || null;
         return subtitle;
     }
 
+    // Take a subtitle and split it in half.
+    //
+    // subtitle will now take up only the first half of the time and get firstSubtitleMarkdown as its content
+    // A new subtitle will be created to take up the second half of the time and get secondSubtitleMarkdown as its content
+    SubtitleList.prototype.splitSubtitle = function(subtitle, firstSubtitleMarkdown, secondSubtitleMarkdown) {
+        var pos = this.getIndex(subtitle);
+        var startTime = subtitle.startTime;
+        var endTime = subtitle.endTime;
+        var midpointTime = (startTime + endTime) / 2;
+        var nextSubtitle = this.nextSubtitle(subtitle);
+
+        this._updateSubtitleTime(subtitle, startTime, midpointTime);
+        this._updateSubtitleContent(subtitle, firstSubtitleMarkdown);
+
+        var newNode = this.parser.addSubtitle(subtitle.node, {
+            begin: midpointTime, end: endTime
+        }, secondSubtitleMarkdown);
+        var newSubtitle = this.makeItem(newNode);
+
+        this.subtitles.splice(pos+1, 0, newSubtitle);
+        this.syncedCount++;
+
+        this.emitChange('update', subtitle);
+        this.emitChange('insert', newSubtitle, { 'before': nextSubtitle});
+
+        return newSubtitle;
+    }
+
     SubtitleList.prototype.removeSubtitle = function(subtitle) {
         var pos = this.getIndex(subtitle);
         this.parser.removeSubtitle(subtitle.node);

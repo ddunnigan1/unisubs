@@ -19,7 +19,10 @@
 from django import dispatch
 
 feed_imported = dispatch.Signal(providing_args=['new_videos'])
+# emitted any time a video title changes
 title_changed = dispatch.Signal(providing_args=['old_title'])
+# emitted when a video title changes from the edit video dialog
+video_title_edited = dispatch.Signal(providing_args=['user', 'old_title'])
 duration_changed = dispatch.Signal(providing_args=['old_duration'])
 language_changed = dispatch.Signal(
     providing_args=['old_primary_audio_language_code'])

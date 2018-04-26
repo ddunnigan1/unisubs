@@ -49,6 +49,7 @@ import externalsites.google
 class MockNow(mock.Mock):
     def __init__(self):
         super(MockNow, self).__init__()
+        self.last_returned = None
         self.reset()
 
     def reset(self):
@@ -84,7 +85,7 @@ class MockNow(mock.Mock):
         self.current = datetime(*args, **kwargs)
 
     def __call__(self):
-        rv = self.current
+        self.last_returned = rv = self.current
         if not self.frozen:
             self.increment()
         return rv

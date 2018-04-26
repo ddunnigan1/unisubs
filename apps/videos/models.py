@@ -478,6 +478,27 @@ class Video(models.Model):
         else:
             return 'No title'
 
+    def update_title(self, user, new_title):
+        from subtitles.pipeline import add_subtitles
+        from subtitles.models import ORIGIN_MANAGEMENT_PAGE
+        old_title = self.title
+        with transaction.atomic():
+            self.title = new_title
+            self.save()
+            subtitle_language = self.get_primary_audio_subtitle_language()
+            if subtitle_language:
+                version = subtitle_language.get_tip()
+                if version:
+                    subtitles = version.get_subtitles()
+                    add_subtitles(
+                        self, subtitle_language.language_code, subtitles,
+                        title=new_title, author=user, committer=self.user,
+                        visibility=version.visibility,
+                        origin=ORIGIN_MANAGEMENT_PAGE,
+                        visibility_override=version.visibility_override)
+        signals.video_title_edited.send(sender=self, user=user,
+                                        old_title=self.title)
+
     def get_subtitle(self):
         return behaviors.get_video_subtitle(self, self.get_metadata())
 

@@ -1,6 +1,6 @@
 {% load i18n i18n_tags forms %}
 {% load url from future %}
-<nav class="nav-actions">
+<nav class="selectList-actions">
   <span class="pull-right">
     {% if show_invite_link %}
     <a href="{% url 'teams:invite' slug=team.slug %}" title="Invite member">Invite member</a>
@@ -15,7 +15,7 @@
   {% if is_team_admin %}
   <div class="checkbox">
     <input id="select_all" type="checkbox" class="selectAll" data-target="#memberDirectory-selectList">
-    <label for="select_all" class="text-gray"><span class="checkbox-icon"></span>Select All</label>
+    <label for="select_all" class="text-gray"><span class="checkbox-icon"></span>{% trans "Select all" %}</label>
   </div>
   {% endif %}
 </nav>
@@ -23,17 +23,16 @@
 {% if page %}
 <ul id="memberDirectory-selectList" class="selectList-members selectList" data-target="#memberDirectory-actionBar">
   {% for member in page %}
-  <li>
+  <li class="selectList-item">
     {% if is_team_admin %}
+    {% if member.user != user %}
     <div class="checkbox">
-      {% if member.user == user %}
-      <input type="checkbox" class="disabled" disabled="disabled">
-      <label><span class="checkbox-icon"></span></label>
-      {% else %}
       <input id="member-{{member.id}}" type="checkbox" value="{{member.id}}" class="selectList-checkbox">
       <label for="member-{{member.id}}"><span class="checkbox-icon"></span></label>
-      {% endif %}
     </div>
+    {% else %}
+    <div class="checkbox-spacer"></div>
+    {% endif %}
     {% endif %}
     <div>
       <a href="{% url 'teams:member-profile' slug=team.slug username=member.user.username %}">

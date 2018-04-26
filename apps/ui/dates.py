@@ -77,13 +77,13 @@ def elapsed_time(when):
     else:
         return date(dt)
 
-def format_time(when):
+def datetime(when):
     if isinstance(when, timedelta):
-        delta = when
         dt = now() - timedelta
     else:
-        delta = now() - when
         dt = when
+    if dt is None:
+        return ''
     return dt.strftime("%b %-d, %Y, %-I:%M %p")
 
 def due_date(deadline, when, hypothetical=False):

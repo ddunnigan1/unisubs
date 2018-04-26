@@ -177,6 +177,17 @@ var angular = angular || null;
 
         });
 
+        $scope.splitCurrentSubtitle = function() {
+            var currentSubtitle = $scope.currentEdit.storedSubtitle();
+            if(!$scope.canSplitSubtitle(currentSubtitle)) {
+                return;
+            }
+            var splitInfo = $scope.calcSubtitleSplit(currentSubtitle);
+            subtitleList.splitSubtitle(currentSubtitle, splitInfo.first, splitInfo.second);
+            finishEdit(false);
+            $scope.$root.$emit('work-done');
+        }
+
         function trackMouseDown() {
             // Disconnect any previous handlers to keep sanity
             DomWindow.offDocumentEvent('mousedown.subtitle-edit');
@@ -277,11 +288,14 @@ var angular = angular || null;
         $scope.onEditKeydown = function(evt) {
             var subtitle = $scope.currentEdit.draft.storedSubtitle;
 
-	    var isAltPressed = function(evt) {
-		return (evt.altKey || evt.metaKey);
-	    };
+            var isAltPressed = function(evt) {
+                return (evt.altKey || evt.metaKey);
+            };
 
-            if (evt.keyCode === 13 && !evt.shiftKey) {
+            if (evt.keyCode === 13 && evt.ctrlKey) {
+                // Ctrl-enter splits the subtitles
+                $scope.splitCurrentSubtitle();
+            } else if (evt.keyCode === 13 && !evt.shiftKey) {
                 // Enter without shift finishes editing
                 var nextSubtitle = subtitleList.nextSubtitle(subtitle);
                 finishEdit(true);

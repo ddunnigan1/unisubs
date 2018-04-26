@@ -148,7 +148,7 @@
                 <div class="col-xs-1">
                   <div class="checkbox">
                     <input type="checkbox" id="revision-{{revision.id}}" data-id="{{ revision.id }}">
-                    <label for="revision-{{ revision.id }}"><span></span></label>
+                    <label for="revision-{{ revision.id }}"><span class="checkbox-icon"></span></label>
                   </div>
                 </div>
                 <div class="col-xs-6">
@@ -166,7 +166,7 @@
                 <div class="col-xs-5 end-xs">
                   <strong>{{ revision.get_origin_display }}</strong>
                   <br>
-                  {{ revision.created|format_time }}
+                  {{ revision.created|datetime }}
                 </div>
                 {% if enable_edit_in_admin %}
                 <a class="hangingLink-link" href="{% url "admin:subtitles_subtitleversion_change" revision.id %}" target="_blank"><i class="icon icon-edit"></i></a>

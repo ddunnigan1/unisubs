@@ -179,12 +179,12 @@ def get_values(video_id, user=None, team=None):
         if response.ok:
             access_token = response.json()['access_token']
             headers = {"Authorization": "Bearer " + access_token}
-            response = requests.get(VIMEO_API_BASE_URL + url,
+            response = requests.get(VIMEO_API_BASE_URL + video_url,
                                     headers=headers)
             if response.ok:
                 video_data = response.json()
     if video_data is not None:
-        thumbnail = sorted(video_data['pictures'], key=lambda x: -x["width"])[0]['link']
+        thumbnail = sorted(video_data['pictures']['sizes'], key=lambda x: -x["width"])[0]['link']
         return (video_data["name"],
                 video_data["description"],
                 video_data['duration'],

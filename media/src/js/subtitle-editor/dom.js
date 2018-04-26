@@ -58,17 +58,14 @@ var angular = angular || null;
 
     module.factory('DomUtil', function() {
         return {
+            getSelectionRange: function(elem) {
+                return {
+                    start: elem.selectionStart,
+                    end: elem.selectionEnd
+                };
+            },
             setSelectionRange: function(elem, selectionStart, selectionEnd) {
-                if (elem.createTextRange) {
-                    var range = elem.createTextRange();
-                    range.collapse(true);
-                    range.moveEnd('character', selectionEnd);
-                    range.moveStart('character', selectionStart);
-                    range.select();
-                }
-                else if (elem.setSelectionRange !== undefined) {
-                    elem.setSelectionRange(selectionStart, selectionEnd);
-                }
+                elem.setSelectionRange(selectionStart, selectionEnd);
             }
         };
     });

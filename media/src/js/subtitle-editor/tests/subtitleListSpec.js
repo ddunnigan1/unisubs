@@ -63,6 +63,35 @@ describe('Test the SubtitleList class', function() {
         expect(subtitleList.syncedCount).toEqual(2);
     });
 
+    it('can split subtitles', function() {
+        var sub1 = subtitleList.insertSubtitleBefore(null);
+        subtitleList.updateSubtitleTime(sub1, 0, 8000);
+
+        var sub2 = subtitleList.splitSubtitle(sub1, 'foo', 'bar');
+
+        expect(sub1).toHaveTimes([0, 4000]);
+        expect(sub1.markdown).toEqual('foo');
+        expect(sub2).toHaveTimes([4000, 8000]);
+        expect(sub2.markdown).toEqual('bar');
+        expect(subtitleList.syncedCount).toEqual(2);
+        expect(subtitleList.firstSubtitle()).toBe(sub1);
+        expect(subtitleList.nextSubtitle(sub1)).toBe(sub2);
+        expect(subtitleList.nextSubtitle(sub2)).toBe(null);
+
+        var sub3 = subtitleList.splitSubtitle(sub2, 'b', 'ar');
+
+        expect(sub2).toHaveTimes([4000, 6000]);
+        expect(sub2.markdown).toEqual('b');
+        expect(sub3).toHaveTimes([6000, 8000]);
+        expect(sub3.markdown).toEqual('ar');
+        expect(subtitleList.syncedCount).toEqual(3);
+        expect(subtitleList.firstSubtitle()).toBe(sub1);
+        expect(subtitleList.nextSubtitle(sub1)).toBe(sub2);
+        expect(subtitleList.nextSubtitle(sub2)).toBe(sub3);
+        expect(subtitleList.nextSubtitle(sub3)).toBe(null);
+    });
+
+
     it('should invoke change callbacks', function() {
         var handler = jasmine.createSpyObj('handler', ['onChange']);
         subtitleList.addChangeCallback(handler.onChange);
@@ -102,6 +131,42 @@ describe('Test the SubtitleList class', function() {
         subtitleList.updateSubtitleContent(sub2, 'content');
         subtitleList.removeSubtitle(sub2);
         expect(handler.onChange.calls.count()).toEqual(4);
+    });
+
+    it('invokes change callbacks on split subtitles', function() {
+
+        var sub1 = subtitleList.insertSubtitleBefore(null);
+        subtitleList.updateSubtitleTime(sub1, 0, 8000);
+
+        var handler = jasmine.createSpyObj('handler', ['onChange']);
+        subtitleList.addChangeCallback(handler.onChange);
+
+        var sub2 = subtitleList.splitSubtitle(sub1, 'foo', 'bar');
+        expect(handler.onChange).toHaveBeenCalledWith({
+            type: 'update',
+            subtitle: sub1,
+        });
+
+        expect(handler.onChange).toHaveBeenCalledWith({
+            type: 'insert',
+            subtitle: sub2,
+            before: null,
+        });
+
+        handler.onChange.calls.reset();
+        var sub3 = subtitleList.splitSubtitle(sub1, 'f', 'oo');
+
+        expect(handler.onChange).toHaveBeenCalledWith({
+            type: 'update',
+            subtitle: sub1,
+        });
+
+        expect(handler.onChange).toHaveBeenCalledWith({
+            type: 'insert',
+            subtitle: sub3,
+            before: sub2,
+        });
+
     });
 });
 

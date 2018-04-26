@@ -6,6 +6,7 @@ describe('Test the subtitle-repeat directive', function() {
     var readOnlyElm = null;
     var subtitles = null;
     var displayTime = null;
+    var DomUtil = null;
 
     beforeEach(module('amara.SubtitleEditor.subtitles.directives'));
     beforeEach(module('amara.SubtitleEditor.subtitles.filters'));
@@ -13,7 +14,8 @@ describe('Test the subtitle-repeat directive', function() {
     beforeEach(module('amara.SubtitleEditor.dom'));
     beforeEach(module('amara.SubtitleEditor.mocks'));
 
-    beforeEach(inject(function($compile, $filter, $rootScope, SubtitleList) {
+    beforeEach(inject(function($injector, $compile, $filter, $rootScope, SubtitleList) {
+        DomUtil = $injector.get('DomUtil');
         displayTime = $filter('displayTime');
         subtitles = [];
         subtitleList = new SubtitleList();
@@ -242,6 +244,58 @@ describe('Test the subtitle-repeat directive', function() {
         var spy = spyOn(scope, 'onEditKeydown');
         textarea.keydown();
         expect(spy.calls.count()).toEqual(1);
+    });
+
+    it('knows when you can split subtitles', function() {
+        // If the subtitles are not being editing, you can't split
+        expect(scope.canSplitSubtitle(subtitles[0])).toBeFalsy();
+        // Once an edit starts, you can split
+        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.$digest();
+        spyOn(DomUtil, 'getSelectionRange').and.returnValue({
+            start: 0, end: 0
+        });
+        expect(scope.canSplitSubtitle(subtitles[0])).toBeTruthy();
+    });
+
+    it('can calulate subtitle splits', function() {
+        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.$digest();
+        spyOn(DomUtil, 'getSelectionRange').and.returnValue({
+            start: 3, end: 4 // between the 'b' and 't'
+        });
+        expect(scope.calcSubtitleSplit(subtitles[0])).toEqual({
+            first: 'sub',
+            second: 'title 0'
+        });
+    });
+
+    it('can calulate subtitle splits with draft subtitles', function() {
+        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.$digest();
+        var textarea = $('textarea', childLIs()[0]);
+        textarea.val('draft subtitle');
+        spyOn(DomUtil, 'getSelectionRange').and.returnValue({
+            start: 3, end: 4 // between the 'a' and 'f'
+        });
+        expect(scope.calcSubtitleSplit(subtitles[0])).toEqual({
+            first: 'dra',
+            second: 'ft subtitle'
+        });
+    });
+
+    it('trims whitespace after/before subtitle splits', function() {
+        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.$digest();
+        var textarea = $('textarea', childLIs()[0]);
+        textarea.val(' one  two ');
+        spyOn(DomUtil, 'getSelectionRange').and.returnValue({
+            start: 5, end: 6 // in the whitespace between one and two
+        });
+        expect(scope.calcSubtitleSplit(subtitles[0])).toEqual({
+            first: ' one',
+            second: 'two '
+        });
     });
 
     it('fetches list items for subtitles', function() {

@@ -16,7 +16,7 @@
     </tr>
     {% for item in sync_history %}
     <tr>
-      <td>{{ item.date|format_time }}</td>
+      <td>{{ item.date|datetime }}</td>
       <td>{{ item.account }}</td>
       <td>{{ item.version }}</td>
       <td>{{ item.result }}</td>

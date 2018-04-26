@@ -25,9 +25,8 @@
             <ul class="toolbox-menu-timing hidden">
                 <li ng-show="copyTimingEnabled()"><a href="#" class="copyover" ng-click="showCopyTimingModal($event)" title="Copy timing and paragraphs from reference language">{% trans "Copy Timing" %}</a></li>
                 <li><a href="#" ng-click="toggleTimelineShown()" class="show-timeline">
-                    <span ng-show="timelineShown">{% trans "Hide" %}</span>
-                    <span ng-show="!timelineShown">{% trans "Show" %}</span>
-                    {% trans "Timeline" %}
+                    <span ng-show="timelineShown">{% trans "Hide timeline" %}</span>
+                    <span ng-show="!timelineShown">{% trans "Show timeline" %}</span>
                 </a></li>
                 <li><a href="#" class="clear-timing" ng-click="showClearTimingModal($event)" title="Clear timing of all subtitles">{% trans "Clear timing" %}</a></li>
 		<li><a href="#" ng-click="showShiftForwardModal($event)" class="shift-forward">{% trans "Shift subs forward" %}</a></li>
