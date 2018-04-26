@@ -11,12 +11,6 @@
     <div class="row">
       <div class="col-xs-12 col-md-11 col-lg-10">
         <div id="submit_video_form">
-          {% if vidscraper_error %}
-            {% blocktrans %}
-              "Sorry, we couldn't identify the video at the link you sent. Perhaps it's a link we don't recognize, or perhaps you've linked to a page that has multiple videos. Try entering a different link to the video you want to submit. If you think there's been some mistake, <a href="mailto:feedback@universalsubtitles.org">contact us</a>!"
-            {% endblocktrans %}
-          {% endif %}
-
           <form action="{% url "videos:create" %}" method="POST" class="main_video_form">
 
             <h1 class="main_heading">{% trans 'Subtitle a Video' %}</h1>

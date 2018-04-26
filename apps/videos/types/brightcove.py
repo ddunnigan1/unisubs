@@ -21,7 +21,6 @@ import urlparse
 
 import requests
 
-from vidscraper.errors import Error as VidscraperError
 from base import VideoType, VideoTypeError
 from django.conf import settings
 from django.utils.html import strip_tags

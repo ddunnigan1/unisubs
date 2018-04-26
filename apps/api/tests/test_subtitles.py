@@ -20,6 +20,7 @@ import json
 
 from django.http import Http404
 from django.test import TestCase
+from lxml.etree import XMLSyntaxError
 from nose.tools import *
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -405,6 +406,7 @@ class SubtitlesSerializerTest(TestCase):
         }
         with assert_raises(ValidationError):
             self.run_create(data)
+
         data['subtitles_url'] = "https://s3.amazonaws.com/pculture-test-data/simple.srt"
         version = self.run_create(data)
         assert_equal(len(version.get_subtitles()), 19)
@@ -470,7 +472,7 @@ class SubtitlesSerializerTest(TestCase):
         assert_true(test_utils.reload_obj(language).subtitles_complete)
 
     def test_invalid_subtitles(self):
-        with assert_raises(ValidationError):
+        with assert_raises(XMLSyntaxError):
             self.run_create({
                 'sub_format': 'dfxp',
                 'subtitles': 'bad-dfxp-data',

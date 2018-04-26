@@ -21,7 +21,7 @@ util.xml -- various XML-related functions
 """
 # TODO: switch to using defusedxml
 
-import lxml
+from defusedxml import ElementTree as etree
 
 def strip_tags(text):
-    return lxml.html.fromstring(text).text_content()
+    return etree.fromstring(text).text_content()

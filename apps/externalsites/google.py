@@ -20,7 +20,6 @@
 
 from collections import namedtuple
 from email.mime.multipart import MIMEMultipart, MIMEBase
-from lxml import etree
 import json
 import logging
 import urllib
