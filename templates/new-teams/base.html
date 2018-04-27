@@ -23,6 +23,9 @@
     <li>
         <a href="{% url "teams:activity" team.slug %}">{% trans "Activity" %}</a>
     </li>
+    {% if team.resources_page_content %}
+    <li><a href="{% url "teams:resources" team.slug %}">{% trans "Resources" %}</a></li>
+    {% endif %}
     {% if team|can_view_management_tab:request.user %}
     <li><a href="{{ team|management_page_default:request }}">{% trans "Management" %}</a></li>
     {% endif %}

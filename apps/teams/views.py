@@ -277,11 +277,7 @@ def settings_messages(request, team):
         form = GuidelinesMessagesForm(request.POST, initial=initial)
 
         if form.is_valid():
-            for key, val in form.cleaned_data.items():
-                setting, c = Setting.objects.get_or_create(team=team, key=Setting.KEY_IDS[key])
-                setting.data = val
-                setting.save()
-
+            form.save(team)
             messages.success(request, _(u'Guidelines and messages updated.'))
             return HttpResponseRedirect(request.path)
     else:

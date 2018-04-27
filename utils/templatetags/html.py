@@ -1,6 +1,6 @@
 # Amara, universalsubtitles.org
 #
-# Copyright (C) 2013 Participatory Culture Foundation
+# Copyright (C) 2018 Participatory Culture Foundation
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -16,17 +16,13 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-import htmllib, formatter
-import bleach
+from django.template import Library
+from django.utils.safestring import mark_safe
 
-def unescape(s):
-    p = htmllib.HTMLParser(formatter.NullFormatter() )
-    # we need to preserve line breaks, nofill makes sure we don't
-    # loose them
-    p.nofill = True
-    p.save_bgn()
-    p.feed(s)
-    return p.save_end().strip()
+from utils.html import clean_html
 
-def clean_html(source):
-    return bleach.clean(source)
+register = Library()
+
+@register.filter(name='clean_html')
+def clean_html_filter(source):
+    return mark_safe(clean_html(source))

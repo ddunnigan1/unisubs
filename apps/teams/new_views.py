@@ -741,6 +741,12 @@ def statistics(request, team, tab):
     else:
         return render(request, 'new-teams/statistics.html', context)
 
+@team_view
+def resources(request, team):
+    return render(request, 'future/teams/resources.html', {
+        'team': team,
+        'team_nav': 'resources',
+    })
 
 def dashboard(request, slug):
     team = get_object_or_404(
@@ -980,15 +986,12 @@ def settings_messages(request, team):
         return old_views.settings_messages(request, team)
 
     initial = team.settings.all_messages()
+    initial['resources_page_content'] = team.resources_page_content
     if request.POST:
         form = forms.GuidelinesMessagesForm(request.POST, initial=initial)
 
         if form.is_valid():
-            for key, val in form.cleaned_data.items():
-                setting, c = Setting.objects.get_or_create(team=team, key=Setting.KEY_IDS[key])
-                setting.data = val
-                setting.save()
-
+            form.save(team)
             messages.success(request, _(u'Guidelines and messages updated.'))
             return HttpResponseRedirect(request.path)
     else:

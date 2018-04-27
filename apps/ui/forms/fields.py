@@ -138,18 +138,26 @@ class LanguageFieldMixin(AmaraChoiceFieldMixin):
               allow users to leave the value unset, but only if they actually
               select that option rather than just leaving the initial value
               unchanged.
+            - unset: The "Unset" option.  Work's the same as "Don't set", but
+              with a different label.
     """
 
     def __init__(self, options="null my popular all",
                  placeholder=_("Select language"), *args, **kwargs):
-        choices = translation.get_language_choices(flat=True)
-        if 'dont-set' in options.split():
-            choices.append(('dont-set', _('Don\'t set')))
-        super(LanguageFieldMixin, self).__init__(*args, choices=choices,
-                                                 **kwargs)
-        self.set_select_data('language-options', options)
+        super(LanguageFieldMixin, self).__init__(*args, **kwargs)
+        self.set_options(options)
         if "null" in options:
             self.set_placeholder(placeholder)
+
+    def set_options(self, options):
+        self.set_select_data('language-options', options)
+        choices = translation.get_language_choices(flat=True)
+        option_list = options.split()
+        if 'dont-set' in option_list:
+            choices.append(('null', _('Don\'t set')))
+        elif 'unset' in option_list:
+            choices.append(('null', _('Unset')))
+        self.choices = choices
 
     def exclude(self, languages):
         self.set_select_data('exclude', json.dumps(languages))
@@ -177,7 +185,7 @@ class LanguageFieldMixin(AmaraChoiceFieldMixin):
 
     def clean(self, value):
         value = super(LanguageFieldMixin, self).clean(value)
-        if value == 'dont-set':
+        if value == 'null':
             value = ''
         return value
 
