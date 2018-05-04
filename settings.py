@@ -83,6 +83,7 @@ ALARM_EMAIL = None
 MANAGERS = ADMINS
 
 P3P_COMPACT = 'CP="CURa ADMa DEVa OUR IND DSP CAO COR"'
+SECRET_KEY = 'replace-me-with-an-actual-secret'
 
 DEFAULT_FROM_EMAIL = '"Amara" <feedback@universalsubtitles.org>'
 WIDGET_LOG_EMAIL = 'widget-logs@universalsubtitles.org'
