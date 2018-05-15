@@ -21,7 +21,8 @@ boto3==1.5.7
 botocore==1.8.21
 -e git+https://github.com/linsomniac/python-memcached.git@bacb8058152873e46e6a2367452a353e4d98a065#egg=python-memcached
 feedparser==5.2.1
-defusedxml=0.5.0
+defusedxml==0.5.0
+lxml==4.2.1
 transifex-client==0.8
 sqlparse==0.1.9
 # This can be commented out if you're using sqlite
