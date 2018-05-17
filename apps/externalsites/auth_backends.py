@@ -39,12 +39,6 @@ class OpenIDConnectBackend(CustomUserBackend):
             return (True, '')
         except User.DoesNotExist:
             pass
-        if connect_info.openid_key:
-            try:
-                u = OpenIDConnectBackend._get_openid20_user(connect_info)
-                return (True, '')
-            except User.DoesNotExist:
-                pass
         # Case where user exists with allow_3rd_party_login=True
         try:
             # There must be one and only one user with selected email
@@ -85,27 +79,7 @@ class OpenIDConnectBackend(CustomUserBackend):
                 return
         except User.DoesNotExist:
             pass
-        if connect_info.openid_key:
-            try:
-                user = OpenIDConnectBackend._get_openid20_user(connect_info)
-                if user.is_active:
-                    return user
-                else:
-                    return
-            except User.DoesNotExist:
-                pass
         return self._create_new_user(connect_info, email=email)
-
-    @staticmethod
-    def _get_openid20_user(connect_info):
-        user = User.objects.get(
-            openidprofile__openid_key=connect_info.openid_key)
-        for name, value in connect_info.profile_data.items():
-            if not getattr(user, name):
-                setattr(user, name, value)
-        user.save()
-        OpenIDConnectLink.objects.create(user=user, sub=connect_info.sub)
-        return user
 
     def _create_new_user(self, connect_info, email=None):
         usernames = self._generate_usernames(connect_info.email)

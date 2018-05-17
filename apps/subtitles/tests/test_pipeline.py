@@ -191,9 +191,11 @@ class TestBasicAdding(TestCase):
 
         _add(subs)
 
-        self.assertEqual(_get_tip_subs(), [(110, 210, "foo", {'new_paragraph': True} ),
-                                           (310, 410, "bar", {'new_paragraph': False} ),
-                                           (None, None, '"baz"', {'new_paragraph': False} )])
+        self.assertEqual(_get_tip_subs(), [
+            SubtitleLine(110, 210, "foo", {'new_paragraph': True} ),
+            SubtitleLine(310, 410, "bar", {'new_paragraph': False} ),
+            SubtitleLine(None, None, '"baz"', {'new_paragraph': False} ),
+        ])
 
         # Passing a hunk of XML.
         subs = SubtitleSet.from_list("en", [SubtitleLine(10000, 22000, "boots", {}),

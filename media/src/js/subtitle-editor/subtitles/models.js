@@ -27,6 +27,13 @@ var angular = angular || null;
 
     var module = angular.module('amara.SubtitleEditor.subtitles.models', []);
 
+    // Add function to match by attributes with in the xml namespace
+    $.fn.findXmlID = function(value) {
+        return this.filter(function() {
+            return $(this).attr('xml:id') == value
+        });
+    };
+
     function emptyDFXP(languageCode) {
         /* Get a DFXP string for an empty subtitle set */
         return '<tt xmlns="http://www.w3.org/ns/ttml" xmlns:tts="http://www.w3.org/ns/ttml#styling" xml:lang="' + languageCode + '">\
@@ -36,29 +43,57 @@ var angular = angular || null;
             <ttm:description/>\
             <ttm:copyright/>\
         </metadata>\
-        <styling>\
-            <style xml:id="amara-style" tts:color="white" tts:fontFamily="proportionalSansSerif" tts:fontSize="18px" tts:backgroundColor="transparent" tts:textOutline="black 1px 0px" tts:textAlign="center"/>\
-        </styling>\
-        <layout>\
-            <region xml:id="bottom" style="amara-style" tts:extent="100% 20%" tts:origin="0 80%" />\
-            <region xml:id="top" style="amara-style" tts:extent="100% 20%" tts:origin="0 0" tts:textAlign="center"/>\
-        </layout>\
+        <styling>' + amaraStyle() + '</styling>\
+        <layout>' + bottomRegion() + topRegion() + '</layout>\
     </head>\
     <body region="bottom"><div /></body>\
 </tt>';
     };
 
-    function Subtitle(startTime, endTime, markdown, startOfParagraph) {
+    function amaraStyle() {
+        return '<style xml:id="amara-style" tts:color="white" tts:fontFamily="proportionalSansSerif" tts:fontSize="18px" tts:backgroundColor="transparent" tts:textOutline="black 1px 0px" tts:textAlign="center"/>';
+    }
+
+    function bottomRegion() {
+        return '<region xml:id="bottom" style="amara-style" tts:extent="100% 20%" tts:origin="0 80%" />';
+    }
+
+    function topRegion() {
+        return '<region xml:id="top" style="amara-style" tts:extent="100% 20%" tts:origin="0 0" />';
+    }
+
+    function preprocessDFXP(xml) {
+        // Alter XML that we're loading to ensure that it can work with the editor.
+        //
+        // This means doing things like ensuring that our expected regions are present
+        var doc = $($.parseXML(xml));
+        var styling = doc.find('styling');
+        var layout = doc.find('layout');
+        if(styling.find("style").findXmlID('amara-style').length == 0) {
+            styling.append($(amaraStyle()));
+        }
+        if(layout.find("region").findXmlID('bottom').length == 0) {
+            layout.append($(bottomRegion()));
+        }
+        if(layout.find("region").findXmlID('top').length == 0) {
+            layout.append($(topRegion()));
+        }
+        return doc[0];
+    }
+    function Subtitle(startTime, endTime, markdown, region, startOfParagraph) {
         /* Represents a subtitle in our system
          *
          * Subtitle has the following properties:
          *   - startTime -- start time in seconds
          *   - endTime -- end time in seconds
          *   - markdown -- subtitle content in our markdown-style format
+         *   - region -- subtitle display region (top, or undefined for the default/bottom)
+         *   - startOfParagraph -- Are we the start of a new paragraph?
          */
         this.startTime = startTime;
         this.endTime = endTime;
         this.markdown = markdown;
+        this.region = region;
         this.startOfParagraph = startOfParagraph;
     }
 
@@ -164,7 +199,7 @@ var angular = angular || null;
          * */
         var text = $(node).text().trim();
         Subtitle.call(this, parser.startTime(node), parser.endTime(node),
-                text, parser.startOfParagraph(node));
+                text, parser.region(node), parser.startOfParagraph(node));
         this.node = node;
         this.id = id;
     }
@@ -178,7 +213,7 @@ var angular = angular || null;
     function DraftSubtitle(storedSubtitle) {
         /* Subtitle that we are currently changing */
         Subtitle.call(this, storedSubtitle.startTime, storedSubtitle.endTime,
-                storedSubtitle.markdown);
+                storedSubtitle.markdown, storedSubtitle.region, storedSubtitle.startOfParagraph);
         this.storedSubtitle = storedSubtitle;
     }
 
@@ -250,12 +285,12 @@ var angular = angular || null;
         baseLanguageParser.getSubtitles().each(function(index, node) {
             startTime = baseLanguageParser.startTime(node);
             endTime = baseLanguageParser.endTime(node);
-            startOfParagraph = baseLanguageParser.startOfParagraph(node);
             if(startTime >= 0 && endTime >= 0) {
                 baseAttributes.push({
                     'startTime': startTime,
                     'endTime': endTime,
-                    'startOfParagraph': startOfParagraph
+                    'startOfParagraph': baseLanguageParser.startOfParagraph(node),
+                    'region': baseLanguageParser.region(node)
                 });
             }
         });
@@ -269,6 +304,7 @@ var angular = angular || null;
                 end: baseAttribute.endTime,
             });
             that.parser.startOfParagraph(node, baseAttribute.startOfParagraph);
+            that.parser.region(node, baseAttribute.region);
             that.subtitles.push(that.makeItem(node));
             that.syncedCount++;
         });
@@ -442,6 +478,16 @@ var angular = angular || null;
 	return this.parser.startOfParagraph(subtitle.node);
     }
 
+    SubtitleList.prototype.getRegion = function(subtitle) {
+	return this.parser.region(subtitle.node);
+    }
+
+    SubtitleList.prototype.setRegion = function(subtitle, region) {
+        subtitle.region = region;
+	this.parser.region(subtitle.node, region);
+        this.emitChange('update', subtitle);
+    }
+
     SubtitleList.prototype.computeTimingsForInsertion = function(firstStart, firstEnd, secondStart, secondEnd) {
 	var newSubtitleDuration = 3000;
 	var minSubtitleDuration = 1000;
@@ -473,7 +519,7 @@ var angular = angular || null;
 	}
     }
 
-    SubtitleList.prototype.insertSubtitleBefore = function(otherSubtitle) {
+    SubtitleList.prototype.insertSubtitleBefore = function(otherSubtitle, region) {
         if(otherSubtitle !== null) {
             var pos = this.getIndex(otherSubtitle);
         } else {
@@ -519,6 +565,9 @@ var angular = angular || null;
         } else {
             attrs = {}
         }
+        if(region !== undefined) {
+            attrs.region = region;
+        }
         var node = this.parser.addSubtitle(after, attrs);
         var subtitle = this.makeItem(node);
         if(otherSubtitle != null) {
@@ -539,16 +588,30 @@ var angular = angular || null;
     // A new subtitle will be created to take up the second half of the time and get secondSubtitleMarkdown as its content
     SubtitleList.prototype.splitSubtitle = function(subtitle, firstSubtitleMarkdown, secondSubtitleMarkdown) {
         var pos = this.getIndex(subtitle);
+        var nextSubtitle = this.nextSubtitle(subtitle);
+
+        if(!subtitle.isSynced()) {
+            this._updateSubtitleContent(subtitle, firstSubtitleMarkdown);
+            var newNode = this.parser.addSubtitle(subtitle.node, {
+                region: subtitle.region
+            }, secondSubtitleMarkdown);
+            var newSubtitle = this.makeItem(newNode);
+            this.subtitles.splice(pos+1, 0, newSubtitle);
+
+            this.emitChange('update', subtitle);
+            this.emitChange('insert', newSubtitle, { 'before': nextSubtitle});
+            return newSubtitle;
+        }
+
         var startTime = subtitle.startTime;
         var endTime = subtitle.endTime;
         var midpointTime = (startTime + endTime) / 2;
-        var nextSubtitle = this.nextSubtitle(subtitle);
 
         this._updateSubtitleTime(subtitle, startTime, midpointTime);
         this._updateSubtitleContent(subtitle, firstSubtitleMarkdown);
 
         var newNode = this.parser.addSubtitle(subtitle.node, {
-            begin: midpointTime, end: endTime
+            begin: midpointTime, end: endTime, region: subtitle.region
         }, secondSubtitleMarkdown);
         var newSubtitle = this.makeItem(newNode);
 
@@ -623,6 +686,10 @@ var angular = angular || null;
     SubtitleList.prototype.firstSubtitle = function() {
         return this.subtitles[this.indexOfFirstSubtitleAfter(-1)] ||
                this.firstUnsyncedSubtitle();
+    }
+
+    SubtitleList.prototype.lastSubtitle = function() {
+        return this.subtitles[this.subtitles.length -1];
     }
 
     SubtitleList.prototype.subtitleAt = function(time) {
@@ -752,7 +819,8 @@ var angular = angular || null;
                     that.metadata[key] = subtitleData.metadata[key];
                 }
                 that.description = subtitleData.description;
-                that.subtitleList.loadXML(subtitleData.subtitles);
+                var subtitles = preprocessDFXP(subtitleData.subtitles);
+                that.subtitleList.loadXML(subtitles);
             });
         },
         initEmptySubtitles: function(languageCode, baseLanguage) {

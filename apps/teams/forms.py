@@ -16,6 +16,7 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+import bleach
 import datetime
 import json
 import logging
@@ -49,7 +50,7 @@ from subtitles.pipeline import add_subtitles
 from teams.models import (
     Team, TeamMember, TeamVideo, Task, Project, Workflow, Invite,
     BillingReport, MembershipNarrowing, Application, TeamVisibility,
-    VideoVisibility, Setting,
+    VideoVisibility, EmailInvite, Setting
 )
 from teams import behaviors, permissions, tasks
 from teams.exceptions import ApplicationInvalidException
@@ -66,6 +67,7 @@ from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
                       AmaraRadioSelect, SearchField, AmaraClearableFileInput,
                       AmaraFileInput, HelpTextList)
 from ui.forms import LanguageField as NewLanguageField
+from utils.html import clean_html
 from utils import send_templated_email
 from utils.forms import (ErrorableModelForm, get_label_for_value,
                          UserAutocompleteField, LanguageField,
@@ -759,6 +761,11 @@ class MessageTextField(forms.CharField):
             required=False, widget=forms.Textarea,
             *args, **kwargs)
 
+    def clean(self, value):
+        value = super(MessageTextField, self).clean(value)
+        value = clean_html(value)
+        return value
+
 class GuidelinesMessagesForm(forms.Form):
     pagetext_welcome_heading = MessageTextField(
         label=_('Welcome heading on your landing page for non-members'))
@@ -1006,9 +1013,13 @@ class AddMembersForm(forms.Form):
         return summary
 
 class InviteForm(forms.Form):
-    username = UserAutocompleteField(error_messages={
-        'invalid': _(u'User has a pending invite or is already a member of this team'),
-    })
+    username = UserAutocompleteField(required=False, error_messages={
+        'invalid': _(u'User has a pending invite or is already a member of this team')
+        },
+        help_text="Amara username of the user you want to invite")
+    email = forms.EmailField(required=False, max_length=254,
+                            widget=forms.TextInput(),
+                            help_text=_("You can also invite a team member via email--both a username and an email works too!") )
     message = forms.CharField(required=False,
                               widget=forms.Textarea(attrs={'rows': 4}),
                               label=_("Message to user"))
@@ -1027,15 +1038,60 @@ class InviteForm(forms.Form):
             reverse('teams:autocomplete-invite-user', args=(team.slug,))
         )
 
+    def clean(self):
+        cleaned_data = super(InviteForm, self).clean()
+        email = cleaned_data.get('email')
+        username = cleaned_data.get('username')
+
+        if not (email or username):
+            raise forms.ValidationError(_(u"A valid username or email address must be provided"))            
+
+        return cleaned_data
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        
+        if self.team.users.filter(email=email).exists():
+            invitee = User.objects.get(email=email)
+            raise forms.ValidationError(_(u"This email address belongs to {} who is already a part of the team!".format(invitee)))
+
+        return email
+        
+
     def save(self):
-        from messages import tasks as notifier
+        if self.cleaned_data['email']:
+            self.process_emails()
+        if self.cleaned_data['username']:
+            return self.create_invite(self.cleaned_data['username'])
+
+    def create_invite(self, user):
         invite = Invite.objects.create(
-            team=self.team, user=self.cleaned_data['username'], 
+            team=self.team, user=user, 
             author=self.user, role=self.cleaned_data['role'],
             note=self.cleaned_data['message'])
         invite.save()
-        notifier.team_invitation_sent.delay(invite.pk)
+        self.send_notif_for_invite(invite.pk)
+
         return invite
+
+    def send_notif_for_invite(self, invite_pk):
+        from messages import tasks as notifier        
+        notifier.team_invitation_sent.delay(invite_pk)
+
+    def process_emails(self):
+        invitees = User.objects.filter(email=self.cleaned_data['email'])
+        for invitee in invitees:
+            self.create_invite(invitee)
+            '''
+            If email notifs for the existing user is turned off, should we still send an email message?
+            Taking into account that possibly the intention of the team owner/admin is to communicate
+            the email invite via email.
+            '''
+
+        if invitees.count() == 0:
+            email_invite = EmailInvite.create_invite(email=self.cleaned_data['email'], 
+                author=self.user, team=self.team, role=self.cleaned_data['role'])
+            email_invite.send_mail(self.cleaned_data['message'])
 
 class ProjectForm(forms.ModelForm):
     class Meta:
@@ -1993,16 +2049,15 @@ class EditVideosForm(VideoManagementForm):
     def setup_multiple_selection(self):
         del self.fields['title']
         self.fields['language'].required = False
-        self.fields['language'].set_options("popular all unset")
+        self.fields['language'].set_options("null popular all")
         self.fields['language'].set_placeholder(_('No change'))
 
     def perform_submit(self, qs):
         project = self.cleaned_data.get('project')
         language = self.cleaned_data['language']
         thumbnail = self.cleaned_data['thumbnail']
-        if language is None and self.single_selection():
-            language = ''
-
+        if language == '' and not self.single_selection():
+            language = None
 
         for video in qs:
             team_video = video.teamvideo

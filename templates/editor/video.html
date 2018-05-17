@@ -1,7 +1,8 @@
 {% load i18n %}
-<div class="video" ng-controller="VideoController">
+<div class="video" ng-controller="VideoController" video-view>
     <div class="video-container" id="video"></div>
-    <div class="subtitle-overlay" ng-show="showSubtitle" dir="{{ language.dir }}"><div ng-bind-html="subtitleText"></div></div>
+    <div class="subtitle-overlay top" ng-show="showSubtitle" dir="{{ language.dir }}"></div>
+    <div class="subtitle-overlay bottom" ng-show="showSubtitle" dir="{{ language.dir }}"><div class="subtitle-overlay-text" ng-bind-html="subtitleText"></div></div>
     <ul class="video-controls group">
         <li class="play-pause" ng-class="{'playing': videoState.playing}">
         <a href="#" ng-click="playPauseClicked($event)"></a>

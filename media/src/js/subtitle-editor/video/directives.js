@@ -21,6 +21,11 @@ var angular = angular || null;
 (function() {
     var module = angular.module('amara.SubtitleEditor.video.directives', []);
 
+    // var SUBTITLE_MIME_TYPE = 'application/vnd.pculture.amara.subtitle';
+    // Can't use the mime type we want because of an Edge bug (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8007622/).
+    // So, (ab)use a known mime type.
+    var SUBTITLE_MIME_TYPE = 'text/plain';
+
     module.directive('volumeBar', ["VideoPlayer", function(VideoPlayer) {
         return function link($scope, elem, attrs) {
             elem = $(elem);
@@ -164,6 +169,105 @@ var angular = angular || null;
             };
         }
 
+    }]);
+
+    module.directive('videoView', [ function() {
+        // Handles view code to show the video.  Right now this means showing the current subtitle
+
+        function watchShownSubtitlePosition($scope, overlays, text) {
+            var topOverlay = overlays.filter('.top');
+            var bottomOverlay = overlays.filter('.bottom');
+
+            function recalcSubtitlePosition() {
+                if(!$scope.currentSubtitle) {
+                    bottomOverlay.append(text);
+                } else if($scope.currentSubtitle.region == 'top') {
+                    topOverlay.append(text);
+                } else {
+                    bottomOverlay.append(text);
+                }
+            }
+
+            $scope.$watch('currentSubtitle.region', recalcSubtitlePosition);
+            $scope.workingSubtitles.subtitleList.addChangeCallback(function(change) {
+                recalcSubtitlePosition();
+            });
+        }
+        return function link($scope, elem, attrs) {
+            var overlays = elem.find('.subtitle-overlay');
+            var text = elem.find('.subtitle-overlay-text');
+
+            watchShownSubtitlePosition($scope, overlays, text);
+
+            text.attr('draggable', true);
+            text.on('dragstart', function(evt) {
+                var subtitle = $scope.currentSubtitle;
+                if(!subtitle) {
+                    return;
+                }
+                var dataTransfer = evt.originalEvent.dataTransfer;
+                dataTransfer.setData('text/plain', text.text());
+                if(!subtitle.isDraft) {
+                    dataTransfer.setData(SUBTITLE_MIME_TYPE, subtitle.id);
+                } else {
+                    dataTransfer.setData(SUBTITLE_MIME_TYPE, subtitle.storedSubtitle.id);
+                }
+                dataTransfer.effectAllowed = 'copyMove';
+                dataTransfer.dropEffect = 'move';
+                overlays.addClass('dragging');
+                // var overlay = $(this.parentNode);
+                // overlay.data('dragcount', 1);
+                // overlay.addClass('will-drop');
+            }).on('dragend', function(evt) {
+                overlays.removeClass('dragging');
+                overlays.removeClass('will-drop');
+            });
+            overlays.data('dragcount', 0);
+            overlays.on('dragenter', function(evt) {
+                var dataTransfer = evt.originalEvent.dataTransfer;
+                if(_.contains(dataTransfer.types, SUBTITLE_MIME_TYPE)) {
+                    var elt = $(this);
+                    elt.data('dragcount', elt.data('dragcount') + 1);
+                    dataTransfer.dropEffect = 'move';
+                    $(this).addClass('will-drop');
+                    evt.preventDefault();
+                }
+            }).on('dragover', function(evt) {
+                var dataTransfer = evt.originalEvent.dataTransfer;
+                if(_.contains(dataTransfer.types, SUBTITLE_MIME_TYPE)) {
+                    var elt = $(this);
+                    dataTransfer.dropEffect = 'move';
+                    evt.preventDefault();
+                }
+            }).on('dragleave', function(evt) {
+                var elt = $(this);
+                var newCount = elt.data('dragcount') - 1;
+                elt.data('dragcount', newCount);
+                if(newCount == 0) {
+                    $(this).removeClass('will-drop');
+                }
+            }).on('drop', function(evt) {
+                var dataTransfer = evt.originalEvent.dataTransfer;
+                var subtitleId = dataTransfer.getData(SUBTITLE_MIME_TYPE);
+                var sub = $scope.workingSubtitles.subtitleList.getSubtitleById(subtitleId);
+                if(sub) {
+                    var region = calcRegionForDrop($(this));
+                    $scope.workingSubtitles.subtitleList.setRegion(sub, region);
+                    if($scope.currentEdit.draft && $scope.currentEdit.draft.storedSubtitle.id == sub.id) {
+                        $scope.currentEdit.draft.region = region;
+                    }
+                }
+                evt.preventDefault();
+            });
+
+            function calcRegionForDrop(elt) {
+                if(elt.hasClass('top')) {
+                    return 'top';
+                } else {
+                    return null;
+                }
+            }
+        }
     }]);
 })();
 

@@ -41,3 +41,11 @@ def data_from_url(url):
     else:
         response = requests.get(url)
         return response.text
+
+def get_url_host(request):
+    if request.is_secure():
+        protocol = 'https'
+    else:
+        protocol = 'http'
+    host = request.get_host()
+    return '%s://%s' % (protocol, host)

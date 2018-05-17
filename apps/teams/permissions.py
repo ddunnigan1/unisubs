@@ -1050,3 +1050,16 @@ def can_create_team(user):
 def can_create_team_ui(user):
     # via website
     return user.has_perm('teams.add_team') and user.is_active
+
+def can_manage_subtitles(user, team_video, language_code=None):
+    """Can a user manage subtitles for this team_video
+
+    This method checks if a user is one of the following:
+      - a language manager for the team video's language
+      - a project manager for the team video's project
+    """
+    member = team_video.team.get_member(user)
+    if not member:
+        return False
+    return (member.is_language_manager(language_code) or
+            member.is_project_manager(team_video.project_id))

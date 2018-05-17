@@ -36,12 +36,12 @@ from externalsites.auth_backends import OpenIDConnectInfo, OpenIDConnectBackend
 from externalsites.exceptions import YouTubeAccountExistsError, VimeoSyncAccountExistsError
 from externalsites.models import get_sync_account, YouTubeAccount, SyncHistory, VimeoSyncAccount
 from localeurl.utils import universal_url
-from socialauth.views import get_url_host
 from teams.models import Team
 from teams.permissions import can_change_team_settings, can_resync
 from videos import permissions
 from teams.views import settings_page
 from utils.breadcrumbs import BreadCrumb
+from utils.http import get_url_host
 from utils.text import fmt
 from videos.models import VideoUrl
 

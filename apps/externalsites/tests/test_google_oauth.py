@@ -34,7 +34,6 @@ from externalsites import google
 from externalsites.auth_backends import (OpenIDConnectInfo,
                                          OpenIDConnectBackend)
 from externalsites.models import OpenIDConnectLink
-from socialauth.models import OpenidProfile
 
 class TestRequestTokenURL(TestCase):
     def test_online_access(self):
@@ -262,33 +261,12 @@ class OpenIDConnectAuthBackendTest(TestCase):
         # profile data
         assert_equal(login_user.first_name, 'Sam')
 
-    def test_openid_migrate(self):
-        # We used to use openid, but google is in the process of discontinuing
-        # it.  If a user was has previously logged in then they will have an
-        # OpenidProfile object associated with them.  We should migrate to the
-        # OpenIDConnectLink
-        user = UserFactory(username='test@example.com')
-        OpenidProfile.objects.create(openid_key='test-key', user=user)
-        login_user = self.run_authenticate(
-            '123', 'test@example.com', openid_key='test-key')
-        assert_equal(user, login_user)
-        assert_equal(user.openid_connect_link.sub, '123')
-
     def test_openid_profile_not_created(self):
         # If the openid_key isn't in the database, we should just ignore it
         user = self.run_authenticate(
             '123', 'test@example.com', openid_key='test-key')
         assert_equal(user.openid_connect_link.sub, '123')
 
-    def test_openid_migrate_sets_profile_data_if_blank(self):
-        user = UserFactory(username='test@example.com', first_name='Sam',
-                           last_name='')
-        OpenidProfile.objects.create(openid_key='test-key', user=user)
-        login_user = self.run_authenticate(
-            '123', 'test@example.com', openid_key='test-key',
-            first_name='Pat', last_name='Patterson')
-        assert_equal(login_user.first_name, 'Sam')
-        assert_equal(login_user.last_name, 'Patterson')
 
 class ServiceAccountTest(TestCase):
     @override_settings(GOOGLE_SERVICE_ACCOUNT='test@example.com',

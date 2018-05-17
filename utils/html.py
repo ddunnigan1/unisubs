@@ -19,6 +19,11 @@
 import htmllib, formatter
 import bleach
 
+CLEAN_DEFAULTS = {
+        'tags': ['a', 'b', 'strong', 'i', 'em', 'u', 'li', 'ol', 'ul'],
+        'attributes': {'a': 'href'},
+        'protocols': ['http', 'https']}
+
 def unescape(s):
     p = htmllib.HTMLParser(formatter.NullFormatter() )
     # we need to preserve line breaks, nofill makes sure we don't
@@ -28,5 +33,7 @@ def unescape(s):
     p.feed(s)
     return p.save_end().strip()
 
-def clean_html(source):
-    return bleach.clean(source)
+def clean_html(source, tags=CLEAN_DEFAULTS['tags'],
+               attributes=CLEAN_DEFAULTS['attributes'],
+               protocols=CLEAN_DEFAULTS['protocols']):
+    return bleach.clean(source, tags=tags, attributes=attributes, protocols=protocols)

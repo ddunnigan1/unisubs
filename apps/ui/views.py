@@ -93,6 +93,6 @@ def language_select(request):
     valid_options = [code for code, label in settings.LANGUAGES]
     for code, name in get_language_choices(flat=True, limit_to=valid_options):
         url[3] = code
-        context['languages'] += [('/'.join(url), name)]
+        context['languages'] += [('/'.join(url), code, name)]
     response_renderer.show_modal(template_name, context)
     return response_renderer.render()

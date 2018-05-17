@@ -163,12 +163,11 @@
         }
 
         function updateUpcomingSubtitleSticker() {
-            if ($scope.unsyncedShown())
-                var s =
-                $scope.workingSubtitles.subtitleList.secondUnsyncedSubtitle();
-            else
-                var s =
-                $scope.workingSubtitles.subtitleList.firstUnsyncedSubtitle();
+            if ($scope.unsyncedShown()) {
+                var s = $scope.workingSubtitles.subtitleList.secondUnsyncedSubtitle();
+            } else {
+                var s = $scope.workingSubtitles.subtitleList.firstUnsyncedSubtitle();
+            }
             if (s) {
                 // This is not good data binding but is kept consistent
                 // with placement of subs on the timeline.
@@ -180,12 +179,12 @@
             else $scope.showUpcomingUnsyncedSubtitle = false;
         }
 
-        function updateTimeline() {
+        function updateTimeline(redrawSubtitleOptions) {
             updateTime();
             updateWillSync();
             updateUpcomingSubtitleSticker();
             $scope.redrawCanvas();
-            $scope.redrawSubtitles();
+            $scope.redrawSubtitles(redrawSubtitleOptions);
         }
 
         function scrollToSubtitle(subtitle) {
@@ -202,15 +201,12 @@
                 cancelTimer();
             }
         });
+        $scope.$root.$on("work-done", function() {
+            updateTimeline({forcePlace: true});
+        });
 
         $scope.$root.$on('dialog-opened', function() {
             $scope.hideContextMenu();
-        });
-
-        // Update the timeline subtitles when the underlying data changes.
-        $scope.$root.$on('work-done', function() {
-            $scope.redrawSubtitles({forcePlace: true});
-            updateWillSync();
         });
 
         $scope.$root.$on('sync-next-start-time', function($event) {

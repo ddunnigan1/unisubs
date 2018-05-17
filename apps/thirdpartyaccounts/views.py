@@ -28,8 +28,8 @@ from django.shortcuts import redirect
 from django.utils.http import urlquote
 from oauth import oauth
 from auth.models import CustomUser as User
-from socialauth.lib import oauthtwitter2 as oauthtwitter
-from socialauth.views import get_url_host
+from thirdpartyaccounts.lib import oauthtwitter2 as oauthtwitter
+from utils.http import get_url_host
 from thirdpartyaccounts.auth_backends import FacebookAccount, FacebookAuthBackend, TwitterAuthBackend, TwitterAccount
 
 import logging
@@ -98,7 +98,7 @@ def twitter_login_done(request, confirmed=True):
             return redirect('auth:login')
 
         try:
-            from socialauth.lib.oauthtwitter import OAuthApi
+            from thirdpartyaccounts.lib.oauthtwitter import OAuthApi
             twitter = OAuthApi(settings.TWITTER_CONSUMER_KEY,
                                 settings.TWITTER_CONSUMER_SECRET, access_token)
             userinfo = twitter.GetUserInfo()

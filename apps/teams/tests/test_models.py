@@ -18,6 +18,8 @@
 
 from django.test import TestCase
 
+from teams.models import EmailInvite, TeamMember
+
 from utils.factories import *
 from utils.test_utils import *
 import teams.signals
@@ -50,3 +52,16 @@ class UpdateSettingsTest(TestCase):
     def test_no_changes(self):
         self.change_settings(description='test')
         assert_false(self.signal_handler.called)
+
+
+class EmailInviteModelTest(TestCase):
+	def setUp(self):
+		self.author = UserFactory()
+		self.user = UserFactory()
+		self.team = TeamFactory()
+		self.email_invite = EmailInvite.create_invite(email=self.user.email,
+			team=self.team, author=self.author)
+
+	def test_invite_linked(self):
+		self.email_invite.link_to_account(self.user)
+		assert_true(self.user.teams.filter(pk=self.team.pk).exists())

@@ -107,6 +107,11 @@ div.amara-embed {
             text-align: center;
             line-height: 1.2;
 
+            &.top {
+                top: 30px;
+                bottom: auto;
+            }
+
             div {
                 background: rgba(0, 0, 0, .8);
                 color: #FFF;

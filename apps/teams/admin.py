@@ -30,7 +30,7 @@ from teams.models import (
     Team, TeamMember, TeamVideo, Workflow, Task, Setting, MembershipNarrowing,
     Project, TeamLanguagePreference, TeamNotificationSetting, BillingReport,
     Partner, Application, ApplicationInvalidException, Invite, BillingRecord,
-    LanguageManager, BillToClient
+    LanguageManager, BillToClient, EmailInvite
 )
 from utils.text import fmt
 from videos.models import Video
@@ -360,3 +360,4 @@ admin.site.register(Partner)
 admin.site.register(Invite, InviteAdmin)
 admin.site.register(Application, ApplicationAdmin)
 admin.site.register(BillingRecord, BillingRecordAdmin)
+admin.site.register(EmailInvite)

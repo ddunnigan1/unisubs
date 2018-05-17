@@ -38,7 +38,7 @@ from teams.permissions import (
     can_create_task_translate, can_join_team, can_edit_video, can_approve,
     roles_user_can_invite, can_add_video_somewhere, can_assign_tasks,
     can_create_and_edit_translations, save_role, can_remove_video,
-    can_delete_team, can_delete_video, can_post_edit_subtitles
+    can_delete_team, can_delete_video, can_post_edit_subtitles, can_manage_subtitles
 )
 
 
@@ -759,6 +759,23 @@ class TestRules(BaseTestPermission):
 
         self.assertFalse(can_create_and_edit_subtitles(outsider, self.nonproject_video))
 
+    def test_can_manage_subtitles_as_project_manager(self):
+        member = TeamMemberFactory(team=self.team,
+                                user=self.user,
+                                role=TeamMember.ROLE_CONTRIBUTOR)
+        member.make_project_manager(self.test_project)
+
+        self.assertTrue(can_manage_subtitles(self.user, self.project_video))
+        self.assertFalse(can_manage_subtitles(self.user, self.nonproject_video))
+
+    def test_can_manage_subtitles_as_language_manager(self):
+        member = TeamMemberFactory(team=self.team,
+                                user=self.user,
+                                role=TeamMember.ROLE_CONTRIBUTOR)
+        member.make_language_manager('en')
+
+        self.assertTrue(can_manage_subtitles(self.user, self.project_video, 'en'))
+        self.assertFalse(can_manage_subtitles(self.user, self.nonproject_video, 'es'))   
 
     # TODO: Ensure later steps block earlier steps.
     def test_can_create_task_subtitle(self):

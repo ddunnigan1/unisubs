@@ -65,31 +65,32 @@
             event.preventDefault();
         };
 
-        $scope.$watch('currentEdit.draft.content()', function(newValue) {
-            if(newValue !== null && newValue !== undefined) {
-                $scope.subtitleText = $sce.trustAsHtml(newValue);
+        function recalcCurrentSubtitle() {
+            if($scope.currentEdit.draft) {
+                setCurrentSubtitle($scope.currentEdit.draft);
+            } else {
+                setCurrentSubtitle($scope.timeline.shownSubtitle);
+            }
+        }
+        function setCurrentSubtitle(subtitle) {
+            $scope.currentSubtitle = subtitle;
+            if(subtitle) {
                 $scope.showSubtitle = true;
-            } else if($scope.timeline.shownSubtitle !== null) {
-                $scope.subtitleText = $sce.trustAsHtml($scope.timeline.shownSubtitle.content());
-                $scope.showSubtitle = true;
+                $scope.subtitleText = $sce.trustAsHtml(subtitle.content());
             } else {
                 $scope.showSubtitle = false;
+                $scope.subtitleText = '';
             }
-        });
+        }
+
+        $scope.$watch('currentEdit.draft.content()', recalcCurrentSubtitle);
+        $scope.$watch('timeline.shownSubtitle', recalcCurrentSubtitle);
+
         $scope.$root.$on('subtitle-selected', function($event, scope) {
             if(scope.subtitle.isSynced()) {
                 VideoPlayer.playChunk(scope.startTime, scope.duration());
             }
-            $scope.subtitleText = $sce.trustAsHtml(scope.subtitle.content());
-            $scope.showSubtitle = true;
-        });
-        $scope.$watch('timeline.shownSubtitle', function(subtitle) {
-            if(subtitle !== null) {
-                $scope.subtitleText = $sce.trustAsHtml(subtitle.content());
-                $scope.showSubtitle = true;
-            } else {
-                $scope.showSubtitle = false;
-            }
+            setCurrentSubtitle(scope.subtitle);
         });
 
         // use evalAsync so that the video player gets loaded after we've

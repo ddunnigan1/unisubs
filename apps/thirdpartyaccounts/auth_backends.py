@@ -22,7 +22,7 @@ from django.core.files.base import ContentFile
 
 from auth.models import CustomUser as User
 from thirdpartyaccounts.models import FacebookAccount, TwitterAccount
-from socialauth.lib import oauthtwitter
+from thirdpartyaccounts.lib import oauthtwitter
 
 TWITTER_CONSUMER_KEY = getattr(settings, 'TWITTER_CONSUMER_KEY', '')
 TWITTER_CONSUMER_SECRET = getattr(settings, 'TWITTER_CONSUMER_SECRET', '')

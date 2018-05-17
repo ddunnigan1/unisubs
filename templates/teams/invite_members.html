@@ -25,6 +25,11 @@
                     </select>
                 </div>
                 <p class="notation">{% trans 'Amara username of the user you want to invite.' %}</p>
+
+                {{ form.errors.email }}
+                <label for="id_email">{% trans 'Email' %}</label>
+                {{ form.email }}
+                <p class="notation">{% trans 'You can also invite a team member via email--both a username and an email works too!' %}</p>
             </fieldset>
 
             <fieldset>

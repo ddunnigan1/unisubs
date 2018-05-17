@@ -636,7 +636,8 @@
                         this.pop.amarasubtitle({
                             start: subtitles[i].start / 1000.0,
                             end: subtitles[i].end / 1000.0,
-                            text: subtitles[i].text
+                            text: subtitles[i].text,
+                            region: subtitles[i].meta.region
                         });
                     }
 

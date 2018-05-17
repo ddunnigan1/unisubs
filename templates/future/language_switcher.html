@@ -10,8 +10,8 @@
           <input id="languageSearchBar" class="languageSwitcher_searchBar" type="text" placeholder="{% trans "Search languages"%}">
         </div>
         <ul class="languageSwitcher_list col3 filteredList">
-          {% for url, name in languages %}
-          <li><a href="{{url}}">{{name}}</a></li>
+          {% for url, code, name in languages %}
+          <li><a class="languageSwitcher-item" href="{{url}}" data-language-code="{{ code }}">{{name}}</a></li>
           {% endfor %}
         </ul>
         <p>

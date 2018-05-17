@@ -42,6 +42,12 @@ var Popcorn = Popcorn || null;
 	    }
 	},
         start: function(event, options){
+            if(options.region == 'top') {
+                console.log('top');
+                this.container.className = 'amara-popcorn-subtitles top';
+            } else {
+                this.container.className = 'amara-popcorn-subtitles';
+            }
         },
         end: function(event, options) {
             newdiv.style.display = 'none';

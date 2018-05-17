@@ -61,9 +61,9 @@ def lookup_youtube_accounts(video_url, user, team):
     fetch_subs_youtube()
     """
     if team:
-        return YouTubeAccount.objects.for_team_or_synced_with_team(team)
+        return YouTubeAccount.objects.for_team_or_synced_with_team(team).filter(fetch_initial_subtitles=True)
     elif user:
-        return YouTubeAccount.objects.for_owner(user)
+        return YouTubeAccount.objects.for_owner(user).filter(fetch_initial_subtitles=True)
     else:
         return YouTubeAccount.objects.none()
 
@@ -73,23 +73,22 @@ def lookup_vimeo_accounts(video_url, user, team):
     fetch_subs_youtube()
     """
     if team:
-        return VimeoSyncAccount.objects.for_team_or_synced_with_team(team)
+        return VimeoSyncAccount.objects.for_team_or_synced_with_team(team).filter(username=video_url.owner_username,
+                                                                                fetch_initial_subtitles=True)
     elif user:
-        return VimeoSyncAccount.objects.for_owner(user)
+        return VimeoSyncAccount.objects.for_owner(user).filter(username=video_url.owner_username,
+                                                             fetch_initial_subtitles=True)
     else:
         return VimeoSyncAccount.objects.none()
 
 def fetch_subs_vimeo(video_url, user, team):
     video_id = video_url.videoid
-    possible_accounts = set()
-    for account in lookup_vimeo_accounts(video_url, user, team):
-        if account.fetch_initial_subtitles:
-            possible_accounts.add(account)
+
     existing_langs = set(
         l.language_code for l in
         video_url.video.newsubtitlelanguage_set.having_versions()
     )
-    for vimeo_account in possible_accounts:
+    for vimeo_account in lookup_vimeo_accounts(video_url, user, team):
         tracks = vimeo.get_text_tracks(vimeo_account, video_id)
         versions = []
         if tracks is not None and \
@@ -113,11 +112,7 @@ def fetch_subs_vimeo(video_url, user, team):
 def fetch_subs_youtube(video_url, user, team):
     video_id = video_url.videoid
     channel_id = video_url.owner_username
-    possible_accounts = set()
-    for account in lookup_youtube_accounts(video_url, user, team):
-        if account.fetch_initial_subtitles:
-            possible_accounts.add(account)
-    account = find_youtube_account(video_id, possible_accounts)
+    account = find_youtube_account(video_id, lookup_youtube_accounts(video_url, user, team))
     if account is None:
         logger.warn("fetch_subs() no available credentials.")
         return

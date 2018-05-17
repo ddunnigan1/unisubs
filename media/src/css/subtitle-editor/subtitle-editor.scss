@@ -1133,33 +1133,48 @@ div.video {
     }
     div.subtitle-overlay {
         position: absolute;
-        bottom: 63px;
-        left: 0;
-        width: 100%;
-        padding: 0 20px;
+        left: 20px;
+        right: 20px;
+        padding: 8px 20px;
         text-align: center;
+        min-height: 62px;
 
-        div {
-            background: rgba(0, 0, 0, .8);
-            color: #FFF;
-            display: inline-block;
-            font: normal 16px/22px Helvetica;
-            margin: 0;
-            padding: 12px 20px;
-            text-align: center;
-            max-width: 100%;
-            width: auto;
-            @include border-radius(5px);
+        &.top {
+            top: 30px;
+        }
+        &.bottom {
+            bottom: 63px;
+        }
 
-            b {
-                font-weight: bold;
-            }
-            i {
-                font-style: italic;
-            }
-            u {
-                text-decoration: underline;
-            }
+        &.dragging {
+            background: rgba($lighter-blue, 0.7);
+        }
+        &.will-drop {
+            background: rgba($lighter-blue, 0.9);
+        }
+
+    }
+    .subtitle-overlay-text {
+        background: rgba(0, 0, 0, .8);
+        color: #FFF;
+        display: inline-block;
+        font: normal 16px/22px Helvetica;
+        margin: 0;
+        padding: 12px 20px;
+        cursor: move;
+        text-align: center;
+        max-width: 100%;
+        width: auto;
+        @include border-radius(5px);
+
+        b {
+            font-weight: bold;
+        }
+        i {
+            font-style: italic;
+        }
+        u {
+            text-decoration: underline;
         }
     }
     div.video-container {
@@ -1618,7 +1633,7 @@ div.timeline {
         top: 10px;
         @include border-radius(3px);
 
-        span {
+        .timeline-subtitle-text {
             padding: 7px 12px;
             display: block;
             overflow: hidden;

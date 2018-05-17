@@ -596,9 +596,6 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
             m = get_model(thirdpartyaccount_type[0], thirdpartyaccount_type[1])
             if m is not None:
                 m.objects.for_user(self).delete()
-        from socialauth.models import AuthMeta, OpenidProfile
-        AuthMeta.objects.filter(user=self).delete()
-        OpenidProfile.objects.filter(user=self).delete()
         try:
             self.openid_connect_link.delete()
         except:

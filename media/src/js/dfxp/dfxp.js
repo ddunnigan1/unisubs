@@ -282,6 +282,9 @@ var AmaraDFXPParser = function() {
              * Returns: int
              */
             var components = timeExpression.match(/([\d]{2}):([\d]{2}):([\d]{2}).([\d]{1,3})/i);
+            if(components === null) {
+                return -1;
+            }
             var millisecondsInHours    = components[1] * (3600 * 1000);
             var millisecondsInMinutes  = components[2] * (60 * 1000);
             var millisecondsInSeconds  = components[3] * (1000);
@@ -592,6 +595,23 @@ var AmaraDFXPParser = function() {
         var val =  parseInt(node.getAttribute('end'), 10);
 
         return isNaN(val) ? -1 : val;
+    };
+    this.region = function(node, region) {
+        /*
+         * Either get or set the region for the subtitle.
+         *
+         * Returns: current region (string or undefined)
+         */
+
+        if (!node) {
+            return -1;
+        }
+
+        if (typeof region !== 'undefined') {
+            $(node).attr('region', region);
+        }
+
+        return $(node).attr('region');
     };
     this.getFirstSubtitle = function() {
         /*

@@ -22,6 +22,7 @@ import mock
 
 from videos.signals import video_deleted
 from teams import forms
+from teams.models import EmailInvite, TeamMember
 from utils.factories import *
 from utils.test_utils import *
 
@@ -100,7 +101,7 @@ class TestEditVideosForm(TeamVideoManagementFormBase):
             'language': '',
         })
         for v in videos:
-            assert_equal(reload_obj(v).primary_audio_language_code, '')
+            assert_equal(reload_obj(v).primary_audio_language_code, 'en')
 
     def test_single_selection_mode(self):
         video = self.videos[0]
@@ -197,3 +198,30 @@ class TestMoveVideosForm(TeamVideoManagementFormBase):
             self.team.id: ['', self.project.id],
             self.other_team.id: ['', self.other_project.id],
         })
+
+class EmailInviteFormTest(TestCase):
+    def setUp(self):
+        self.author = UserFactory()
+        self.team = TeamFactory()
+        self.form = forms.InviteForm(self.team, self.author)
+        self.form.cleaned_data = {}
+        self.form.cleaned_data['role'] = TeamMember.ROLE_CONTRIBUTOR
+        self.form.cleaned_data['message'] = ''
+
+    '''
+    Test for when an email invite is sent to an email address
+    already associated with a CustomUser account
+    '''
+    def test_email_recipient_is_already_registered(self):
+        user = UserFactory()
+        self.form.cleaned_data['email'] = user.email
+        self.form.process_emails()        
+        assert_true(user.team_invitations.filter(pk=self.team.pk).exists())
+
+    def test_email_receipient_has_no_account(self):
+        user = UserFactory()
+        email = user.email
+        user.delete()
+        self.form.cleaned_data['email'] = email
+        self.form.process_emails()
+        assert_true(EmailInvite.objects.filter(email=email).exists())

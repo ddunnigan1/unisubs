@@ -569,7 +569,7 @@ var angular = angular || null;
             $scope.minutesIdle = 0;
             $scope.$root.$emit("user-action");
             if (evt.keyCode == 9 && !evt.shiftKey) {
-                // Shift, Toggle playback
+                // Tab, Toggle playback
                 if($scope.dialogManager.current()) {
                     // If a dialog is open, then don't mess with playback.  The user probably wants to navigate the form
                     return;
@@ -612,15 +612,15 @@ var angular = angular || null;
                     // After removing current subtitle, move cursor and open text-area of adjacent subtitle
                     if (replacement){
                         // Tell the root scope that we're no longer editing, now.
-                        if($scope.currentEdit.finish(commitChanges = true, subtitleList = subtitleList)) {
-                            $scope.$root.$emit('work-done');
+                        if($scope.currentEdit.inProgress()) {
+                            $scope.currentEdit.finish(true, subtitleList);
                         }
-
                         $scope.currentEdit.start(replacement);
                         $scope.$root.$emit('scroll-to-subtitle', replacement);
                         evt.preventDefault();
                         evt.stopPropagation();
                    }
+                   $scope.$root.$emit('work-done');
                 }
             } else if (isAltPressed(evt) && ((evt.keyCode === 38) || (evt.keyCode === 40))) {
 		var nextSubtitle;

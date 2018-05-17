@@ -31,10 +31,12 @@ from collections import namedtuple, OrderedDict
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.core.signing import BadSignature
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
@@ -52,10 +54,11 @@ from .behaviors import get_main_project
 from .bulk_actions import add_videos_from_csv
 from .exceptions import ApplicationInvalidException
 from .models import (Invite, Setting, Team, Project, TeamVideo,
-                     TeamLanguagePreference, TeamMember, Application)
+                     TeamLanguagePreference, TeamMember, Application, EmailInvite)
 from .statistics import compute_statistics
 from activity.models import ActivityRecord
 from auth.models import CustomUser as User
+from auth.forms import CustomUserCreationForm
 from messages import tasks as messages_tasks
 from subtitles.models import SubtitleLanguage
 from teams.workflows import TeamWorkflow
@@ -67,8 +70,10 @@ from utils.decorators import staff_member_required
 from utils.pagination import AmaraPaginator, AmaraPaginatorFuture
 from utils.forms import autocomplete_user_view, FormRouter
 from utils.text import fmt
-from utils.translation import get_language_label
+from utils.translation import get_language_label, get_user_languages_from_cookie
 from videos.models import Video
+
+import datetime
 
 logger = logging.getLogger('teams.views')
 
@@ -556,6 +561,12 @@ def invite(request, team):
             # sending invites twice for the same user, and that borks
             # the naive signal for only created invitations
             form.save()
+            success_msg = []
+            if form.cleaned_data['username']:
+                success_msg.append(u'{} has been invited to the team.'.format(form.cleaned_data['username']))
+            if form.cleaned_data['email']:
+                success_msg.append(u'{} has been sent an email invite.'.format(form.cleaned_data['email']))
+            messages.success(request, _("<br/>".join(success_msg)))
             return HttpResponseRedirect(reverse('teams:members',
                                                 args=[team.slug]))
     else:
@@ -565,6 +576,12 @@ def invite(request, team):
         template_name = 'teams/invite_members.html'
     else:
         template_name = 'new-teams/invite.html'
+        # template_name = 'future/teams/members/invite.html'
+        '''
+        The future UI invite member page still need works
+        1. Make autocomplete work with the new field
+        2. The text-box does not render properly
+        '''
 
     return render(request, template_name,  {
         'team': team,
@@ -575,6 +592,39 @@ def invite(request, team):
             BreadCrumb(_('Invite')),
         ],
     })
+
+def email_invite(request, signed_pk):
+    try:
+        pk = EmailInvite.signer.unsign(signed_pk)
+        email_invite = EmailInvite.objects.get(pk=pk)
+
+        form = CustomUserCreationForm(request.POST or None, label_suffix="")
+
+        if(request.method == 'POST' and form.is_valid()):
+            new_user = form.save()
+            user = authenticate(username=new_user.username,
+                                password=form.cleaned_data['password1'])
+            langs = get_user_languages_from_cookie(request)
+            for l in langs:
+                UserLanguage.objects.get_or_create(user=user, language=l)
+            auth_login(request, user)
+
+            email_invite.link_to_account(user)
+
+            return redirect(reverse("teams:dashboard", kwargs={"slug": email_invite.team.slug}))
+
+        if (email_invite.is_expired()):
+            return redirect('teams:email_invite_invalid')
+        else:
+            return render(request, 'new-teams/email_invite_accept.html', {
+                'creation_form': form,
+                'team_name': email_invite.team.name,
+            })
+    except (BadSignature, EmailInvite.DoesNotExist):
+        return redirect('teams:email_invite_invalid')
+
+def email_invite_invalid(request):
+    return render(request, 'new-teams/email_invite_error.html')
 
 @team_view
 def autocomplete_invite_user(request, team):

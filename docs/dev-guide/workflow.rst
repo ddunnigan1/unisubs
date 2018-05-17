@@ -168,13 +168,14 @@ Here's the workflow for a typical issue:
 
   - **Review**
 
-    - Developer merges any new code from staging/master back into the topic branches
-    - Developer creates a pull request for unisubs and/or amara-enterprise
-      depending on which repositories were changed for the issue
+    - Developer merges any new code from dev/master back into the topic branches
+    - Developer creates a pull request in the unisubs repository
     - A second developer reviews the code
     - If there are issues, the developer #2 adds comments to the PR and works
       with developer #1 to resolve them
     - Once developer #2 thinks the code is ready, they merge the PR
+    - If the code touches our submodule repositories (amara-entperprise,
+      amara-assets, etc), then developer #1 should merge the changes back to master
     - Once we decide that staging is ready to be deployed to production, we will
       merge the staging branch to production then deploy andnd moves the issue
       to the ``Waiting for deploy`` pipeline

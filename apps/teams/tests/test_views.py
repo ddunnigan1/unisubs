@@ -24,12 +24,14 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from teams.models import Team, TeamMember, TeamVideo, Project
+from teams.models import Team, TeamMember, TeamVideo, Project, EmailInvite
 from videos.models import Video, VideoUrl
 from auth.models import CustomUser as User
 from utils.factories import *
 from utils.panslugify import pan_slugify
 from utils.test_utils import *
+
+import datetime
 
 class ViewsTests(TestCase):
     def setUp(self):
@@ -343,3 +345,25 @@ class ViewsTests(TestCase):
             user.save()
         return TeamMember.objects.create(user=user, role=role, team=team)
 
+class EmailInviteViewTest(TestCase):
+    def setUp(self):
+        self.author = UserFactory()
+        self.user = UserFactory()
+        self.team = TeamFactory()
+        self.email_invite = EmailInvite.create_invite(email=self.user.email,
+            team=self.team, author=self.author)
+
+    def test_invite_valid(self):
+        response = self.client.get(self.email_invite.get_url())
+        self.assertTemplateUsed(response, 'new-teams/email_invite_accept.html')
+
+    def test_invite_expired(self):
+        self.email_invite.created = self.email_invite.created - datetime.timedelta(days=3, minutes=1)
+        self.email_invite.save()
+        response = self.client.get(self.email_invite.get_url())
+        self.assertRedirects(response, reverse('teams:email_invite_invalid'))
+
+    def test_invite_has_been_used(self):
+        self.email_invite.link_to_account(self.user)
+        response = self.client.get(self.email_invite.get_url())
+        self.assertRedirects(response, reverse('teams:email_invite_invalid'))

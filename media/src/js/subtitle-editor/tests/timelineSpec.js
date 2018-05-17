@@ -2,8 +2,9 @@ describe('TimelineController', function() {
     var subtitleList = null;
     var willSyncChangedSpy = null;
     var $scope = null;
-    var subtitles = []
+    var subtitles = [];
     var MIN_DURATION = null;
+    var VideoPlayer = null;
 
     beforeEach(module('amara.SubtitleEditor.timeline.controllers'));
     beforeEach(module('amara.SubtitleEditor.subtitles.models'));
@@ -24,9 +25,15 @@ describe('TimelineController', function() {
         subtitles = subtitleList.subtitles;
     }));
 
-    beforeEach(inject(function($controller, $rootScope) {
+    beforeEach(inject(function($controller, $rootScope, $injector) {
         $scope = $rootScope;
         $scope.timelineShown = true;
+        $scope.timeline = {
+            shownSubtitle: null,
+            currentTime: null,
+            duration: null
+        };
+        $scope.unsyncedShown = jasmine.createSpy('unsyncedShown').and.returnValue(false);
         $scope.workingSubtitles = {
             'subtitleList': subtitleList,
         }
@@ -36,11 +43,13 @@ describe('TimelineController', function() {
             MIN_DURATION: MIN_DURATION,
         });
         // in our tests, we make will sync happen by emitting work-done.  In
-        // that case, the TimelineController also calls redrawSubtitles, so we
+        // that case, the TimelineController also calls redrawSubtitles/redrawCanvas, so we
         // need to mock it.
+        $scope.redrawCanvas = jasmine.createSpy('redrawCanvas');
         $scope.redrawSubtitles = jasmine.createSpy('redrawSubtitles');
         willSyncChangedSpy = jasmine.createSpy('willSyncChanged');
         $scope.$root.$on('will-sync-changed', willSyncChangedSpy);
+        VideoPlayer = $injector.get('VideoPlayer');
     }));
 
     beforeEach(function() {
@@ -70,38 +79,38 @@ describe('TimelineController', function() {
 
     describe('Subtitle syncing', function() {
         it("Emits will-sync-changed on changes", function() {
-            $scope.currentTime = 1800;
+            VideoPlayer.seek(1800);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy.calls.count()).toBe(1);
             // If the start/end subs stay the same, we shouldn't emit
             // will-sync again.
-            $scope.currentTime = 1900;
+            VideoPlayer.seek(1900);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy.calls.count()).toBe(1);
         });
 
         it("Calculates start as the first sub after the current time", function() {
-            $scope.currentTime = 1800;
+            VideoPlayer.seek(1800);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[2]);
             // If a subtitle occupies currentTime, then it should be the start sub
-            $scope.currentTime = 2300;
+            VideoPlayer.seek(2300);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[2]);
         });
 
         it("Calculates end as the first sub before the current time", function() {
-            $scope.currentTime = 1800;
+            VideoPlayer.seek(1800);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveEndSub(subtitles[1]);
             // If a subtitle occupies currentTime, then it should be the end sub
-            $scope.currentTime = 2300;
+            VideoPlayer.seek(2300);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveEndSub(subtitles[2]);
         });
 
         it("syncs the start sub on sync-next-start-time", function() {
-            $scope.currentTime = 1800;
+            VideoPlayer.seek(1800);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[2]);
             $scope.$emit("sync-next-start-time");
@@ -109,7 +118,7 @@ describe('TimelineController', function() {
         });
 
         it("syncs the end sub on sync-next-end-time", function() {
-            $scope.currentTime = 1800;
+            VideoPlayer.seek(1800);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveEndSub(subtitles[1]);
             $scope.$emit("sync-next-end-time");
@@ -117,7 +126,7 @@ describe('TimelineController', function() {
         });
 
         it("respects MIN_DURATION when syncing start time", function() {
-            $scope.currentTime = subtitles[2].endTime-1;
+            VideoPlayer.seek(subtitles[2].endTime-1);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[2]);
             $scope.$emit("sync-next-start-time");
@@ -126,7 +135,7 @@ describe('TimelineController', function() {
         });
 
         it("respects MIN_DURATION when syncing end time", function() {
-            $scope.currentTime = subtitles[2].startTime;
+            VideoPlayer.seek(subtitles[2].startTime);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[2]);
             $scope.$emit("sync-next-end-time");
@@ -137,7 +146,7 @@ describe('TimelineController', function() {
 
     describe('Subtitle syncing after the end of synced subs', function() {
         it("Calculates start as the first sub without a start time", function() {
-            $scope.currentTime = 50000;
+            VideoPlayer.seek(50000);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(
                 subtitleList.firstUnsyncedSubtitle());
@@ -151,7 +160,7 @@ describe('TimelineController', function() {
         });
 
         it("Calculates end as the last sub with a start time", function() {
-            $scope.currentTime = 50000;
+            VideoPlayer.seek(50000);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveEndSub(subtitles[4]);
             // Set startTime for the first unsynced sub
@@ -168,7 +177,7 @@ describe('TimelineController', function() {
                 subtitleList.firstUnsyncedSubtitle());
             subtitleList.updateSubtitleTime(
                 subtitleList.firstUnsyncedSubtitle(), 50000, -1);
-            $scope.currentTime = 50500;
+            VideoPlayer.seek(50500);
             $scope.$emit('work-done');
             $scope.$emit('sync-next-start-time');
             expect(subtitles[firstIndex].endTime).toBe(50500);
@@ -178,7 +187,7 @@ describe('TimelineController', function() {
         it("respects MIN_DURATION when syncing end time", function() {
             var firstIndex = subtitleList.getIndex(
                 subtitleList.firstUnsyncedSubtitle());
-            $scope.currentTime = 50000
+            VideoPlayer.seek(50000);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[firstIndex]);
             $scope.$emit('sync-next-start-time');
@@ -190,7 +199,7 @@ describe('TimelineController', function() {
         it("respects MIN_DURATION when syncing start time", function() {
             var firstIndex = subtitleList.getIndex(
                 subtitleList.firstUnsyncedSubtitle());
-            $scope.currentTime = 50000
+            VideoPlayer.seek(50000);
             $scope.$emit('work-done');
             expect(willSyncChangedSpy).toHaveStartSub(subtitles[firstIndex]);
             $scope.$emit('sync-next-start-time');
