@@ -36,7 +36,7 @@ vendor/django-templatetag-sugar.tar.gz
 #vendor/oboe-0.4.1.0.tar.gz
 requests[security]==2.9.0
 rauth==0.4.12
--e git+https://github.com/jsocol/bleach.git@105b4cfc2f00cc1954bcab3b39b16fbfaf8863e0#egg=bleach
+bleach==2.1.3
 markdown==2.6.5
 pytz==2012f
 PyJWT==1.4.0
