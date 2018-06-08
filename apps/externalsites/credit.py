@@ -85,8 +85,6 @@ def remove_credit_to_video_url(video_url, account):
                                                   unicode(domain))
         # r'^v/\w+/$' is the regex for the video shortlink path
         shortlink_regex = re.escape(empty_short_link) + r'\/v\/\w+\/$'
-        print("@@@@@@@@@@@")
-        print(shortlink_regex)
         new_description = re.sub(shortlink_regex, '', new_description)
 
         google.update_video_description(video_id, access_token, new_description)
