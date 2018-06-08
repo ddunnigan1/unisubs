@@ -21,17 +21,24 @@
 Right now the only site we handle is YouTube
 """
 
+from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils import translation
 
 from externalsites import google
 from externalsites import models
 from utils.text import fmt
+from videos.models import VideoUrl, VIDEO_TYPE_YOUTUBE
 from videos.templatetags.videos_tags import shortlink_for_video
+
+import re
+
+YOUTUBE_AMARA_CREDIT_TEXT = _('Help us caption & translate this video!')
 
 def calc_credit_text(video):
     with translation.override(video.primary_audio_language_code or 'en'):
-        return '%s\n\n%s' % (_('Help us caption & translate this video!'),
+        return '%s\n\n%s' % (YOUTUBE_AMARA_CREDIT_TEXT,
                              shortlink_for_video(video))
 
 def videourl_has_credit(video_url):
@@ -40,6 +47,9 @@ def videourl_has_credit(video_url):
 def should_add_credit_to_video_url(video_url, account):
     return (isinstance(account, models.YouTubeAccount) and
             account.type != models.ExternalAccount.TYPE_TEAM)
+
+def should_remove_credit_to_video_url(video_url, account):
+    return should_add_credit_to_video_url(video_url, account)
 
 def add_credit_to_video_url(video_url, account):
     """Add credit to a video on an external site
@@ -60,3 +70,31 @@ def add_credit_to_video_url(video_url, account):
         new_description = '%s\n\n%s' % (current_description, credit_text)
         google.update_video_description(video_id, access_token,
                                         new_description)
+
+def remove_credit_to_video_url(video_url, account):
+    if should_remove_credit_to_video_url(video_url, account):
+        access_token = google.get_new_access_token(account.oauth_refresh_token)
+        video_id = video_url.videoid
+        current_description = google.get_video_info(video_id).description
+
+        new_description = current_description.replace(YOUTUBE_AMARA_CREDIT_TEXT + "\n\n", '')
+
+        protocol = getattr(settings, 'DEFAULT_PROTOCOL')
+        domain = (settings.HOSTNAME).replace("www.",'')
+        empty_short_link = u"{0}://{1}".format(unicode(protocol),
+                                                  unicode(domain))
+        # r'^v/\w+/$' is the regex for the video shortlink path
+        shortlink_regex = re.escape(empty_short_link) + r'\/v\/\w+\/$'
+        print("@@@@@@@@@@@")
+        print(shortlink_regex)
+        new_description = re.sub(shortlink_regex, '', new_description)
+
+        google.update_video_description(video_id, access_token, new_description)
+
+def remove_credit_from_synced_youtube_videos(owner):
+    youtube_accounts = models.YouTubeAccount.objects.for_owner(owner)
+    for account in youtube_accounts:
+        video_urls = VideoUrl.objects.filter(type=VIDEO_TYPE_YOUTUBE,
+                               owner_username=account.channel_id)
+        for video_url in video_urls:
+            remove_credit_to_video_url(video_url, account)

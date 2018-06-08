@@ -170,5 +170,6 @@ def import_video_from_youtube_account(account_id):
 
 @task
 def unlink_external_sync_accounts(owner):
+    credit.remove_credit_from_synced_youtube_videos(owner)
     YouTubeAccount.objects.for_owner(owner).delete()
     VimeoSyncAccount.objects.for_owner(owner).delete()
