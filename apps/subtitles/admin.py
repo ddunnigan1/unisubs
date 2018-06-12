@@ -37,40 +37,12 @@ class SubtitleVersionInline(admin.TabularInline):
 
 class SubtitleLanguageAdmin(admin.ModelAdmin):
     list_display = ['video_title', 'language_code', 'version_count', 'tip',
-                    'unofficial_signoffs',
-                    'official_signoffs',
-                    'pending_collaborators',
-                    'expired_pending_collaborators',
-                    'unexpired_pending_collaborators',
                     'is_forked']
     list_filter = ['created', 'language_code']
 
     inlines = [SubtitleVersionInline]
     search_fields = ['video__title', 'video__video_id', 'language_code']
     raw_id_fields = ['video']
-
-    def unofficial_signoffs(self, o):
-        return o.unofficial_signoff_count
-    unofficial_signoffs.admin_order_field = 'unofficial_signoff_count'
-
-    def official_signoffs(self, o):
-        return o.official_signoff_count
-    official_signoffs.admin_order_field = 'official_signoff_count'
-
-    def pending_collaborators(self, o):
-        return o.pending_signoff_count
-    pending_collaborators.short_description = 'pending'
-    pending_collaborators.admin_order_field = 'pending_signoff_count'
-
-    def expired_pending_collaborators(self, o):
-        return o.pending_signoff_expired_count
-    expired_pending_collaborators.short_description = 'expired pending'
-    expired_pending_collaborators.admin_order_field = 'pending_signoff_expired_count'
-
-    def unexpired_pending_collaborators(self, o):
-        return o.pending_signoff_unexpired_count
-    unexpired_pending_collaborators.short_description = 'unexpired pending'
-    unexpired_pending_collaborators.admin_order_field = 'pending_signoff_unexpired_count'
 
     def video_title(self, sl):
         return sl.video.title_display()

@@ -336,11 +336,13 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'
 
+MINIMUM_PASSWORD_SCORE = 2
+PASSWORD_RESET_TIMEOUT_DAYS = 1
+
 AUTH_PROFILE_MODULE = 'profiles.Profile'
 ACCOUNT_ACTIVATION_DAYS = 9999  # we are using registration only to verify emails
 SESSION_COOKIE_AGE = 2419200    # 4 weeks
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'

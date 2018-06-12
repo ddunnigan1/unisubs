@@ -52,6 +52,9 @@ class AmaraLanguageSelectMultiple(AmaraLanguageSelectMixin,
                                   widgets.SelectMultiple):
     pass
 
+class AmaraProjectSelectMultiple(widgets.SelectMultiple):
+    pass
+
 class AmaraRadioSelect(widgets.RadioSelect):
     def render(self, name, value, attrs=None, choices=()):
         if value is None:

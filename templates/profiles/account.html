@@ -160,7 +160,7 @@
                 </fieldset>
             </div>
             <div class="submit">
-                <a class="button delete" onclick="return confirm('Are you sure you want to permanently delete your account? This action is irreversible.');" href="{% url "auth:delete_user" %}">{% trans 'Delete Your Account' %}</a>
+                <a class="button delete" href="{% url "auth:delete_user" %}">{% trans 'Delete Your Account' %}</a>
             </div>
         </form>
     </div>

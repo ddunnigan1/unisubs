@@ -43,6 +43,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _, ugettext
 
 from auth import signals
+from auth.validators import PasswordStrengthValidator
 from caching import CacheGroup, ModelCacheManager
 from utils.amazon import S3EnabledImageField
 from utils import dates
@@ -191,6 +192,8 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
         choices=PLAYBACK_MODE_CHOICES, default=PLAYBACK_MODE_STANDARD)
     created_by = models.ForeignKey('self', null=True, blank=True,
                                    related_name='created_users')
+    # For storing usernames of deactivated accounts, deleted accounts should not store the old username
+    username_old = models.CharField(max_length=30, blank=True, null=True, default='')
 
     SECURE_ID_KEY = 'User'
 
@@ -225,6 +228,22 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
         else:
             return self.username
 
+    @staticmethod
+    def generate_random_username():
+        username = str(uuid.uuid4())[0:30]
+        try:
+            CustomUser.objects.get(username=username)
+            return generate_random_username()
+        except CustomUser.DoesNotExist:
+            return username;
+
+    @property
+    def display_username(self):
+        if self.is_active:
+            return self.username
+        else:
+            return ugettext('Retired user')
+
     def sent_message(self):
         """
         Should be called each time a user sends a message.
@@ -247,6 +266,48 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
             self.save()
             import tasks
             tasks.notify_blocked_user.delay(self)
+
+    def deactivate_account(self):
+        with transaction.atomic():
+            self.unlink_external()
+            self.team_members.all().delete()
+            self.username_old = self.username
+            self.username = CustomUser.generate_random_username()
+            self.is_active = False
+            self.save()
+            signals.user_account_deactivated.send(sender=self)
+
+    def delete_account_data(self):
+        # Alternate implementation is to blank all the fields except for some fields
+        # indicated in skip_fields
+        #
+        # for field in self._meta.fields:
+        #     if field.name in skip_fields:
+        #         continue
+        #     if field.default != NOT_PROVIDED:
+        #         setattr(self, field.name, field.default)
+        #     else:
+        #         setattr(self, field.name, None)
+
+        self.username = CustomUser.generate_random_username()
+        self.username_old = None
+        self.first_name = ""
+        self.last_name = ""
+        self.picture = None
+        self.email= ""
+        self.homepage = ""
+        self.biography = ""
+        self.full_name = ""
+        self.save()
+
+    # Deletes videos this user has uploaded and no one else has added subtitles to
+    # Also deletes uploaded videos without subtitles
+    # Does not delete team videos
+    def delete_self_subtitled_videos(self):
+        for video in self.videos.all():
+            if (video.is_solo_subtitled_by_uploader() 
+                and not video.is_team_video()):
+                video.delete()
 
     def has_fullname_set(self):
         return any([self.first_name, self.last_name, self.full_name])
@@ -588,8 +649,17 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
         return False
 
     def has_valid_password(self):
+        # remove this post-1.9 when setting is used
+        validator = PasswordStrengthValidator()
+        try:
+            validator.validate(self.password)
+        except ValidationError:
+            return False
         return len(self.password) > 0 and self.has_usable_password()
 
+    '''
+    Unlinks external authentication accounts (OAuth, Google, Facebook, etc. logins)
+    '''
     def unlink_external(self):
         from thirdpartyaccounts import get_thirdpartyaccount_types
         for thirdpartyaccount_type in get_thirdpartyaccount_types():
@@ -622,6 +692,7 @@ def create_custom_user(sender, instance, created, **kwargs):
         user.save()
 
 post_save.connect(create_custom_user, BaseUser)
+
 
 class Awards(models.Model):
     COMMENT = 1

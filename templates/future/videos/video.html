@@ -98,7 +98,9 @@
 <div class="modal fade" id="add-url-dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <h4>{% trans 'Add another URL for this video' %}</h4>
+      <div class="dialogHeader">
+        <h4 class"dialogTitle">{% trans 'Add another URL for this video' %}</h4>
+      </div>
       <p>{% trans "Add a URL for another version of the exact same video. Useful when many versions of the same video exist, or when there are different formats (like HTML5)" %}</p>
 
       <div id="add-url-form">{% include "future/videos/forms/create-url.html" %}</div>
@@ -111,15 +113,18 @@
 <div class="modal fade" id="delete-url-dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <h4>{% trans "Delete Video URL" %}</h4>
-      <h6 class="url"></h6>
-      <p class="warning">{% trans "Warning: this cannot be undone. Only delete URLs for non-matching videos or videos where subtitles fail to display correctly." %}</p>
+      <div class="dialogHeader">
+        <h4 class="dialogTitle">{% trans "Delete Video URL" %}</h4>
+        <h4 class="dialogSubtitle url"></h4>
+      </div>
+      <p class="alert alert-warning">{% trans "Warning: this cannot be undone. Only delete URLs for non-matching videos or videos where subtitles fail to display correctly." %}</p>
         <form action="" class="ajaxForm" method="post">
           {% csrf_token %}
           <input type="hidden" name="form" value="delete-url">
           <input type="hidden" name="id" value="">
-          <div class="clearfix">
-            <button type="submit" class="btn btn-primary pull-right">{% trans "Delete" %}</button>
+          <div class="form-actions">
+            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
+            <button type="submit" class="button cta">{% trans "Delete" %}</button>
           </div>
         </form>
     </div>
@@ -131,15 +136,18 @@
 <div class="modal fade" id="make-url-primary-dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <h4>{% trans "Make Video URL Primary" %}</h4>
-      <h6 class="url"></h6>
+      <div class="dialogHeader">
+        <h4>{% trans "Make Video URL Primary" %}</h4>
+        <h4 class="url"></h4>
+      </div>
       <p>{% trans "This will make it the default playback URL" %}</p>
         <form action="" class="ajaxForm" method="post">
           {% csrf_token %}
           <input type="hidden" name="form" value="make-url-primary">
           <input type="hidden" name="id" value="">
-          <div class="clearfix">
-            <button type="submit" class="btn btn-primary pull-right">{% trans "Make Primary" %}</button>
+          <div class="form-actions">
+            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
+            <button type="submit" class="button cta">{% trans "Make Primary" %}</button>
           </div>
         </form>
     </div>

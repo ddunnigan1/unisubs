@@ -25,7 +25,7 @@ from externalsites import credit
 from externalsites import google
 from externalsites import subfetch
 from externalsites.models import (get_account, get_sync_account, SyncHistory,
-                                  YouTubeAccount)
+                                  YouTubeAccount, VimeoSyncAccount)
 from subtitles.models import SubtitleLanguage, SubtitleVersion
 from videos.models import VideoUrl
 from auth.models import CustomUser as User
@@ -128,7 +128,10 @@ def add_amara_credit(video_url_id):
     video_url = VideoUrl.objects.get(id=video_url_id)
     account = get_sync_account(video_url.video, video_url)
     if credit.should_add_credit_to_video_url(video_url, account):
-        credit.add_credit_to_video_url(video_url, account)
+        try:
+            credit.add_credit_to_video_url(video_url, account)
+        except google.OAuthError:
+            logger.exception("Error adding youtube credit")
 
 @task
 def fetch_subs(video_url_id, user_id=None,  team_id=None):
@@ -140,7 +143,10 @@ def fetch_subs(video_url_id, user_id=None,  team_id=None):
         user = None
     else:
         user = User.objects.get(id=user_id)
-    subfetch.fetch_subs(VideoUrl.objects.get(id=video_url_id), user, team)
+    try:
+        subfetch.fetch_subs(VideoUrl.objects.get(id=video_url_id), user, team)
+    except google.OAuthError:
+        logger.exception("Error fetching sutitles")
 
 @task
 def retry_failed_sync():
@@ -148,7 +154,10 @@ def retry_failed_sync():
     if sh is None:
         return
     account = sh.get_account()
-    account.update_subtitles(sh.video_url, sh.language)
+    try:
+        account.update_subtitles(sh.video_url, sh.language)
+    except google.OAuthError:
+        logger.exception("Error retrying failed sync")
 
 @task
 def import_video_from_youtube_account(account_id):
@@ -156,5 +165,10 @@ def import_video_from_youtube_account(account_id):
         account = YouTubeAccount.objects.get(id=account_id)
         account.import_videos()
     except YouTubeAccount.DoesNotExist:
-        logging.warn("import_video_from_youtube_account: "
-                     "YouTubeAccount.DoesNotExist ({})".format(account_id))
+        logger.warn("import_video_from_youtube_account: "
+                    "YouTubeAccount.DoesNotExist ({})".format(account_id))
+
+@task
+def unlink_external_sync_accounts(owner):
+    YouTubeAccount.objects.for_owner(owner).delete()
+    VimeoSyncAccount.objects.for_owner(owner).delete()

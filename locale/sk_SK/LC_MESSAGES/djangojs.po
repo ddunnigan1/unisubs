@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Amara\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-04 11:22-0500\n"
-"PO-Revision-Date: 2018-04-04 16:22+0000\n"
+"POT-Creation-Date: 2018-05-23 15:39-0500\n"
+"PO-Revision-Date: 2018-05-23 20:40+0000\n"
 "Last-Translator: bendk <ben@pculture.org>\n"
 "Language-Team: Slovak (Slovakia) (http://www.transifex.com/universalsubtitles/universalsubtitles/language/sk_SK/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: sk_SK\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n >= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);\n"
 
 #: media/src/js/subtitle-editor/durationpicker.js:31
 msgctxt "hours"
@@ -39,7 +39,7 @@ msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:47
 #: media/src/js/subtitle-editor/shifttime.js:118
-msgid "Invalid time entered."
+msgid "An invalid time was entered."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:50
@@ -50,23 +50,24 @@ msgid ""
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:53
-msgid "No subtitles to shift"
+#: media/src/js/subtitle-editor/shifttime.js:124
+msgid "No subtitles to shift."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:56
-msgid "Start time after last subtitle"
+msgid "Start time is after last subtitle."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:60
-msgid "Shift subtitles starting at %(start_time)s forward by %(amount)s"
+msgid "Shift subtitles starting at %(start_time)s forward by %(amount)s."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:62
-msgid "Shift all subtitles forward by %(amount)s"
+msgid "Shift all subtitles forward by %(amount)s."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:69
-msgid "Shift amount would move the last subtitle past the end of the video"
+msgid "Shift amount would move the last subtitle past the end of the video."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:121
@@ -76,12 +77,8 @@ msgid ""
 "segment after already creating subtitles."
 msgstr ""
 
-#: media/src/js/subtitle-editor/shifttime.js:124
-msgid "No subtitles to shift."
-msgstr ""
-
 #: media/src/js/subtitle-editor/shifttime.js:127
-msgid "Start time not after end time."
+msgid "Start time is after end time."
 msgstr ""
 
 #: media/src/js/subtitle-editor/shifttime.js:130
@@ -100,6 +97,7 @@ msgid_plural "%(count)s videos selected"
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+msgstr[3] ""
 
 #: amara-enterprise/media/js/site/collab.js:53
 msgid "1 collaboration selected"
@@ -107,3 +105,4 @@ msgid_plural "%(count)s collaborations selected"
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+msgstr[3] ""

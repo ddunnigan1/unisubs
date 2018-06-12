@@ -83,6 +83,27 @@ var angular = angular || null;
             $event.preventDefault();
             $event.stopPropagation();
         };
+        $scope.canUndo = function() {
+            return $scope.workingSubtitles.subtitleList.canUndo();
+        }
+        $scope.undoText = function() {
+            return $scope.workingSubtitles.subtitleList.undoText();
+        }
+        $scope.onUndoClicked = function($event) {
+            $scope.workingSubtitles.subtitleList.undo();
+            $scope.$root.$emit('work-done');
+        }
+        $scope.canRedo = function() {
+            return $scope.workingSubtitles.subtitleList.canRedo();
+        }
+        $scope.redoText = function() {
+            return $scope.workingSubtitles.subtitleList.redoText();
+        }
+        $scope.onRedoClicked = function($event) {
+            $scope.workingSubtitles.subtitleList.redo();
+            $scope.$root.$emit('work-done');
+        }
+
         $scope.$root.$on('dialog-opened', function() {
             hideCurrentMenu();
         });

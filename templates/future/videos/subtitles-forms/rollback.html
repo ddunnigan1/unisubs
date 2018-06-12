@@ -3,7 +3,7 @@
   <div class="modal-content">
     <header class="dialogHeader">
       <h4 class="dialogTitle">{% trans "Rolling back subtitles" %}</h4>
-      <h5 class="dialogSubTitle">{{ version.get_version_display }}</h5>
+      <h4 class="dialogSubTitle">{{ version.get_version_display }}</h4>
     </header>
     <form class="ajaxForm" action="{% query_string form=rollback %}" method="POST">
       {% csrf_token %}

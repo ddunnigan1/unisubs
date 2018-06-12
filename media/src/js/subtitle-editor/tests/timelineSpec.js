@@ -33,7 +33,6 @@ describe('TimelineController', function() {
             currentTime: null,
             duration: null
         };
-        $scope.unsyncedShown = jasmine.createSpy('unsyncedShown').and.returnValue(false);
         $scope.workingSubtitles = {
             'subtitleList': subtitleList,
         }

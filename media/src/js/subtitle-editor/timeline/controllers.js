@@ -162,8 +162,13 @@
             }
         }
 
+        function unsyncedShown() {
+            var lastSynced = $scope.workingSubtitles.subtitleList.lastSyncedSubtitle();
+            return (!lastSynced || lastSynced.endTime < $scope.currentTime);
+        }
+
         function updateUpcomingSubtitleSticker() {
-            if ($scope.unsyncedShown()) {
+            if (unsyncedShown()) {
                 var s = $scope.workingSubtitles.subtitleList.secondUnsyncedSubtitle();
             } else {
                 var s = $scope.workingSubtitles.subtitleList.firstUnsyncedSubtitle();
@@ -174,9 +179,10 @@
                 // Using bind-html, we would keep the formatting.
                 var span = $('span.upcomingUnsyncedSubtitleText');
                 span.html(s.content());
-                $scope.showUpcomingUnsyncedSubtitle = true; 
+                $scope.showUpcomingUnsyncedSubtitle = true;
+            } else {
+                $scope.showUpcomingUnsyncedSubtitle = false;
             }
-            else $scope.showUpcomingUnsyncedSubtitle = false;
         }
 
         function updateTimeline(redrawSubtitleOptions) {

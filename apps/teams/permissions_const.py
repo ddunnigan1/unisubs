@@ -39,6 +39,7 @@ ROLE_OWNER = 'owner'
 ROLE_MANAGER = 'manager'
 ROLE_CONTRIBUTOR = 'contributor'
 ROLE_OUTSIDER = 'outsider'
+ROLE_PROJ_LANG_MANAGER = 'proj_lang_manager'
 
 ROLE_NAMES = {
     ROLE_ADMIN: _(u'Admin'),

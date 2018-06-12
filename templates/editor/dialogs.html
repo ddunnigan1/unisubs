@@ -205,6 +205,16 @@
               <td> {% trans "Alt + DOWN Arrow" %}</td>
               <td> {% trans "Option + DOWN Arrow" %}</td>
             </tr>
+            <tr>
+                <td> {% trans "Undo last action" %}</td>
+                <td> {% trans "CTRL + z" %}</td>
+                <td> {% trans "CMD + z" %}</td>
+            </tr>
+            <tr>
+                <td> {% trans "Redo last action" %}</td>
+                <td> {% trans "CTRL + y" %}</td>
+                <td> {% trans "CMD + Shift + z" %}</td>
+            </tr>
             </tbody>
         </table>
         <a class="expand-link" href="" ng-click="showBrowserShortcuts = true" ng-init="showBrowserShortcuts=false" ng-show="!showBrowserShortcuts">{% trans "Show Browser Shortcuts" %} &#x25B6;</a>
@@ -258,16 +268,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                <tr>
-                    <td> {% trans "Undo last action" %}</td>
-                    <td> {% trans "CTRL + z" %}</td>
-                    <td> {% trans "CMD + z" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Redo last action" %}</td>
-                    <td> {% trans "CTRL + Shift + z" %}</td>
-                    <td> {% trans "CMD + Shift + z" %}</td>
-                </tr>
                 <tr>
                     <td> {% trans "Save a version" %}</td>
                     <td> {% trans "CTRL + s" %}</td>

@@ -4,13 +4,13 @@
     <form class="ajaxForm" action="{{ request.get_full_path }}" method="POST" enctype="multipart/form-data">
       <header class="dialogHeader">
         <h4 class="dialogTitle">{% blocktrans count count=selection_count %}Moving Video{% plural %}Moving Videos{% endblocktrans %}</h4>
-        <h5 class="dialogSubTitle">
+        <h4 class="dialogSubTitle">
           {% if single_selection %}
           {{ first_video.title_display }}
           {% else %}
           {% blocktrans count count=selection_count %}{{ count }} video selected{% plural %}{{ count }} videos selected{% endblocktrans %}
           {% endif %}
-        </h5>
+        </h4>
       </header>
       <div class="modal-body">
         {% csrf_token %}

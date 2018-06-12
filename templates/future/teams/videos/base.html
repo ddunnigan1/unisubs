@@ -10,7 +10,7 @@
       <div class="row">
         <div class="col-xs-12 col-sm-4">
           <header>
-            <h1>{% trans "Filters" %}</h1>
+            <h2>{% trans "Filters" %}</h2>
           </header>
         </div>
         <div class="col-xs-12 col-sm-8">
@@ -34,7 +34,7 @@
             {% block filters %}{% endblock %}
           </div>
           <div class="col-xs-12 col-sm-8">
-            {% block filters2 %}{% endblock %}
+            <div class="filters">{% block filters2 %}{% endblock %}</div>
             {% block videos %}{% endblock %}
           </div>
         </div>

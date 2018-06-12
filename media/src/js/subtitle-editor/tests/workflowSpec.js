@@ -4,6 +4,7 @@ describe('The Workflow class', function() {
 
     beforeEach(module('amara.SubtitleEditor.subtitles.models'));
     beforeEach(module('amara.SubtitleEditor.workflow'));
+    beforeEach(module('amara.SubtitleEditor.mocks'));
 
     beforeEach(inject(function(SubtitleList, Workflow) {
         subtitleList = new SubtitleList();

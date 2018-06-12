@@ -3,7 +3,7 @@
   <div class="modal-content">
     <header class="dialogHeader">
       <h4 class="dialogTitle">{% trans "Deleting subtitles" %}</h4>
-      <h5 class="dialogSubTitle">{{ video.title_display }} - {{ subtitle_language.get_language_code_display }}</h5>
+      <h4 class="dialogSubTitle">{{ video.title_display }} - {{ subtitle_language.get_language_code_display }}</h4>
     </header>
     <form action="{% query_string form=delete %}" class="ajaxForm" method="POST">
       {% csrf_token %}

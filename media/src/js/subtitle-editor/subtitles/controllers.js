@@ -162,11 +162,7 @@ var angular = angular || null;
             updateSyncHelpers();
         });
 
-        subtitleList.addChangeCallback(function(change) {
-            if(change == 'insert' || change == 'remove') {
-                updateSyncHelpers();
-            }
-        });
+        $scope.$on('subtitle-list-changed', updateSyncHelpers);
 
         $scope.$watch('currentEdit.inProgress()', function(value) {
             if(value) {
@@ -183,8 +179,8 @@ var angular = angular || null;
                 return;
             }
             var splitInfo = $scope.calcSubtitleSplit(currentSubtitle);
+            $scope.currentEdit.finish(true, subtitleList);
             subtitleList.splitSubtitle(currentSubtitle, splitInfo.first, splitInfo.second);
-            finishEdit(false);
             $scope.$root.$emit('work-done');
         }
 

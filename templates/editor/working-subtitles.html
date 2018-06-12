@@ -12,7 +12,7 @@
             <!-- The "helper_margin" is invisible and adds an extra 45px of hover-area on the left to keep the "toolbox-menu" open -->
             <div class="helper_margin"></div>
             <ul class="toolbox-menu-subs hidden">
-                <li><a href="#" class="clear-text" ng-click="showClearTextModal($event)" title="Clear text of all subtitles">{% trans "Clear text" %}</a></li>
+                <li><a href="#" class="clear-text" ng-click="onClearTextClicked($event)" title="Clear text of all subtitles">{% trans "Clear text" %}</a></li>
                 <li><a href="#" class="revert-saved" ng-click="showResetModal($event)" title="Revert to last saved version">{% trans "Revert to last saved version" %}</a></li>
                 <li class="upload-subtitles-choice"><a href="#" class="upload-subtitles" ng-click="showUploadSubtitlesModal($event)" title="Upload subtitles">{% trans "Upload subtitles" %}</a></li>
                 <li><a href="#" ng-click="toggleWarningsShown()" class="show-warnings">
@@ -21,14 +21,16 @@
                     {% trans "Warnings" %}
                 </a></li>
                 <li><a href="#" class="show-tutorial" ng-click="showTutorial($event)" title="Show Tutorial">{% trans "Show Tutorial" %}</a></li>
+                <li><a class="undo" ng-class="{disabled: !canUndo()}" href="#" ng-click="onUndoClicked($event)">[[ undoText() ]]</a></li>
+                <li><a class="redo" ng-class="{disabled: !canRedo()}" href="#" ng-click="onRedoClicked($event)">[[ redoText() ]]</a></li>
             </ul>
             <ul class="toolbox-menu-timing hidden">
-                <li ng-show="copyTimingEnabled()"><a href="#" class="copyover" ng-click="showCopyTimingModal($event)" title="Copy timing and paragraphs from reference language">{% trans "Copy Timing" %}</a></li>
+                <li ng-show="copyTimingEnabled()"><a href="#" class="copyover" ng-click="onCopyTimingClicked($event)" title="Copy timing and paragraphs from reference language">{% trans "Copy Timing" %}</a></li>
                 <li><a href="#" ng-click="toggleTimelineShown()" class="show-timeline">
                     <span ng-show="timelineShown">{% trans "Hide timeline" %}</span>
                     <span ng-show="!timelineShown">{% trans "Show timeline" %}</span>
                 </a></li>
-                <li><a href="#" class="clear-timing" ng-click="showClearTimingModal($event)" title="Clear timing of all subtitles">{% trans "Clear timing" %}</a></li>
+                <li><a href="#" class="clear-timing" ng-click="onClearTimingsClicked($event)" title="Clear timing of all subtitles">{% trans "Clear timing" %}</a></li>
 		<li><a href="#" ng-click="showShiftForwardModal($event)" class="shift-forward">{% trans "Shift subs forward" %}</a></li>
 		<li><a href="#" ng-click="showShiftBackwardModal($event)" class="shift-backward">{% trans "Shift subs backward" %}</a></li>
             </ul>
@@ -55,11 +57,11 @@
         <table>
             <tr>
                 <th>Start</th>
-                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.storedSubtitle.startTime|displayTime ]]</em></td>
+                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.startTime|displayTime ]]</em></td>
             </tr>
             <tr>
                 <th>End</th>
-                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.storedSubtitle.endTime|displayTime ]]</em></td>
+                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.endTime|displayTime ]]</em></td>
             </tr>
             <tr>
                 <th>Characters</th>

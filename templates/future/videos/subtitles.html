@@ -93,7 +93,7 @@
             <header>
               <h1>{% blocktrans with language=subtitle_language.get_language_code_display %}{{ language }} subtitles{% endblocktrans %}</h1>
               {% if subtitle_version and subtitle_version.has_subtitles %}
-              <div class="header-actions dropdown">
+              <div class="header-actions dropdown small">
                 <button id="download-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{% trans "Download" %}<span class="caret"></span></button>
                 <ul class="dropdown-menu" aria-labeledby="download-button">
                   {% for format_name in downloadable_formats %}

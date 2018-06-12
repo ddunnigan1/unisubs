@@ -368,6 +368,8 @@ class UserActivityView(generics.ListAPIView):
             raise Http404()
         if not auth.permissions.can_view_activity(user, self.request.user):
             raise Http404()
+        if not user.is_active:
+            raise Http404()
         return ActivityRecord.objects.for_user(user)
 
 class LegacyActivitySerializer(serializers.ModelSerializer):

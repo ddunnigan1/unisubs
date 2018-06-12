@@ -178,7 +178,7 @@ class ActivityMessageDict(object):
             if self.record.user is None:
                 return _("Somebody (possibly automatically)")
             else:
-                return self.record.user.username
+                return self.record.user.display_username
         else:
             # Like the fmt() function, display something in the message rather
             # than raise an exception

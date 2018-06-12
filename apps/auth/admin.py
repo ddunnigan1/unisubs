@@ -75,7 +75,7 @@ class CustomUserForm(forms.ModelForm):
         model = CustomUser
         fields = [
             'username', 'password', 'password1', 'password2', 'first_name',
-            'last_name', 'email', 'is_active', 'is_staff', 'is_superuser',
+            'last_name', 'email', 'username_old', 'is_active', 'is_staff', 'is_superuser',
             'groups', 'user_permissions', 'last_login', 'date_joined',
             'is_partner', 'allow_3rd_party_login', 'created_by',
             'last_hidden_message_id',
@@ -91,7 +91,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password', 'password1', 'password2')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'email')}),
-        (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
+        (_('Permissions'), {'fields': ('username_old', 'is_active', 'is_staff', 'is_superuser',
                                        'groups', 'user_permissions')}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
         (_('Amara'), {'fields': ('is_partner', 'allow_3rd_party_login',

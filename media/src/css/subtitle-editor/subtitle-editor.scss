@@ -1465,9 +1465,19 @@ div.workspace-tools {
                    &.shift-backward {
                      background: url('../images/subtitle-editor/glyphicons_172_rewind.png') 10px no-repeat;
                    }
-                   &:hover {
+                   &.undo {
+                     background: url('../images/subtitle-editor/glyphicons_435_undo.png') 10px no-repeat;
+                   }
+                   &.redo {
+                     background: url('../images/subtitle-editor/glyphicons_434_redo.png') 10px no-repeat;
+                   }
+                   &:hover:not(.disabled) {
                       background: #C5C5C5;
                       color: $dark-grey;
+                   }
+                   &.disabled {
+                     background-color: $dark-grey;
+                     color: #888;
                    }
                   }
               }

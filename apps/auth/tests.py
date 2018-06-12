@@ -33,8 +33,11 @@ from auth import signals
 from auth.models import CustomUser as User, UserLanguage
 from auth.models import LoginToken, AmaraApiKey
 from caching.tests.utils import assert_invalidates_model_cache
+from externalsites.models import YouTubeAccount, VimeoSyncAccount
+from subtitles.tests.utils import make_sl
 from utils.factories import *
 from utils import test_utils
+from videos.models import Video
 
 
 class UserSpammingTest(TestCase):
@@ -268,3 +271,66 @@ class ApiKeysTest(TestCase):
 
     def test_get_api_key(self):
         self.assertEqual(len(self.user.get_api_key()), 40)
+
+
+class UserDeactivateTest(TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.youtube_account = YouTubeAccountFactory(user=self.user)
+        self.vimeo_account = VimeoSyncAccountFactory(user=self.user)
+
+    def test_deactivate_user(self):
+        old_username = self.user.username
+
+        self.user.deactivate_account()
+
+        self.assertFalse(self.user.team_members.all().exists())
+        self.assertNotEqual(self.user.username, old_username)
+        self.assertFalse(self.user.is_active)
+        self.assertFalse(YouTubeAccount.objects.for_owner(self.user).exists())
+        self.assertFalse(VimeoSyncAccount.objects.for_owner(self.user).exists())
+
+    def test_delete_account_data(self):
+        old_username = self.user.username
+
+        self.user.delete_account_data()
+
+        self.assertNotEqual(self.user.username, old_username)
+        self.assertFalse(self.user.username_old)
+        self.assertFalse(self.user.first_name)
+        self.assertFalse(self.user.last_name)
+        self.assertFalse(self.user.picture)
+        self.assertFalse(self.user.email)
+        self.assertFalse(self.user.homepage)
+        self.assertFalse(self.user.biography)
+        self.assertFalse(self.user.full_name)
+
+    def test_delete_videos(self):
+        self.user2 = UserFactory()
+        self.team = TeamFactory()
+        self.video = VideoFactory(user=self.user)
+        self.video2 = VideoFactory(user=self.user)
+        self.video3 = VideoFactory(user=self.user)
+        self.team.add_existing_video(self.video3, self.user)
+        self.sl = make_sl(self.video, 'en')
+        self.sl2 = make_sl(self.video2, 'en')
+
+        self.sl.add_version(title='title a',
+                            description='desc a',
+                            subtitles=[],
+                            author=self.user)
+        self.sl2.add_version(title='title a',
+                            description='desc a',
+                            subtitles=[],
+                            author=self.user2)
+
+        video_pk = self.video.pk
+        video2_pk = self.video2.pk
+        video3_pk = self.video3.pk
+
+        self.user.delete_self_subtitled_videos()
+
+        self.assertFalse(Video.objects.filter(pk=video_pk).exists())
+        self.assertTrue(Video.objects.filter(pk=video2_pk).exists())
+        self.assertTrue(Video.objects.filter(pk=video3_pk).exists())
+

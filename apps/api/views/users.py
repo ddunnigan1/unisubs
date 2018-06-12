@@ -328,6 +328,8 @@ class UserViewSet(mixins.RetrieveModelMixin,
     def get_object(self):
         try:
             user = userlookup.lookup_user(self.kwargs['identifier'])
+            if not user.is_active:
+                raise Http404()
         except User.DoesNotExist:
             raise Http404()
         self.check_object_permissions(self.request, user)

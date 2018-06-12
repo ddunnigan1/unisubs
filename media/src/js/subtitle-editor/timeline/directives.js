@@ -261,7 +261,7 @@ var angular = angular || null;
                 return scope.workingSubtitles.subtitleList;
             }
 
-            function handleMouseDown(evt, dragHandler) {
+            function handleMouseDown(evt) {
                 scope.handleAppMouseClick(evt);
                 if (evt.which == 3) return;
                 if(!scope.canSync) {
@@ -317,42 +317,70 @@ var angular = angular || null;
 
                 var initialPageX = evt.pageX;
 
+                function placeSubtitlesAfterDrag() {
+                    placeSubtitleAfterDrag(storedSubtitle, context.startTime, context.endTime, div);
+
+                    if (previousDiv && context.previousSubtitleEndTimeNew) {
+                        placeSubtitleAfterDrag(prevSubtitle, prevSubtitle.startTime, context.previousSubtitleEndTimeNew, previousDiv);
+                    }
+
+                    if (nextDiv && context.nextSubtitleStartTimeNew) {
+                        placeSubtitleAfterDrag(nextSubtitle, context.nextSubtitleStartTimeNew, nextSubtitle.endTime, nextDiv);
+                    }
+                }
+
+                function placeSubtitleAfterDrag(subtitle, startTime, endTime, div) {
+                    var draftSubtitle = subtitle.draftSubtitle();
+                    draftSubtitle.startTime = startTime;
+                    draftSubtitle.endTime = endTime;
+                    placeSubtitle(startTime, endTime,  div);
+                    if(scope.currentEdit.isForSubtitle(subtitle)) {
+                        scope.currentEdit.draft.startTime = startTime;
+                        scope.currentEdit.draft.endTime = endTime;
+                    }
+                    scope.$root.$emit("timeline-subtitle-drag", { draftSubtitle: draftSubtitle });
+                }
+
+                function saveChangesAfterDrag() {
+                    var changes = [];
+                    changes.push({
+                        subtitle: storedSubtitle,
+                        startTime: context.startTime,
+                        endTime: context.endTime,
+                    });
+
+                    if (context.previousSubtitleEndTimeNew) {
+                        changes.push({
+                            subtitle: prevSubtitle,
+                            startTime: prevSubtitle.startTime,
+                            endTime: context.previousSubtitleEndTimeNew
+                        });
+                    }
+
+                    if (context.nextSubtitleStartTimeNew) {
+                        changes.push({
+                            subtitle: nextSubtitle,
+                            startTime: context.nextSubtitleStartTimeNew,
+                            endTime: nextSubtitle.endTime
+                        });
+                    }
+
+                    subtitleList().updateSubtitleTimes(changes);
+                    scope.$root.$emit("work-done");
+                    scope.$root.$digest();
+                }
+
                 $(document).on('mousemove.timelinedrag', function(evt) {
                     var deltaX = evt.pageX - initialPageX;
                     var deltaMS = pixelsToDuration(deltaX, scope.scale);
                     dragHandler(context, deltaMS);
-                    placeSubtitle(context.startTime, context.endTime, div);
-                    subtitleList().updateSubtitleTime(storedSubtitle,
-                        context.startTime, context.endTime);
-                    if (previousDiv && context.previousSubtitleEndTimeNew)
-                        placeSubtitle(prevSubtitle.startTime, context.previousSubtitleEndTimeNew, previousDiv);
-                    if (nextDiv && context.nextSubtitleStartTimeNew)
-                        placeSubtitle(context.nextSubtitleStartTimeNew, nextSubtitle.endTime, nextDiv);
-                    if (context.previousSubtitleEndTimeNew)
-                        subtitleList().updateSubtitleTime(prevSubtitle,
-                            prevSubtitle.startTime, context.previousSubtitleEndTimeNew);
-                    if (context.nextSubtitleStartTimeNew) 
-                        subtitleList().updateSubtitleTime(nextSubtitle,
-                            context.nextSubtitleStartTimeNew, nextSubtitle.endTime);
+                    placeSubtitlesAfterDrag();
                 }).on('mouseup.timelinedrag', function(evt) {
                     $(document).off('.timelinedrag');
-                    subtitleList().updateSubtitleTime(storedSubtitle,
-                        context.startTime, context.endTime);
-                    if (context.previousSubtitleEndTimeNew)
-                        subtitleList().updateSubtitleTime(prevSubtitle,
-                            prevSubtitle.startTime, context.previousSubtitleEndTimeNew);
-                    if (context.nextSubtitleStartTimeNew) 
-                        subtitleList().updateSubtitleTime(nextSubtitle,
-                            context.nextSubtitleStartTimeNew, nextSubtitle.endTime);
-                    scope.$root.$emit("work-done");
-                    scope.$root.$digest();
+                    saveChangesAfterDrag();
                 }).on('mouseleave.timelinedrag', function(evt) {
                     $(document).off('.timelinedrag');
-                    placeSubtitle(subtitle.startTime, subtitle.endTime, div);
-                    if (previousDiv && context.previousSubtitleEndTimeNew)
-                        placeSubtitle(prevSubtitle.startTime, context.previousSubtitleEndTimeNew, previousDiv);
-                    if (nextDiv && context.nextSubtitleStartTimeNew)
-                        placeSubtitle(context.nextSubtitleStartTimeNew, nextSubtitle.endTime, nextDiv);
+                    saveChangesAfterDrag();
                 });
                 // need to prevent the default event from happening so that the
                 // browser's DnD code doesn't mess with us.
@@ -569,9 +597,6 @@ var angular = angular || null;
                 }
             }
 
-            scope.unsyncedShown = function() {
-                return (unsyncedDiv != null);
-            }
             // Put redrawSubtitles in the scope so that the controller can
             // call it.
             scope.redrawSubtitles = function(options) {

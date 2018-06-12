@@ -35,7 +35,7 @@ from django.db.models import query, Q, Count, Sum
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.http import Http404
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext_lazy as _, ugettext
+from django.utils.translation import ugettext_lazy as _, ugettext 
 
 import teams.moderation_const as MODERATION
 from caching import ModelCacheManager
@@ -48,7 +48,7 @@ from subtitles.signals import subtitles_deleted
 from teams.moderation_const import WAITING_MODERATION, UNMODERATED, APPROVED
 from teams.permissions_const import (
     TEAM_PERMISSIONS, PROJECT_PERMISSIONS, ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER,
-    ROLE_CONTRIBUTOR
+    ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
 from teams import tasks
 from teams import workflows
@@ -63,6 +63,7 @@ from utils import translation, send_templated_email
 from utils.amazon import S3EnabledImageField, S3EnabledFileField
 from utils.panslugify import pan_slugify
 from utils.text import fmt
+from utils.translation import get_language_label
 from videos.models import Video, VideoUrl, SubtitleVersion, SubtitleLanguage
 from videos.tasks import video_changed_tasks
 from subtitles.models import (
@@ -1575,6 +1576,7 @@ class TeamMember(models.Model):
     ROLE_ADMIN = ROLE_ADMIN
     ROLE_MANAGER = ROLE_MANAGER
     ROLE_CONTRIBUTOR = ROLE_CONTRIBUTOR
+    ROLE_PROJ_LANG_MANAGER = ROLE_PROJ_LANG_MANAGER
 
     ROLES = (
         (ROLE_OWNER, _("Owner")),
@@ -1721,6 +1723,9 @@ class TeamMember(models.Model):
         """Test if the user is a language manager of any language"""
         return bool(self.get_languages_managed())
 
+    def is_a_project_or_language_manager(self):
+        return self.is_a_project_manager() or self.is_a_language_manager()
+
     def make_project_manager(self, project):
         self.projects_managed.add(project)
 
@@ -1732,6 +1737,16 @@ class TeamMember(models.Model):
 
     def remove_language_manager(self, language_code):
         self.languages_managed.filter(code=language_code).delete()
+
+    def remove_as_language_manager(self):
+        self.languages_managed.all().delete()
+
+    def remove_as_project_manager(self):
+        self.projects_managed.clear()
+
+    def remove_as_proj_lang_manager(self):
+        self.remove_as_language_manager()
+        self.remove_as_project_manager()
 
     class Meta:
         unique_together = (('team', 'user'),)
@@ -1751,6 +1766,10 @@ class LanguageManager(models.Model):
     member = models.ForeignKey(TeamMember, related_name='languages_managed')
     code = models.CharField(max_length=16,
                             choices=translation.ALL_LANGUAGE_CHOICES)
+
+    @property
+    def readable_name(self):
+        return get_language_label(self.code)
 
 # MembershipNarrowing
 class MembershipNarrowing(models.Model):

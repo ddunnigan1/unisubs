@@ -19,3 +19,4 @@
 from django import dispatch
 
 user_profile_changed = dispatch.Signal()
+user_account_deactivated = dispatch.Signal()

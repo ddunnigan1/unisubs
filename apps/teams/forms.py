@@ -54,7 +54,7 @@ from teams.models import (
 )
 from teams import behaviors, permissions, tasks
 from teams.exceptions import ApplicationInvalidException
-from teams.fields import TeamMemberInput
+from teams.fields import TeamMemberInput, TeamMemberRoleSelect, MultipleProjectField
 from teams.permissions import (
     roles_user_can_invite, can_delete_task, can_add_video, can_perform_task,
     can_assign_task, can_remove_video, can_change_video_titles,
@@ -65,7 +65,7 @@ from teams.signals import member_remove
 from teams.workflows import TeamWorkflow
 from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
                       AmaraRadioSelect, SearchField, AmaraClearableFileInput,
-                      AmaraFileInput, HelpTextList)
+                      AmaraFileInput, HelpTextList, MultipleLanguageField)
 from ui.forms import LanguageField as NewLanguageField
 from utils.html import clean_html
 from utils import send_templated_email
@@ -1051,9 +1051,16 @@ class InviteForm(forms.Form):
     def clean_email(self):
         email = self.cleaned_data['email']
         
-        if self.team.users.filter(email=email).exists():
-            invitee = User.objects.get(email=email)
-            raise forms.ValidationError(_(u"This email address belongs to {} who is already a part of the team!".format(invitee)))
+        invitees = self.team.users.filter(email=email)
+        if invitees.exists():
+            if invitees.count() == 1:
+                raise forms.ValidationError(
+                    _(u"This email address belongs to {} "
+                       "who is already a part of the team!".format(invitees.first())))
+            else:
+                raise forms.ValidationError(
+                    _(u"This email address belongs to multiple user accounts, "
+                       "one of which is {} who is already a part of the team!".format(invitees.first())))           
 
         return email
         
@@ -1529,7 +1536,8 @@ class MemberFiltersForm(forms.Form):
         ('any', _('All roles')),
         (TeamMember.ROLE_ADMIN, _('Admins')),
         (TeamMember.ROLE_MANAGER, _('Managers')),
-        (TeamMember.ROLE_CONTRIBUTOR, _('Contributors')),
+        (TeamMember.ROLE_PROJ_LANG_MANAGER, _('Project/Language Managers')),
+        (TeamMember.ROLE_CONTRIBUTOR, _('Contributors')),        
     ], initial='any', required=False, filter=True)
     language = AmaraChoiceField(choices=LANGUAGE_CHOICES,
                                  label=_('Language spoken'),
@@ -1570,7 +1578,13 @@ class MemberFiltersForm(forms.Form):
                                | Q(user__username__icontains=term)
                                | Q(user__biography__icontains=term))
         if role and role != 'any':
-            if role != TeamMember.ROLE_ADMIN:
+            if role == TeamMember.ROLE_PROJ_LANG_MANAGER:
+                qs = qs.exclude(Q(projects_managed=None) & Q(languages_managed=None))
+            elif role == TeamMember.ROLE_CONTRIBUTOR:
+                qs = qs.filter(role=role,
+                               projects_managed=None,
+                               languages_managed=None)
+            elif role != TeamMember.ROLE_ADMIN:
                 qs = qs.filter(role=role)
             else:
                 qs = qs.filter(Q(role=TeamMember.ROLE_ADMIN)|
@@ -1716,18 +1730,33 @@ class ChangeMemberRoleForm(ManagementForm):
     name = "change_role"
     label = _("Change Role")
 
-    role = AmaraChoiceField(choices=[
+    role = TeamMemberRoleSelect(choices=[
                 ('', _("Don't change")),
                 (TeamMember.ROLE_CONTRIBUTOR, _('Contributor')),
+                (TeamMember.ROLE_PROJ_LANG_MANAGER, _('Project/Language Manager')),
                 (TeamMember.ROLE_MANAGER, _('Manager')),
                 (TeamMember.ROLE_ADMIN, _('Admin')),
            ], initial='', label=_('Member Role'))
 
+    projects = MultipleProjectField(label=_('Project'), null_label=_('No change'), required=False)
+    languages = MultipleLanguageField(label=_('Subtitle language(s)'), options='null all', required=False)
+
     def __init__(self, user, queryset, selection, all_selected,
-                 data=None, files=None):
+                 data=None, files=None, **kwargs):
         self.user = user
         super(ChangeMemberRoleForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files)
+        self.fields['projects'].setup(kwargs['team'])
+
+    def clean(self):
+        cleaned_data = super(ChangeMemberRoleForm, self).clean()
+        role = cleaned_data.get('role')
+
+        if (role == TeamMember.ROLE_PROJ_LANG_MANAGER and
+            not (cleaned_data['projects'] or cleaned_data['languages'])):
+                raise forms.ValidationError(_(u"Please select a project or language"))
+
+        return cleaned_data
 
     def would_remove_last_owner(self, member, role):
         if role == TeamMember.ROLE_OWNER:
@@ -1737,6 +1766,25 @@ class ChangeMemberRoleForm(ManagementForm):
         else:
             team_owners = member.team.members.owners()
             return (len(team_owners) <= 1)
+
+    def update_proj_lang_management(self, member):
+        # TODO make this work for making previous pm/lm's to be a pm/lm of a
+        # different set of projects/languages
+
+        # crude implementation is to delete all pm/lm permissions and then 
+        # create the permissions specified in the modal
+        # for optimization
+        member.remove_as_proj_lang_manager()
+
+        projects = self.cleaned_data['projects']
+        languages = self.cleaned_data['languages']
+
+        if projects:
+            for project in projects:
+                member.make_project_manager(project)
+        if languages:
+            for language in languages:
+                member.make_language_manager(language)       
 
     def perform_submit(self, members):
         self.error_count = 0
@@ -1750,7 +1798,12 @@ class ChangeMemberRoleForm(ManagementForm):
                     self.only_owner_count += 1
                 else:
                     try:
-                        member.change_role(self.cleaned_data['role'])
+                        if self.cleaned_data['role'] == TeamMember.ROLE_PROJ_LANG_MANAGER:
+                            member.change_role(TeamMember.ROLE_CONTRIBUTOR)
+                            self.update_proj_lang_management(member)
+                        else:
+                            member.remove_as_proj_lang_manager()
+                            member.change_role(self.cleaned_data['role'])
                         self.changed_count += 1
                     except Exception as e:
                         logger.error(e, exc_info=True)

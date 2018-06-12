@@ -58,7 +58,7 @@ mock==1.0.1
 selenium==2.50.1
 xvfbwrapper==0.2.4
 factory_boy==2.4.1
-pafy==0.5.3.1
+pafy==0.5.4
 youtube-dl==2017.5.23
 isodate==0.5.4
 django-simple-captcha==0.5.1
@@ -72,4 +72,4 @@ amqp==1.0.13
 billiard==2.7.3.34
 celery==3.0.25
 django-celery==3.0.23
-
+zxcvbn==4.4.26

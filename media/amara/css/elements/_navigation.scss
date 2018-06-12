@@ -166,22 +166,12 @@ a.topnav-button, button.topnav-button {
     color: #fff;
   }
 
-  &:hover {
-    background-color: lighten($gray-darker, 10%);
-  }
-
   &.amaranth {
     background-color: $amaranth;
-    &:hover {
-      background-color: lighten($amaranth, 7%);
-    }
   }
 
   &.plum {
     background-color: $plum;
-    &:hover {
-      background-color: lighten($plum, 10%);
-    }
   }
 
   &.gray {
@@ -193,6 +183,11 @@ a.topnav-button, button.topnav-button {
     &:hover {
       color: lighten($plum, 30%);
     }
+  }
+
+  &:hover {
+    background-color: $lime;
+    color: #fff;
   }
 
   &.bold {

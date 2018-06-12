@@ -71,6 +71,9 @@ FACEBOOK_SECRET_KEY = '2a18604dac1ad7e9817f80f3aa3a69f2'
 
 OAUTH_CALLBACK_PROTOCOL = 'http'
 
+# allow devs to use insecure passwords on local instances
+MINIMUM_PASSWORD_SCORE = 0
+
 # Celery
 CELERY_ALWAYS_EAGER = False
 CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)

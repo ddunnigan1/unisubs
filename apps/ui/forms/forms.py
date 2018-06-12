@@ -91,7 +91,7 @@ class ManagementForm(forms.Form):
     WORKER_PROCESS_THRESHOLD = 20
 
     def __init__(self, queryset, selection, all_selected, data=None,
-                 files=None):
+                 files=None, **kwargs):
         """Create a ManagementForm
 
         Args:

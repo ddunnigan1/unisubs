@@ -30,6 +30,7 @@ from subtitles.models import (SubtitleLanguage, SubtitleVersion, ORIGIN_IMPORTED
 from videos.models import Video, VideoUrl
 import subtitles.signals
 import videos.signals
+import auth.signals
 
 import logging
 logger = logging.getLogger(__name__)
@@ -79,3 +80,7 @@ def on_video_url_added(sender, video, **kwargs):
         except Exception, e:
             logger.error("Exception")
             logger.error(e)
+
+@receiver(auth.signals.user_account_deactivated)
+def on_user_account_deactivated(sender, **kwargs):
+    tasks.unlink_external_sync_accounts.delay(sender)

@@ -426,6 +426,10 @@ class YouTubeAccountFactory(DjangoModelFactory):
     channel_id = factory.Sequence(lambda n: 'channel-id-%s' % n)
     oauth_refresh_token = 'refresh-token'
 
+class VimeoSyncAccountFactory(DjangoModelFactory):
+    FACTORY_FOR = externalsites.models.VimeoSyncAccount
+    username = factory.Sequence(lambda n: 'vimeo-user-%s' % n)
+
 class CommentFactory(DjangoModelFactory):
     FACTORY_FOR = comments.models.Comment
     user = factory.SubFactory(UserFactory)

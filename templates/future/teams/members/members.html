@@ -11,7 +11,7 @@
         <div class="content">
           <div class="row">
             <div class="col-sm-3">
-              <header><h1>{% trans "Filters" %}</h1></header><br>
+              <header><h2>{% trans "Filters" %}</h2></header><br>
               <form method="GET" action="" class="ajaxForm updateOnChange updateLocation">
                 {{ filters_form.q.as_hidden }}
                 {{ filters_form.sort.as_hidden }}
@@ -20,7 +20,7 @@
               </form>
             </div>
             <div class="col-sm-9">
-              <div class="row">
+              <div class="row filters">
                 <div class="col-xs-8 proxyField" data-proxy-for="#id_q">
                   {{ filters_form.q|render_field }}
                 </div>

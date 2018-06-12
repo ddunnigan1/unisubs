@@ -76,11 +76,15 @@ class OptimizedQuerySet(LoadRelatedQuerySet):
 def profile(request, user_id):
     try:
         user = User.objects.get(username=user_id)
+        if not user.is_active:
+            raise Http404
     except User.DoesNotExist:
         try:
             user = User.objects.get(id=user_id)
+            if not user.is_active:
+                raise Http404
         except (User.DoesNotExist, ValueError):
-            raise Http404
+            raise Http404    
 
     if request.user.is_staff:
         if request.method == 'POST':
@@ -160,11 +164,13 @@ def dashboard(request):
 def videos(request, user_id):
     try:
         user = User.objects.get(username=user_id)
+        if not user.is_active:
+            raise Http404
     except User.DoesNotExist:
         try:
             user = User.objects.get(id=user_id)
         except (User.DoesNotExist, ValueError):
-            raise Http404
+            raise Http404    
 
     qs = Video.objects.filter(user=user).order_by('-edited')
     if not (request.user == user or request.user.is_superuser):

@@ -29,6 +29,7 @@ module.exports = function(config) {
         'subtitle-editor/**/*.js',
         'subtitle-editor/tests/*Spec.js',
         'subtitle-editor/tests/mocks.js',
+        'subtitle-editor/tests/helpers.js',
     ],
 
 

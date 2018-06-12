@@ -591,6 +591,9 @@ class Video(models.Model):
 
         return "%simages/video-no-thumbnail-medium.png" % settings.STATIC_URL
 
+    def is_team_video(self):
+        return bool(self.get_team_video())
+
     def get_team_video(self):
         """Return the TeamVideo object for this video, or None if there isn't one."""
         from teams.models import TeamVideo
@@ -1272,6 +1275,12 @@ class Video(models.Model):
             else:
                 langs[sl.language_code] = [sl]
         return langs
+
+    def is_solo_subtitled_by_uploader(self):
+        """
+        Returns whether subtitles for this video has been worked upon only by the uploader 
+        """
+        return not self.newsubtitleversion_set.exclude(author=self.user).exists()
 
     @property
     def is_complete(self):

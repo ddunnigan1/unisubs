@@ -1,32 +1,14 @@
-<nav class="text-center">
+<nav class="paginator">
   {% if paginator.num_pages > 1 %}
-  <ul class="pagination">
-    {% if page.number > 1 %}
-    <li>
-        <a href="{{previous}}"aria-label="Previous">
-    {% else %}
-    <li class="disabled">
-      <a href="#" aria-label="Previous">
-    {% endif %}
-        <span aria-hidden="true">&#xab;</span>
-      </a>
-    </li>
+  <ul class="paginator-list">
+    <li><a class="paginator-link{% if page.number == 1 %} disabled{% endif %}" href="{{previous}}" aria-label="Previous"><span aria-hidden="true">&#xab;</span></a></li>
     {% for number, url in page.nearest_page_links %}
-    <li{% if number == page.number %} class="active"{% endif %}><a href="{{ url }}">{{ number }}</a></li>
+    <li><a class="paginator-link{% if number == page.number %} active{% endif %}"href="{{ url }}">{{ number }}</a></li>
     {% endfor %}
-    {% if page.number < paginator.num_pages %}
-    <li>
-      <a href="{{next}}" aria-label="Next">
-    {% else %}
-    <li class="disabled">
-      <a href="#" aria-label="Next">
-    {% endif %}
-        <span aria-hidden="true">&#xbb;</span>
-      </a>
-    </li>
+    <li><a class="paginator-link{% if page.number == paginator.num_pages %} disabled{% endif %}" href="{{next}}" aria-label="Next"><span aria-hidden="true">&#xbb;</span></a></li>
   </ul>
-  <p>{{ page.start_index }}-{{ page.end_index }} out of {{ paginator.count }}</p>
+  <p class="paginator-objectCount">{{ page.start_index }}-{{ page.end_index }} out of {{ paginator.count }}</p>
   {% else %}
-  </p>{{ page.object_list|length }} out of {{ paginator.count }}</p>
+  <p class="paginator-objectCount">{{ page.object_list|length }} out of {{ paginator.count }}</p>
   {% endif %}
 </nav>

@@ -67,7 +67,7 @@ urlpatterns = patterns('',
         name='password_reset_done'),
     url(r'^reset/(?P<uidb64>[0-9A-Za-z_\-]+)/'
         '(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-        'django.contrib.auth.views.password_reset_confirm', {'post_reset_redirect': '/reset/done/'}, name='password_reset_confirm'),
+        'auth.views.password_reset_confirm', {'post_reset_redirect': '/reset/done/'}, name='password_reset_confirm'),
     url(r'^reset-external/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$',
         'django.contrib.auth.views.password_reset_confirm',
         {'extra_context': {'external_account': True}, 'post_reset_redirect': '/reset/done/'},
