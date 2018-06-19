@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        ConvertLegacyIndexTogether(
+        migrations.AlterIndexTogether(
             name='activityrecord',
             index_together=set([('user', 'copied_from', 'created'), ('team', 'type', 'created'), ('team', 'language_code', 'created'), ('video', 'copied_from', 'created'), ('team', 'type', 'video_language_code', 'created'), ('team', 'created')]),
         ),

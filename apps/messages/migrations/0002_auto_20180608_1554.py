@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        ConvertLegacyIndexTogether(
+        migrations.AlterIndexTogether(
             name='message',
             index_together=set([('user', 'deleted_for_user', 'has_reply_for_user'), ('user', 'deleted_for_user', 'read', 'id'), ('user', 'deleted_for_author', 'has_reply_for_author')]),
         ),
