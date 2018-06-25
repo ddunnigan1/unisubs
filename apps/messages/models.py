@@ -124,14 +124,11 @@ class Message(models.Model):
                                     validators=[validate_message_type])
     class Meta:
         ordering = ['-id']
-        # If we had a newer version of django, we would have an index_together
-        # section, but for now we need to handle this with south/setup_indexes
-        #
-        # index_together = [
-        #     ('user_id', 'deleted_for_user', 'has_reply_for_user'),
-        #     ('user_id', 'deleted_for_author', 'has_reply_for_author'),
-        #     ('user_id', 'deleted_for_user', 'read', 'id'),
-        # ]
+        index_together = [
+            ('user', 'deleted_for_user', 'has_reply_for_user'),
+            ('user', 'deleted_for_author', 'has_reply_for_author'),
+            ('user', 'deleted_for_user', 'read', 'id'),
+        ]
 
 
     def __unicode__(self):

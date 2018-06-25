@@ -312,6 +312,7 @@ def handle_add_account_callback(request, auth_info):
     except YouTubeAccountExistsError, e:
         messages.error(request,
                        already_linked_message(request.user, e.other_account))
+        return HttpResponseRedirect(redirect_url)
 
     tasks.import_video_from_youtube_account.delay(account.id)
     return HttpResponseRedirect(redirect_url)

@@ -32,7 +32,7 @@ from subtitles.signals import subtitles_published, subtitles_completed
 from utils.factories import *
 from utils import test_utils
 
-class TestAction(workflows.Action):
+class MockAction(workflows.Action):
     def __init__(self, name, complete=None):
         self.name = self.label = name
         self.complete = complete
@@ -57,8 +57,8 @@ class ActionsTest(TestCase):
                                SubtitleSetFactory(num_subs=10))
         self.subtitle_language = self.video.subtitle_language('en')
 
-        self.action1 = TestAction('action1', True)
-        self.action2 = TestAction('action2', False)
+        self.action1 = MockAction('action1', True)
+        self.action2 = MockAction('action2', False)
         self.workflow = workflows.Workflow(self.video)
         self.workflow.get_actions = mock.Mock(return_value=[
             self.action1, self.action2

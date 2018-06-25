@@ -25,3 +25,4 @@ nosetests.xml
 .deploy_keys
 /codeship.aes
 /aws_creds
+/guitests/screenshots

@@ -23,6 +23,6 @@ from __future__ import absolute_import
 from .api import *
 from .monkeypatch import *
 from .requests import *
+from .signals import *
 from .tools import *
-from .xvfb import *
 from .video_types import *

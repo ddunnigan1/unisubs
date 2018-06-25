@@ -24,7 +24,7 @@ from rest_framework.test import APIClient
 import mock
 
 from subtitles import pipeline
-from subtitles.tests.test_workflows import TestAction
+from subtitles.tests.test_workflows import MockAction
 from utils import test_utils
 from utils.factories import *
 
@@ -39,9 +39,9 @@ class TestActionsAPI(TestCase):
         self.client.force_authenticate(self.user)
 
     def setup_actions(self):
-        self.action1 = TestAction('action1', False)
-        self.action2 = TestAction('action2', True)
-        self.action3 = TestAction('action2', None)
+        self.action1 = MockAction('action1', False)
+        self.action2 = MockAction('action2', True)
+        self.action3 = MockAction('action2', None)
         self.mock_get_actions.return_value = [
             self.action1, self.action2, self.action3
         ]

@@ -52,22 +52,11 @@ def setup_celery_loader():
     os.environ.setdefault("CELERY_LOADER",
                           "amaracelery.loaders.AmaraCeleryLoader")
 
-def run_startup_modules():
+def setup_django():
     """For all django apps, try to run the startup module.  """
 
     import django
-    from django.conf import settings
-
-    # TODO use django's AppConfig.ready() method instead of this startup code
     django.setup()
-
-    for app in settings.INSTALLED_APPS:
-        module = __import__(app)
-        package_dir = os.path.dirname(module.__file__)
-        for module in ('startup', 'signalhandlers'):
-            filename = module + '.py'
-            if os.path.exists(os.path.join(package_dir, filename)):
-                __import__('{}.{}'.format(app, module))
 
 def startup():
     """Set up the amara environment.  This should be called before running any
@@ -78,4 +67,4 @@ def startup():
     uuid_hack()
     setup_monkeypatches()
     setup_celery_loader()
-    run_startup_modules()
+    setup_django()

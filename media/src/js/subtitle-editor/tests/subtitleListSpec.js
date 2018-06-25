@@ -712,4 +712,261 @@ describe('Test the SubtitleList class', function() {
             expect(subtitleList.subtitles[0].markdown).toEqual('test-content');
         });
     });
+
+    describe('the changeGroup parameter of updateSubtitleTimes', function() {
+        var sub1, sub2, sub3, changes;
+
+        beforeEach(function() {
+            sub1 = subtitleList.insertSubtitleBefore(null);
+            sub2 = subtitleList.insertSubtitleBefore(null);
+            sub3 = subtitleList.insertSubtitleBefore(null);
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1000,
+                        endTime: 1001
+                    },
+                    {
+                        subtitle: sub2,
+                        startTime: 2000,
+                        endTime: 2001
+                    },
+            ]);
+            subtitleList._resetUndo();
+            changes = trackChanges(subtitleList);
+        });
+
+        it('groups multiple changes into a single undo', function() {
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1001,
+                        endTime: 1002
+                    }
+            ], 'changegroup1');
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1002,
+                        endTime: 1003,
+                    }
+            ], 'changegroup1');
+
+            expect(subtitleList.subtitles[0]).toHaveTimes([1002, 1003]);
+            expect(subtitleList.canUndo()).toBe(true);
+
+            // Undo should undo both changes at once, and do it efficiently (not updating the same subtitle more than once)
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {startTime: 1000, endTime: 1001}],
+            ]);
+            expect(subtitleList.canUndo()).toBe(false);
+        });
+
+        it('handles changes that involve multiple subtitles', function() {
+            // Do the same test as before, but with multiple subtitles involved
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1001,
+                        endTime: 1002,
+                    },
+                    {
+                        subtitle: sub2,
+                        startTime: 2001,
+                        endTime: 2002
+                    }
+            ], 'changegroup1');
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1002,
+                        endTime: 1003
+                    }
+            ], 'changegroup1');
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1003,
+                        endTime: 1004,
+                    },
+                    {
+                        subtitle: sub2,
+                        startTime: 2002,
+                        endTime: 2003
+                    },
+                    {
+                        subtitle: sub3,
+                        startTime: 3000,
+                        endTime: 3001
+                    }
+            ], 'changegroup1');
+
+            expect(subtitleList.subtitles[0]).toHaveTimes([1003, 1004]);
+            expect(subtitleList.subtitles[1]).toHaveTimes([2002, 2003]);
+            expect(subtitleList.subtitles[2]).toHaveTimes([3000, 3001]);
+            expect(subtitleList.canUndo()).toBe(true);
+
+            // Undo should undo both changes at once, and do it efficiently (not updating the same subtitle more than once)
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 1, {startTime: 2000, endTime: 2001}],
+                    ['update', 0, {startTime: 1000, endTime: 1001}],
+                    ['update', 2, {startTime: -1, endTime: -1}],
+            ]);
+            expect(subtitleList.canUndo()).toBe(false);
+        });
+
+        it('does not group changes when changeGroup is different', function() {
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1001,
+                        endTime: 1002
+                    }
+            ], 'changegroup1');
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1002,
+                        endTime: 1003,
+                    }
+            ], 'changegroup2');
+
+            // Undo should only undo 1 change at once since the changeGroup ids were different
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {startTime: 1001, endTime: 1002}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {startTime: 1000, endTime: 1001}],
+            ]);
+        });
+
+        it('does not group changes when another operation is in the middle', function() {
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1001,
+                        endTime: 1002
+                    }
+            ], 'changegroup1');
+            subtitleList.updateSubtitleContent(sub1, "content");
+
+            subtitleList.updateSubtitleTimes([
+                    {
+                        subtitle: sub1,
+                        startTime: 1002,
+                        endTime: 1003,
+                    }
+            ], 'changegroup1');
+
+            // Undo should only undo 1 change at once since the changeGroup ids were different
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {startTime: 1001, endTime: 1002}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: ''}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {startTime: 1000, endTime: 1001}],
+            ]);
+        });
+    });
+
+    describe('the changeGroup parameter of updateSubtitleContent', function() {
+        var sub1, sub2, sub3, changes;
+
+        beforeEach(function() {
+            sub1 = subtitleList.insertSubtitleBefore(null);
+            sub2 = subtitleList.insertSubtitleBefore(null);
+            sub3 = subtitleList.insertSubtitleBefore(null);
+            subtitleList.updateSubtitleContent(sub1, 'content');
+            subtitleList.updateSubtitleContent(sub2, 'content2');
+            subtitleList.updateSubtitleContent(sub3, 'content3');
+            subtitleList._resetUndo();
+            changes = trackChanges(subtitleList);
+        });
+
+        it('groups multiple changes into a single undo', function() {
+            subtitleList.updateSubtitleContent(sub1, 'new-content', 'changegroup1');
+            subtitleList.updateSubtitleContent(sub1, 'new-content2', 'changegroup1');
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'content'}],
+            ]);
+            expect(subtitleList.canUndo()).toBe(false);
+        });
+
+        it('handles changes that involve multiple subtitles', function() {
+            subtitleList.updateSubtitleContent(sub1, 'new-content', 'changegroup1');
+            subtitleList.updateSubtitleContent(sub2, 'new-content2', 'changegroup1');
+            subtitleList.updateSubtitleContent(sub1, 'new-content3', 'changegroup1');
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'content'}],
+                    ['update', 1, {content: 'content2'}],
+            ]);
+            expect(subtitleList.canUndo()).toBe(false);
+        });
+
+        it('does not group changes when changeGroup is different', function() {
+            subtitleList.updateSubtitleContent(sub1, 'new-content', 'changegroup1');
+            subtitleList.updateSubtitleContent(sub1, 'new-content2', 'changegroup2');
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'new-content'}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'content'}],
+            ]);
+        });
+
+        it('does not group changes when another operation is in the middle', function() {
+            subtitleList.updateSubtitleContent(sub1, 'new-content', 'changegroup1');
+            subtitleList.insertSubtitleBefore(null);
+            subtitleList.updateSubtitleContent(sub1, 'new-content2', 'changegroup1');
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'new-content'}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['remove', 3, {}],
+            ]);
+
+            changes.length = 0;
+            subtitleList.undo();
+            expect(changes).toEqual([
+                    ['update', 0, {content: 'content'}],
+            ]);
+        });
+    });
 });

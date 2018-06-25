@@ -62,11 +62,16 @@ def with_mock_video_type_registrar(test_method):
             video, video_url = Video.add(...)
             # video.duration will be 100
     """
-    @patch_for_test('videos.types.video_type_registrar')
+    @patch_for_test('videos.models.video_type_registrar')
     def wrapper(self, mock_registrar, *args, **kwargs):
         mock_registrar.values_to_set = {}
         def video_type_for_url(url):
             return MockVideoType(url, **mock_registrar.values_to_set)
         mock_registrar.video_type_for_url.side_effect = video_type_for_url
+
+        patcher2 = mock.patch('videos.types.video_type_registrar',
+                              mock_registrar)
+        patcher2.start()
+        self.addCleanup(patcher2.stop)
         test_method(self, mock_registrar, *args, **kwargs)
     return wrapper

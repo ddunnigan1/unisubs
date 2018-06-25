@@ -12,6 +12,7 @@
             <!-- The "helper_margin" is invisible and adds an extra 45px of hover-area on the left to keep the "toolbox-menu" open -->
             <div class="helper_margin"></div>
             <ul class="toolbox-menu-subs hidden">
+                <li><a href="#" class="clear-empty-subtitles" ng-click="showDeleteEmptySubtitlesModal($event)" title="Delete empty subtitles">{% trans "Delete empty subtitles" %}</a></li>
                 <li><a href="#" class="clear-text" ng-click="onClearTextClicked($event)" title="Clear text of all subtitles">{% trans "Clear text" %}</a></li>
                 <li><a href="#" class="revert-saved" ng-click="showResetModal($event)" title="Revert to last saved version">{% trans "Revert to last saved version" %}</a></li>
                 <li class="upload-subtitles-choice"><a href="#" class="upload-subtitles" ng-click="showUploadSubtitlesModal($event)" title="Upload subtitles">{% trans "Upload subtitles" %}</a></li>
@@ -57,31 +58,31 @@
         <table>
             <tr>
                 <th>Start</th>
-                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.startTime|displayTime ]]</em></td>
+                <td><em ng-class="{'warning': showWarning(currentEdit.subtitle, 'timing')}">[[ currentEdit.subtitle.startTime|displayTime ]]</em></td>
             </tr>
             <tr>
                 <th>End</th>
-                <td><em ng-class="{'warning': showWarning(currentEdit.draft, 'timing')}">[[ currentEdit.draft.endTime|displayTime ]]</em></td>
+                <td><em ng-class="{'warning': showWarning(currentEdit.subtitle, 'timing')}">[[ currentEdit.subtitle.endTime|displayTime ]]</em></td>
             </tr>
             <tr>
                 <th>Characters</th>
-                <td ng-class="{'warning': showWarning(currentEdit.draft, 'longline')}">[[ currentEdit.draft.characterCount() ]]</td>
+                <td ng-class="{'warning': showWarning(currentEdit.subtitle, 'longline')}">[[ currentEdit.subtitle.characterCount() ]]</td>
             </tr>
             <tr class="child"
                 ng-repeat="count in currentEdit.lineCounts() track by $index">
                 <th>Line [[ $index + 1 ]]</th>
-                <td ng-class="{'warning': showWarning(currentEdit.draft, 'longline', $index)}">[[ count ]]</td>
+                <td ng-class="{'warning': showWarning(currentEdit.subtitle, 'longline', $index)}">[[ count ]]</td>
             </tr>
-            <tr class="char-rate" ng-show="currentEdit.draft.isSynced()">
+            <tr class="char-rate" ng-show="currentEdit.subtitle.isSynced()">
                 <th>Chars/sec</th>
-                <td ng-class="{'warning': showWarning(currentEdit.draft, 'characterRate')}">[[ currentEdit.draft.characterRate() ]]</td>
+                <td ng-class="{'warning': showWarning(currentEdit.subtitle, 'characterRate')}">[[ currentEdit.subtitle.characterRate() ]]</td>
             </tr>
         </table>
 	<div class="warning-text">
-	  <p ng-show="showWarning(currentEdit.draft, 'lines')">{% trans "Avoid more than 2 lines per subtitle; split the subtitle into two." %}</p>
-	  <p ng-show="showWarning(currentEdit.draft, 'timing')">{% trans "Briefly displayed subtitles are hard to read; the duration should be more than 700ms." %}</p>
-	  <p ng-show="showWarning(currentEdit.draft, 'characterRate') && !(showWarning(currentEdit.draft, 'timing'))">{% trans "Reading rate shouldn't exceed 21 characters / sec; lengthen duration, reduce text or split the subtitle." %}</p>
-	  <p ng-show="showWarning(currentEdit.draft, 'longline')">{% trans "Line length shouldn't exceed 42 characters; add a line break if necessary." %}</p>
+	  <p ng-show="showWarning(currentEdit.subtitle, 'lines')">{% trans "Avoid more than 2 lines per subtitle; split the subtitle into two." %}</p>
+	  <p ng-show="showWarning(currentEdit.subtitle, 'timing')">{% trans "Briefly displayed subtitles are hard to read; the duration should be more than 700ms." %}</p>
+	  <p ng-show="showWarning(currentEdit.subtitle, 'characterRate') && !(showWarning(currentEdit.subtitle, 'timing'))">{% trans "Reading rate shouldn't exceed 21 characters / sec; lengthen duration, reduce text or split the subtitle." %}</p>
+	  <p ng-show="showWarning(currentEdit.subtitle, 'longline')">{% trans "Line length shouldn't exceed 42 characters; add a line break if necessary." %}</p>
 	</div>
     </div>
 

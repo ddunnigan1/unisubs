@@ -11,7 +11,7 @@ from auth.models import CustomUser as User
 from caching.tests.utils import assert_invalidates_model_cache
 from teams.forms import TaskCreateForm, TaskAssignForm
 from teams.models import Task, Team, TeamVideo, TeamMember
-from utils.testeditor import TestEditor
+from utils.testeditor import MockEditor
 from utils.factories import *
 from videos.models import Video
 
@@ -163,7 +163,7 @@ class TranslateTranscribeTestBase(TestCase):
         translated from.
         :param language_code: the language that the subtitles are in.
         """
-        editor = TestEditor(self.client, self.team_video.video,
+        editor = MockEditor(self.client, self.team_video.video,
                             base_language_code=base_language_code)
         # We don't send task info for transcription tasks.
         editor.run(language_code=language_code)
@@ -171,7 +171,7 @@ class TranslateTranscribeTestBase(TestCase):
     def perform_review_task(self, task, notes, base_language_code=None,
                             language_code='en',
                             approval=Task.APPROVED_IDS['Approved']):
-        editor = TestEditor(self.client, self.team_video.video, mode="review",
+        editor = MockEditor(self.client, self.team_video.video, mode="review",
                             base_language_code=base_language_code)
         editor.set_task_data(task, approval, notes)
         editor.run(language_code=language_code)
@@ -179,7 +179,7 @@ class TranslateTranscribeTestBase(TestCase):
     def perform_approve_task(self, task, notes, base_language_code=None,
                             language_code='en',
                              approval=Task.APPROVED_IDS['Approved']):
-        editor = TestEditor(self.client, self.team_video.video,
+        editor = MockEditor(self.client, self.team_video.video,
                             mode="approve",
                             base_language_code=base_language_code)
         editor.set_task_data(task, approval, notes)
@@ -472,7 +472,7 @@ class TranslationTaskTest(TranslateTranscribeTestBase):
     def setUp(self):
         TranslateTranscribeTestBase.setUp(self)
         # make a transcription that we can use for our translations
-        editor = TestEditor(self.client, self.team_video.video)
+        editor = MockEditor(self.client, self.team_video.video)
         editor.run(language_code='en')
 
     def test_create(self):

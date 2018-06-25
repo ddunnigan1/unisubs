@@ -55,11 +55,11 @@ var angular = angular || null;
     }
 
     function bottomRegion() {
-        return '<region xml:id="bottom" style="amara-style" tts:extent="100% 20%" tts:origin="0 80%" />';
+        return '<region xml:id="bottom" style="amara-style" tts:extent="100% 20%" tts:origin="0% 80%" />';
     }
 
     function topRegion() {
-        return '<region xml:id="top" style="amara-style" tts:extent="100% 20%" tts:origin="0 0" />';
+        return '<region xml:id="top" style="amara-style" tts:extent="100% 20%" tts:origin="0% 0%" />';
     }
 
     function preprocessDFXP(xml) {
@@ -184,6 +184,10 @@ var angular = angular || null;
         } else {
             return -1;
         }
+    }
+
+    Subtitle.prototype.isWhiteSpaceOnly = function() {
+        return !$.trim(this.markdown)
     }
 
     function StoredSubtitle(parser, node, id) {
@@ -380,13 +384,74 @@ var angular = angular || null;
             });
         }
 
-        SubtitleList.prototype._changesDone = function(changeDescription) {
+        // Call this after you're done doing a group of changes.  It will:
+        //   - Take the current rollback stack and append it to the undo stack
+        //      - If changeGroup is the same as the changeGroup passed last
+        //        time, then we will combine the current rollbackStack instead
+        //        of creating a new entry.
+        //   - Invoke registered change callbacks
+        //
+        SubtitleList.prototype._changesDone = function(changeDescription, changeGroup) {
             this.rollbackStack.reverse();
-            this.undoStack.push([changeDescription, this.rollbackStack]);
-            this.undoStack = _.last(this.undoStack, MAX_UNDO_ITEMS);
+
+            if(changeGroup && this.lastChangeGroup() === changeGroup) {
+                this.mergeRollbackStackIntoUndoStack();
+            } else {
+                this.undoStack.push([changeDescription, this.rollbackStack, changeGroup]);
+                this.undoStack = _.last(this.undoStack, MAX_UNDO_ITEMS);
+            }
+
             this.redoStack = [];
             this.rollbackStack = [];
             this._invokeChangeCallbacks();
+        }
+
+        SubtitleList.prototype.lastChangeGroup = function() {
+            if(this.undoStack.length > 0) {
+                return _.last(this.undoStack)[2];
+            } else {
+                return null;
+            }
+        }
+
+        // Take the current changes in the rollback stack and merge them into the changes in the last undo stack entry.
+        //
+        // We do some basic optimizations to reduce the number of changes: If
+        // there is a segment of the combined list that's all _updateSubtitle
+        // calls, then combine the calls for the same subtitles.
+        SubtitleList.prototype.mergeRollbackStackIntoUndoStack = function() {
+            var mergedChanges = [];
+            var updateMap = {}; // For _updateSubtitle changes, map the subtitle position to the index in mergedChanges
+            var lastUndoStackEntry = _.last(this.undoStack);
+            var self = this;
+
+            function processChange(change) {
+                if(change[0] === self._updateSubtitle) {
+                    var pos = change[1];
+                    if(pos in updateMap) {
+                        // There was already an update for this subtitle, merge
+                        // it with the last change.  Use _.defaults, because we
+                        // want the values from the older change to take
+                        // precedence.
+                        _.defaults(mergedChanges[updateMap[pos]][2], change[2]);
+                    } else {
+                        // This is the first update for this subtitle, add it
+                        // to mergedChanges and remember the position
+                        mergedChanges.push(change)
+                        updateMap[pos] = mergedChanges.length - 1;
+                    }
+                } else {
+                    // Insert or removal, clear out updateMap since the values are no longer valid
+                    updateMap = {};
+                }
+            }
+
+            // Process existing changes
+            _.each(lastUndoStackEntry[1], processChange);
+            // Process new changes
+            _.each(this.rollbackStack, processChange);
+            // Replace the old changes with the merged changes
+            lastUndoStackEntry[1] = mergedChanges;
         }
 
         SubtitleList.prototype._reloadDone = function() {
@@ -554,7 +619,12 @@ var angular = angular || null;
 
         // Update multiple subtitle times at once
         // Pass a list of objects with the attributes: subtitle, startTime, and endtime
-        SubtitleList.prototype.updateSubtitleTimes = function(changes) {
+        //
+        // Pass changeGroup to group together multiple calls into a single undo
+        // entry.  For example when the user is dragging a subtitle in the
+        // timeline, this causes many timing changes, but they should all be
+        // groupd into a single unto entry.
+        SubtitleList.prototype.updateSubtitleTimes = function(changes, changeGroup) {
             var self = this;
             _.each(changes, function(change) {
                 self._updateSubtitle(self.getIndex(change.subtitle), {
@@ -562,7 +632,7 @@ var angular = angular || null;
                     endTime: change.endTime
                 });
             })
-            this._changesDone(gettext('Time change'));
+            this._changesDone(gettext('Time change'), changeGroup);
         }
 
         SubtitleList.prototype.clearAllTimings = function() {
@@ -579,6 +649,15 @@ var angular = angular || null;
                 this._updateSubtitle(i, {content: ''});
             }
             this._changesDone(gettext('Clear text'));
+        }
+
+        SubtitleList.prototype.deleteEmptySubtitles = function () {
+            for(var i=this.subtitles.length -1; i >= 0; i--) {
+                if (this.subtitles[i].isWhiteSpaceOnly()) {
+                    this._removeSubtitle(i, {})
+                }
+            }
+            this._changesDone(gettext('Delete empty subtitles'));
         }
 
         // Copy the subtitle times from another subtitle list
@@ -679,9 +758,14 @@ var angular = angular || null;
             this._changesDone(gettext('Shift backward'));
         }
 
-        SubtitleList.prototype.updateSubtitleContent = function(subtitle, content) {
+        // Update the text for a subtitle
+        //
+        // Pass changeGroup to group together multiple calls into a single undo
+        // entry.  For example when the user is typing keys in the text entry for a subtitle.
+        // This creates many changes, but they should be grouped into a single unto entry.
+        SubtitleList.prototype.updateSubtitleContent = function(subtitle, content, changeGroup) {
             this._updateSubtitle(this.getIndex(subtitle), {content: content});
-            this._changesDone(gettext('Subtitle edit'));
+            this._changesDone(gettext('Subtitle edit'), changeGroup);
         }
 
         SubtitleList.prototype.updateSubtitleParagraph = function(subtitle, startOfParagraph) {
@@ -750,6 +834,17 @@ var angular = angular || null;
             }
             var subtitle = this._insertSubtitle(index, attrs);
             this._changesDone(gettext('Insert subtitle'));
+            return subtitle;
+        }
+
+        SubtitleList.prototype.insertSubtitleAtEnd = function(changeGroup) {
+            if(this.subtitles.length > 0) {
+                var region = this.lastSubtitle().region;
+            } else {
+                var region = undefined;
+            }
+            var subtitle = this._insertSubtitle(this.subtitles.length, { region: region });
+            this._changesDone(gettext('Insert subtitle'), changeGroup);
             return subtitle;
         }
 
@@ -970,62 +1065,69 @@ var angular = angular || null;
      */
     module.service('CurrentEditManager', [function() {
         CurrentEditManager = function() {
-            this.draft = null;
-            this.LI = null;
+            this.subtitle = null;
+            this.counter = 0;
         }
 
         CurrentEditManager.prototype = {
-            start: function(subtitle, LI) {
-                this.draft = subtitle.draftSubtitle();
-                this.LI = LI;
-            },
-            finish: function(commitChanges, subtitleList) {
-                var updateNeeded = (commitChanges && this.changed());
-                if(updateNeeded) {
-                    subtitleList.updateSubtitleContent(this.draft.storedSubtitle,
-                            this.currentMarkdown());
+            // Called when the user starts editing a subtitle
+            start: function(subtitle, options) {
+                if(options === undefined) {
+                    options = {};
                 }
-                this.draft = this.LI = null;
-                return updateNeeded;
+                options = _.defaults(options, {
+                    initialCaretPos: subtitle.markdown.length,
+                });
+                this.subtitle = subtitle;
+                this.initialCaretPos = options.initialCaretPos;
+                this.autoCreatChangeGroup = null;
+                this.updateChangeGroup = 'text-edit-' + this.counter++;
             },
-            storedSubtitle: function() {
-                if(this.draft !== null) {
-                    return this.draft.storedSubtitle;
-                } else {
+            // Called when the user hits enter from the last subtitle in typing
+            // mode.  We automatically create a new subtitle at the end of the
+            // subtitle list, then start editing it.  There's also some code in
+            // to handle automatically undoing the insert if the user
+            // immediately clicks away.
+            appendAndStart: function(subtitleList) {
+                this.autoCreatChangeGroup = 'text-auto-insert-' + this.counter;
+                this.subtitle = subtitleList.insertSubtitleAtEnd(this.autoCreatChangeGroup);
+                this.initialCaretPos = 0;
+                this.updateChangeGroup = 'text-edit-' + this.counter++;
+            },
+            update: function(subtitleList, content) {
+                if(this.hasChanges(content)) {
+                    subtitleList.updateSubtitleContent(this.subtitle, content, this.updateChangeGroup);
+                }
+            },
+            hasChanges: function(content) {
+                return this.subtitle.markdown != content;
+            },
+            undoAutoCreatedSubtitle: function(subtitleList) {
+                if(this.autoCreatChangeGroup &&
+                        subtitleList.lastChangeGroup() === this.autoCreatChangeGroup) {
+                    subtitleList.undo();
+                    return true;
+                }
+                return false;
+            },
+            finish: function(subtitleList) {
+                this.undoAutoCreatedSubtitle(subtitleList);
+                this.subtitle = null;
+            },
+            isForSubtitle: function(subtitle) {
+                return this.subtitle === subtitle;
+            },
+            inProgress: function() {
+                return this.subtitle !== null;
+            },
+            lineCounts: function() {
+                if(this.subtitle === null || this.subtitle.lineCount() < 2) {
+                    // Only show the line counts if there are 2 or more lines
                     return null;
+                } else {
+                    return this.subtitle.characterCountPerLine();
                 }
             },
-            sourceMarkdown: function() {
-                return this.draft.storedSubtitle.markdown;
-            },
-            currentMarkdown: function() {
-                return this.draft.markdown;
-            },
-            changed: function() {
-                return this.sourceMarkdown() != this.currentMarkdown();
-            },
-             update: function(markdown) {
-                if(this.draft !== null) {
-                    this.draft.markdown = markdown;
-                }
-             },
-             isForSubtitle: function(subtitle) {
-                 if(subtitle.isDraft) {
-                     subtitle = subtitle.storedSubtitle;
-                 }
-                return (this.draft !== null && this.draft.storedSubtitle == subtitle);
-             },
-             inProgress: function() {
-                return this.draft !== null;
-             },
-             lineCounts: function() {
-                 if(this.draft === null || this.draft.lineCount() < 2) {
-                     // Only show the line counts if there are 2 or more lines
-                     return null;
-                 } else {
-                     return this.draft.characterCountPerLine();
-                 }
-             },
         };
 
         return CurrentEditManager;

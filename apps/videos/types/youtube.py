@@ -73,7 +73,7 @@ class YoutubeVideoType(VideoType):
         incomplete = False
         if not hasattr(self, '_video_info'):
             if team:
-                accounts = externalsites.models.YouTubeAccount.objects.for_owner(team)
+                accounts = externalsites.models.YouTubeAccount.objects.for_team_or_synced_with_team(team)
             elif user:
                 accounts = externalsites.models.YouTubeAccount.objects.for_owner(user)
             else:

@@ -142,7 +142,7 @@ def get_lineage(parents):
 
     return lineage
 
-
+# SubtitleLanguages -----------------------------------------------------------
 class SubtitleLanguagageQuerySet(query.QuerySet):
     def fetch_and_join(self, public_tips=False, private_tips=False,
                        video=None):
@@ -182,8 +182,6 @@ class SubtitleLanguagageQuerySet(query.QuerySet):
 
         return langs
 
-# SubtitleLanguages -----------------------------------------------------------
-class SubtitleLanguageManager(models.Manager):
     #  _   _                ______       ______
     # | | | |               | ___ \      |  _  \
     # | |_| | ___ _ __ ___  | |_/ / ___  | | | |_ __ __ _  __ _  ___  _ __  ___
@@ -193,15 +191,12 @@ class SubtitleLanguageManager(models.Manager):
     #                                                      __/ |
     #                                                     |___/
     #
-    # This manager's methods use custom SQL to perform efficient queries without
-    # denormalizing our data model into a tangled mess.
+    # These methods use custom SQL to try to speed up queries to avoid
+    # denormalizing the data model.
     #
     # These methods are not fun, and they are not pretty, but they ARE fast.
     #
     # Prepare yourself.
-    def get_queryset(self):
-        return SubtitleLanguagageQuerySet(self.model)
-
     def having_versions(self):
         """Return a QS of SLs that have at least 1 version.
 
@@ -210,7 +205,7 @@ class SubtitleLanguageManager(models.Manager):
         mess we were in before)).
 
         """
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             EXISTS (
                 SELECT 1
@@ -229,7 +224,7 @@ class SubtitleLanguageManager(models.Manager):
         mess we were in before)).
 
         """
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             NOT EXISTS (
                 SELECT 1
@@ -243,7 +238,7 @@ class SubtitleLanguageManager(models.Manager):
 
     def having_nonempty_versions(self):
         """Return a QS of SLs that have at least 1 version with 1 or more subtitles."""
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             EXISTS
             (SELECT 1
@@ -256,7 +251,7 @@ class SubtitleLanguageManager(models.Manager):
 
     def not_having_nonempty_versions(self):
         """Return a QS of SLs that have zero versions with 1 or more subtitles."""
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             NOT EXISTS
             (SELECT 1
@@ -270,7 +265,7 @@ class SubtitleLanguageManager(models.Manager):
 
     def having_nonempty_tip(self):
         """Return a QS of SLs that have a tip version with 1 or more subtitles."""
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             EXISTS (
                 SELECT 1
@@ -289,7 +284,7 @@ class SubtitleLanguageManager(models.Manager):
 
     def not_having_nonempty_tip(self):
         """Return a QS of SLs that do not have a tip version with 1 or more subtitles."""
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             NOT EXISTS (
                 SELECT 1
@@ -315,7 +310,7 @@ class SubtitleLanguageManager(models.Manager):
         mess we were in before)).
 
         """
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             EXISTS (
                 SELECT 1
@@ -336,7 +331,7 @@ class SubtitleLanguageManager(models.Manager):
         mess we were in before)).
 
         """
-        return self.get_queryset().extra(where=[
+        return self.extra(where=[
             """
             NOT EXISTS (
                 SELECT 1
@@ -350,7 +345,7 @@ class SubtitleLanguageManager(models.Manager):
         ])
 
     def video_count(self):
-        qs = self.get_queryset().extra(select={
+        qs = self.extra(select={
             'video_count': 'count(distinct(video_id))',
         })
         return qs.values_list('video_count', flat=True)[0]
@@ -391,7 +386,7 @@ class SubtitleLanguage(models.Model):
             related_name='new_followed_languages', editable=False)
 
     # Manager
-    objects = SubtitleLanguageManager()
+    objects = SubtitleLanguagageQuerySet.as_manager()
 
     class Meta:
         unique_together = [('video', 'language_code')]
@@ -1233,6 +1228,39 @@ LIMIT 1;""", (self.id, self.id))
         }
 
 # SubtitleVersions ------------------------------------------------------------
+class SubtitleVersionQuerySet(query.QuerySet):
+    def private_tips(self):
+        tip_where = """\
+subtitles_subtitleversion.version_number = (
+    SELECT MAX(version_number)
+    FROM subtitles_subtitleversion sv2
+    WHERE sv2.subtitle_language_id =
+           subtitles_subtitleversion.subtitle_language_id AND
+           sv2.visibility_override != 'deleted')"""
+        return self.extra(where=[tip_where])
+
+    def public_tips(self):
+        public_tip_where = """\
+subtitles_subtitleversion.version_number = (
+    SELECT MAX(version_number)
+    FROM subtitles_subtitleversion sv2 
+    WHERE ((sv2.visibility = 'public' AND sv2.visibility_override = '') OR
+           sv2.visibility_override = 'public') AND
+           sv2.subtitle_language_id =
+           subtitles_subtitleversion.subtitle_language_id)"""
+        return self.extra(where=[public_tip_where])
+
+    def subtitle_count(self):
+        qs = self.extra(select={
+            'subs_total': 'SUM(subtitles_subtitleversion.subtitle_count)'
+        }, where=[
+            'subtitles_subtitleversion.version_number = ('
+            'SELECT MAX(version_number) '
+            'FROM subtitles_subtitleversion sv2 '
+            'WHERE sv2.subtitle_language_id = '
+            'subtitles_subtitleversion.subtitle_language_id)'])
+        return qs.values_list('subs_total', flat=True)[0]
+
 class SubtitleVersionManager(models.Manager):
     use_for_related_fields = True
 
@@ -1276,38 +1304,6 @@ class SubtitleVersionManager(models.Manager):
     def all(self):
         assert False, ('all() is disabled on SubtitleVersion sets.  '
                        'Use full(), extant(), or public() instead.')
-
-    def private_tips(self):
-        tip_where = """\
-subtitles_subtitleversion.version_number = (
-    SELECT MAX(version_number)
-    FROM subtitles_subtitleversion sv2
-    WHERE sv2.subtitle_language_id =
-           subtitles_subtitleversion.subtitle_language_id AND
-           sv2.visibility_override != 'deleted')"""
-        return self.get_queryset().extra(where=[tip_where])
-
-    def public_tips(self):
-        public_tip_where = """\
-subtitles_subtitleversion.version_number = (
-    SELECT MAX(version_number)
-    FROM subtitles_subtitleversion sv2 
-    WHERE ((sv2.visibility = 'public' AND sv2.visibility_override = '') OR
-           sv2.visibility_override = 'public') AND
-           sv2.subtitle_language_id =
-           subtitles_subtitleversion.subtitle_language_id)"""
-        return self.get_queryset().extra(where=[public_tip_where])
-
-    def subtitle_count(self):
-        qs = self.get_queryset().extra(select={
-            'subs_total': 'SUM(subtitles_subtitleversion.subtitle_count)'
-        }, where=[
-            'subtitles_subtitleversion.version_number = ('
-            'SELECT MAX(version_number) '
-            'FROM subtitles_subtitleversion sv2 '
-            'WHERE sv2.subtitle_language_id = '
-            'subtitles_subtitleversion.subtitle_language_id)'])
-        return qs.values_list('subs_total', flat=True)[0]
 
     def fetch_for_languages(self, languages, select_related=None,
                             prefetch_related=None, order_by=None,
@@ -1488,7 +1484,7 @@ class SubtitleVersion(models.Model):
     # need to touch this field yourself, use the lineage property.
     serialized_lineage = models.TextField(blank=True)
 
-    objects = SubtitleVersionManager()
+    objects = SubtitleVersionManager.from_queryset(SubtitleVersionQuerySet)()
 
     def title_display(self):
         if self.title and self.title.strip():

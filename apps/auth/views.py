@@ -65,7 +65,7 @@ logger = logging.getLogger(__name__)
 
 def login(request):
     redirect_to = request.REQUEST.get(REDIRECT_FIELD_NAME, '')
-    if cache_get(request):
+    if login_form_needs_captcha(request):
         form = SecureAuthenticationForm(label_suffix="")
     else:
         form = AuthenticationForm(label_suffix="")
@@ -189,16 +189,16 @@ def cache_key(request):
 def cache_set(request):
     cache.set(cache_key(request), True, LOGIN_CACHE_TIMEOUT)
 
-def cache_get(request):
-    return cache.get(cache_key(request))
-
 def cache_delete(request):
     cache.delete(cache_key(request))
+
+def login_form_needs_captcha(request):
+    return settings.ENABLE_LOGIN_CAPTCHA and cache.get(cache_key(request))
 
 def login_post(request):
     redirect_to = make_redirect_to(request)
     form_has_no_captcha = False
-    if 'captcha_0' in request.POST or cache_get(request):
+    if 'captcha_0' in request.POST or login_form_needs_captcha(request):
         form = SecureAuthenticationForm(data=request.POST, label_suffix="")
     else:
         form_has_no_captcha = True
@@ -212,12 +212,12 @@ def login_post(request):
             return HttpResponseRedirect(redirect_to)
         else:
             cache_set(request)
-            if form_has_no_captcha:
+            if form_has_no_captcha and settings.ENABLE_LOGIN_CAPTCHA:
                 form = SecureAuthenticationForm(data=request.POST, label_suffix="")
             return render_login(request, CustomUserCreationForm(label_suffix=""), form, redirect_to)
     except ValueError:
         cache_set(request)
-        if form_has_no_captcha:
+        if form_has_no_captcha and settings.ENABLE_LOGIN_CAPTCHA:
             form = SecureAuthenticationForm(data=request.POST, label_suffix="")
         return render_login(request, CustomUserCreationForm(label_suffix=""), form, redirect_to)
 

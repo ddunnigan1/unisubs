@@ -17,3 +17,5 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 """externalsites -- Manage data on external sites like youtube and kaltura """
+
+default_app_config = 'externalsites.apps.ExternalsitesConfig'

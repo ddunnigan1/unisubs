@@ -195,7 +195,6 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sitemaps',
     'django.contrib.webdesign',
     # third party apps
     'djcelery',
@@ -213,6 +212,7 @@ INSTALLED_APPS = (
     'codefield',
     'comments',
     'externalsites',
+    'guitests',
     'messages',
     'mysqltweaks',
     'notifications',
@@ -297,11 +297,11 @@ LOCALE_INDEPENDENT_PATHS = [
     re.compile('^/api/'),
     re.compile('^/api2/'),
     re.compile('^/jstest/'),
-    re.compile('^/sitemap.*.xml'),
     re.compile('^/externalsites/youtube-callback'),
     re.compile('^/auth/set-hidden-message-id/'),
     re.compile('^/crossdomain.xml'),
     re.compile('^/embedder-widget-iframe/'),
+    re.compile('^/__debug__/'),
 ]
 
 OPENID_SREG = {"required": "nickname, email", "optional":"postcode, country", "policy_url": ""}
@@ -331,7 +331,9 @@ AUTHENTICATION_BACKENDS = (
 # Use cookie storage always since it works the best with our caching system
 MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+# We actually use pytest to run our tests, but this settings prevents a
+# spurious warning
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -415,8 +417,6 @@ ROSETTA_EXCLUDED_APPLICATIONS = (
     'openid_consumer',
     'rosetta'
 )
-
-INSTALLED_APPS += optionalapps.get_apps()
 
 # List of modules to extract docstrings from for the update_docs management
 # command.
@@ -719,6 +719,7 @@ MEDIA_BUNDLES = {
 # use https for production to prevent attackers from seeing the access token.
 # For development, we care less about that so we typically use http
 OAUTH_CALLBACK_PROTOCOL = 'https'
+ENABLE_LOGIN_CAPTCHA = not os.environ.get('DISABLE_LOGIN_CAPTCHA')
 
 EMAIL_BACKEND = "utils.safemail.InternalOnlyBackend"
 EMAIL_FILE_PATH = '/tmp/unisubs-messages'

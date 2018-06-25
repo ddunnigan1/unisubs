@@ -1445,6 +1445,9 @@ div.workspace-tools {
                      background: url('../images/subtitle-editor/glyphicons_057_history.png') 10px no-repeat;
                    }
                    &.clear-text {
+                     background: url('../images/subtitle-editor/glyphicons_104_text_strike_2.png') 10px no-repeat;
+                   }
+                   &.clear-empty-subtitles {
                      background: url('../images/subtitle-editor/glyphicons_207_remove_2.png') 10px no-repeat;
                    }
                    &.revert-saved {

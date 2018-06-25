@@ -26,6 +26,7 @@ RUN mkdir -p /var/run/amara
 RUN useradd --home /var/run/amara --shell /bin/bash amara
 RUN mkdir /var/run/amara/test-output/
 RUN chown -R amara:amara /var/run/amara
+RUN mkdir -p /var/run/pytest && chown amara:amara /var/run/pytest
 WORKDIR /var/run/amara
 EXPOSE 8000
 ENV MANAGE_SCRIPT /opt/apps/amara/manage.py

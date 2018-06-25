@@ -19,10 +19,6 @@
 import warnings
 from dev_settings import *
 
-INSTALLED_APPS += (
-    'django_nose',
-)
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -35,16 +31,6 @@ DATABASES = {
 }
 
 
-# disable migrations for testing
-class DisableMigrations(object):
-
-    def __contains__(self, item):
-        return True
-
-    def __getitem__(self, item):
-        return "notmigrations"
-MIGRATION_MODULES = DisableMigrations()
-
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -53,8 +39,6 @@ CACHES = {
 CACHE_PREFIX = "testcache"
 CACHE_TIMEOUT = 60
 
-TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_PLUGINS = ['noseplugin.UnisubsTestPlugin']
 CELERY_ALWAYS_EAGER = True
 
 GOOGLE_CLIENT_ID = 'test-youtube-id'
@@ -69,17 +53,6 @@ PASSWORD_HASHERS = (
         'django.contrib.auth.hashers.MD5PasswordHasher',
         'django.contrib.auth.hashers.SHA1PasswordHasher',
 )
-
-# Let the nose CaptureLogging plugin handle logging.  It doesn't display
-# logging at all, except if there's a test failure.
-del LOGGING
-
-NOSE_ARGS = ['--logging-clear-handlers',
-             '-selenium.webdriver.remote.remote_connection',
-             '--with-xunit', '--logging-level=WARN',
-             '--xunit-file=nosetests.xml',
-             '--where', '/opt/apps/amara/',
-            ]
 
 MESSAGES_SENT_WINDOW_MINUTES = 1
 MESSAGES_SENT_LIMIT = 50
