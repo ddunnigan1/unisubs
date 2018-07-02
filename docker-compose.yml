@@ -5,14 +5,12 @@ services:
     command: app
     environment:
       DJANGO_SETTINGS_MODULE: dev_settings
-      DJANGO_LIVE_TEST_SERVER_ADDRESS: 'localhost:8081,8090-8100,9000-9200'
       LANG: en_US.UTF-8
       WORKERS: 2
       JSON_LOGGING:
       DB_LOGGING:
     volumes:
       - .:/opt/apps/amara:z
-    hostname: unisubs.example.com
     ports:
       - "8000:8000"
     depends_on:
@@ -52,7 +50,7 @@ services:
       - cache
 
   db:
-    image: mysql
+    image: mysql:5.7
     environment:
       MYSQL_ROOT_PASSWORD: amara
       MYSQL_USER: amara
@@ -85,3 +83,20 @@ services:
     image: amara/amara-cache
     ports:
       - "9000:80"
+
+  test:
+    image: amara-app
+    command: test
+    environment:
+      DJANGO_SETTINGS_MODULE: dev_settings_test
+      LANG: en_US.UTF-8
+    volumes:
+      - .:/opt/apps/amara:z
+      - amara-pytest-data:/var/run/pytest/
+    depends_on:
+      - db
+      - queue
+      - cache
+      - asset-builder
+volumes:
+  amara-pytest-data:

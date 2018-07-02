@@ -24,7 +24,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import render
 from django.template import RequestContext, loader
 from django.views.generic.base import TemplateView, RedirectView
-from sitemaps import sitemaps, sitemap_view, sitemap_index
 from django.views.decorators.clickjacking import xframe_options_exempt
 from auth.forms import CustomPasswordResetForm
 import optionalapps
@@ -133,10 +132,6 @@ urlpatterns = patterns('',
     url(r'^test-mp4$',
         TemplateView.as_view(template_name='alpha-test01-mp4.htm'),
         name='test-mp4-page'),
-    url(r'^sitemap\.xml$', sitemap_index, {'sitemaps': sitemaps},
-        name="sitemap-index"),
-    url(r'^sitemap-(?P<section>.+)\.xml$', sitemap_view, {'sitemaps': sitemaps},
-        name="sitemap"),
     url(r"helpers/",
         include('testhelpers.urls', namespace='helpers')),
     url(r'^videos/', include('videos.urls', namespace='videos',
@@ -173,11 +168,13 @@ urlpatterns += patterns('',
 
 
 if settings.DEBUG:
+    import debug_toolbar
     urlpatterns += patterns('',
         (r'^site_media/(?P<path>.*)$', 'django.views.static.serve',
          {'document_root': settings.STATIC_ROOT, 'show_indexes': True}),
         (r'^user-data/(?P<path>.*)$', 'django.views.static.serve',
          {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
+        url(r'^__debug__/', include(debug_toolbar.urls)),
     )
 
 def ensure_user(request):

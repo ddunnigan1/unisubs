@@ -1,6 +1,5 @@
 {% load i18n videos_tags %}
 {% if page %}
-{% load url from future %}
 <ul id="video-list" class="selectList" data-target="#manage-actions">
   {% for video in page %}
   {% include "future/teams/management/video-item.html" with subtitle=video|speaker_name %}

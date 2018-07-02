@@ -1,5 +1,4 @@
 {% load i18n teams_tags %}
-{% load url from future %}
 <nav class="primarynav mainnav-nav wide">
   <ul>
     <li{% if team_nav == "dashboard" %} class="active"{% endif %}><a href="{% url "teams:dashboard" team.slug %}">{% trans "Dashboard" %}</a></li>

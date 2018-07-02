@@ -95,7 +95,7 @@ var USER_IDLE_MINUTES = 15;
 
             scope.positionInfoTray = function() {
                 var BUFFER = 22;
-                var subtitle = scope.currentEdit.storedSubtitle();
+                var subtitle = scope.currentEdit.subtitle;
                 if(subtitle === null) {
                     infoTray.hide();
                     return;
@@ -125,7 +125,7 @@ var USER_IDLE_MINUTES = 15;
                 }
             }
 
-            scope.$watch("currentEdit.draft", function() {
+            scope.$watch("currentEdit.subtitle", function() {
                 if (currentArrow) {
                     currentArrow.hide(); // Kinda hate this, i think it would be cleaner to give each line its own controller
                 }
@@ -136,7 +136,7 @@ var USER_IDLE_MINUTES = 15;
                 }, 0, false);
             });
 
-            scope.$watch("currentEdit.draft.markdown", function() {
+            scope.$watch("currentEdit.subtitle.markdown", function() {
                 $timeout(function() {
                     // use timeout to make sure that this happens after the DOM has updated,
                     // since changes to contents of the info tray may have changed its size.
@@ -155,10 +155,6 @@ var USER_IDLE_MINUTES = 15;
             scope.$root.$on('working-subtitles-scrolled', function() {
                 scope.positionSyncHelpers();
                 scope.positionInfoTray();
-            });
-
-            scope.$root.$on('timeline-subtitle-drag', function(evt, args) {
-                scope.updateSubtitleFromDraft(args.draftSubtitle);
             });
         };
     }]);
@@ -287,7 +283,7 @@ var USER_IDLE_MINUTES = 15;
             }
 
             if(!readOnly) {
-                $scope.$watch('currentEdit.draft', function(newValue, oldValue) {
+                $scope.$watch('currentEdit.subtitle', function(newValue, oldValue) {
                     if(oldValue) {
                         stopEditOn(oldValue);
                     }
@@ -460,31 +456,23 @@ var USER_IDLE_MINUTES = 15;
                 $scope.$emit('subtitle-list-changed');
             }
 
-            $scope.updateSubtitleFromDraft = function(draftSubtitle) {
-                renderSubtitle(draftSubtitle, subtitleMap[draftSubtitle.storedSubtitle.id]);
-            }
-
-            function startEditOn(draft) {
-                var li = subtitleMap[draft.storedSubtitle.id];
+            function startEditOn(subtitle) {
+                var li = subtitleMap[subtitle.id];
 		if (li) {
                     li.addClass('edit');
                     var textarea = $('<textarea class="subtitle-edit" placeholder="Type a subtitle and press Enter"/>');
-                    textarea.val(draft.markdown);
+                    textarea.val(subtitle.markdown);
                     li.append(textarea);
                     textarea.autosize();
                     textarea.focus();
-                    if(draft.initialCaretPos === undefined) {
-                        var caretPos = draft.markdown.length;
-                    } else {
-                        var caretPos = draft.initialCaretPos;
-                    }
+                    var caretPos = $scope.currentEdit.initialCaretPos;
                     DomUtil.setSelectionRange(textarea[0], caretPos, caretPos);
                     textarea.on('keyup input propertychange', function(evt) {
-                        var val = textarea.val();
-                        if(val != draft.markdown) {
-                            $scope.$apply(function() {
-                                draft.markdown = val;
-                            });
+                        var content = textarea.val();
+                        if($scope.currentEdit.hasChanges(content)) {
+                            $scope.currentEdit.update(subtitleList, textarea.val());
+                            $scope.$root.$emit('work-done');
+                            $scope.$root.$digest();
                         }
                     });
                     if($scope.onEditKeydown) {
@@ -496,14 +484,11 @@ var USER_IDLE_MINUTES = 15;
                     }
                 }
             }
-            function stopEditOn(draft) {
-                var li = subtitleMap[draft.storedSubtitle.id];
+            function stopEditOn(subtitle) {
+                var li = subtitleMap[subtitle.id];
                 if(li) {
                     li.removeClass('edit');
                     $('textarea.subtitle-edit', li).remove();
-                    if ((draft.storedSubtitle.content().length == 0) && (subtitleMap[draft.storedSubtitle.id].next().html() == undefined) && (subtitleList.length() > 1)) {
-                        subtitleList.removeSubtitle(draft.storedSubtitle);
-                    }
                 }
             }
 

@@ -285,7 +285,6 @@ class UserAPITest(TestCase):
     def test_update_user(self):
         self.check_put({
             'email': 'new-email@example.com',
-            'password': 'new-password',
             'first_name': 'New',
             'last_name': 'Newson',
         })

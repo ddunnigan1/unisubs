@@ -126,15 +126,10 @@ class TeamQuerySet(query.QuerySet):
         }
         return self.extra(select=select, select_params=[user.id])
 
-class TeamManager(models.Manager):
-    def get_queryset(self):
-        """Return a QS of all non-deleted teams."""
-        return TeamQuerySet(Team).filter(deleted=False)
-
     def for_user(self, user, allow_unlisted=False):
         """Return the teams visible for the given user.  """
         if user.is_superuser:
-            return self.all()
+            return self
         if allow_unlisted:
             q = ~models.Q(team_visibility=TeamVisibility.PRIVATE)
         else:
@@ -142,7 +137,7 @@ class TeamManager(models.Manager):
         if user.is_authenticated():
             user_teams = TeamMember.objects.filter(user=user)
             q |= models.Q(id__in=user_teams.values('team_id'))
-        return self.get_queryset().filter(q)
+        return self.filter(q)
 
     def with_recent_billing_record(self, day_range):
         """Find teams that have had a new video recently"""
@@ -153,13 +148,19 @@ class TeamManager(models.Manager):
                         .filter(created__gt=start_date)
                         .values_list('team_id', flat=True)
                         .distinct())
-        return Team.objects.filter(id__in=team_ids)
+        return self.filter(id__in=team_ids)
 
     def needs_new_video_notification(self, notify_interval):
         return (self.filter(
             notify_interval=notify_interval,
             teamvideo__created__gt=models.F('last_notification_time'))
             .distinct())
+
+
+class TeamManager(models.Manager):
+    def get_queryset(self):
+        """Return a QS of all non-deleted teams."""
+        return TeamQuerySet(Team).filter(deleted=False)
 
 TeamVisibility = enum.Enum('TeamVisibility', [
     ('PUBLIC', _(u'Public')),
@@ -302,8 +303,8 @@ class Team(models.Model):
     partner = models.ForeignKey('Partner', null=True, blank=True,
                                 related_name='teams')
 
-    objects = TeamManager()
-    all_objects = models.Manager() # For accessing deleted teams, if necessary.
+    objects = TeamManager.from_queryset(TeamQuerySet)()
+    all_objects = TeamQuerySet.as_manager()
 
     cache = ModelCacheManager()
 
@@ -2285,7 +2286,6 @@ class TaskManager(models.Manager):
     def not_deleted(self):
         """Return a QS of tasks that are not deleted."""
         return self.get_queryset().filter(deleted=False)
-
 
     def incomplete(self):
         """Return a QS of tasks that are not deleted or completed."""

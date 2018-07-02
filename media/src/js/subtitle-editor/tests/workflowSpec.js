@@ -181,6 +181,7 @@ describe('when the enter key creates a new subtitle', function() {
             $scope: $scope,
         });
         spyOn(subtitleList, 'insertSubtitleBefore').and.callThrough();
+        spyOn(subtitleList, 'insertSubtitleAtEnd').and.callThrough();
     }));
 
     it('creates a new subtitle when the timeline is hidden',
@@ -188,12 +189,13 @@ describe('when the enter key creates a new subtitle', function() {
         $scope.currentEdit.start(subtitleList.subtitles[0]);
         var evt = MockEvents.keydown(keyCodeForEnter);
         $scope.onEditKeydown(evt);
-        expect(subtitleList.insertSubtitleBefore).toHaveBeenCalled();
+        expect(subtitleList.insertSubtitleAtEnd).toHaveBeenCalled();
         expect(evt.preventDefault).toHaveBeenCalled();
 
+        subtitleList.insertSubtitleAtEnd.calls.reset();
         $scope.timelineShown = true;
         $scope.onEditKeydown(MockEvents.keydown(keyCodeForEnter));
-        expect(subtitleList.insertSubtitleBefore.calls.count()).toBe(1);
+        expect(subtitleList.insertSubtitleAtEnd).not.toHaveBeenCalled();
     }));
 });
 

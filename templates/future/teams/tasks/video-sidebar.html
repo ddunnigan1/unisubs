@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load url from future %}
 <div class="content videoSubtitleList">
   <h2 class="videoSubtitlesList-item">{% trans "Contribute" %}</h2>
   <a href="{% url "teams:team_tasks" team.slug %}?team_video={{ team_video.id }}"><i class="icon icon-transcribe"></i> {% trans "View tasks for this video" %}</a>

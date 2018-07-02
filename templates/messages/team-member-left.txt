@@ -1,4 +1,3 @@
-{% load url from future %}
 {% comment %}
 This gets sent to the rest of the team, notifying about the new member
 {% endcomment %}

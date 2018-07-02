@@ -59,6 +59,8 @@ class CustomUserCreationForm(UserCreationForm):
         fields = ("username", "email")
 
     def __init__(self, *args, **kwargs):
+        if 'prefix' not in kwargs:
+            kwargs['prefix'] = 'create'
         super(CustomUserCreationForm, self).__init__(*args, **kwargs)
         self.fields['email'].required = True
 

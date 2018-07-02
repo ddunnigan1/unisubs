@@ -895,7 +895,7 @@ activity_choices = [
     VideoMovedToTeam, VideoMovedFromTeam, TeamSettingsChanged, SubtitleLanguageChanged,
 ]
 
-class ActivityQueryset(query.QuerySet):
+class ActivityQuerySet(query.QuerySet):
     def original(self):
         # For some reason, using copied_from__isnull=True results in an extra
         # join.  So we need a custom WHERE clause
@@ -923,16 +923,6 @@ class ActivityQueryset(query.QuerySet):
 
         return self.filter(q)
 
-class ActivityManager(models.Manager):
-    use_for_related_fields = True
-
-    def get_queryset(self):
-        return (ActivityQueryset(self.model, using=self._db)
-                .select_related('user', 'team', 'video'))
-
-    def original(self):
-        return self.get_queryset().original()
-
     def for_video(self, video, team=None):
         qs = self.filter(video=video).original()
         if team is None:
@@ -950,10 +940,17 @@ class ActivityManager(models.Manager):
 
     def for_user(self, user):
         return (self.filter(user=user).original()
-                .force_index('user_copied_created'))
+                .force_index('activity_activityrecord_user_id_9a176575334d68_idx'))
 
     def for_team(self, team):
         return self.filter(team=team)
+
+class ActivityManager(models.Manager):
+    use_for_related_fields = True
+
+    def get_queryset(self):
+        return (ActivityQuerySet(self.model, using=self._db)
+                .select_related('user', 'team', 'video'))
 
     def create(self, type, **attrs):
         return super(ActivityManager, self).create(type=type, **attrs)
@@ -1139,25 +1136,22 @@ class ActivityRecord(models.Model):
     # copying behavior above and not include it in the default video listing.
     private_to_team = models.BooleanField(default=False, blank=True)
 
-    objects = ActivityManager()
+    objects = ActivityManager.from_queryset(ActivityQuerySet)()
 
     class Meta:
         ordering = ['-created', '-id']
-        # If we were using a newer version of django we would have this:
-        #index_together = [
-            ## Team activity stream.  There's often lots of activity per-team,
-            ## so we add some extra indexes here
-            #('team', 'created'),
-            #('team', 'type', 'created'),
-            #('team', 'language_code', 'created'),
-            #('team', 'video_language_code', 'created'),
-            ## Video activity stream
-            #('video', 'copied_from', 'created')
-            ## User activity stream
-            #('user', 'copied_from', 'created')
-        #]
-        # Instead, these are handled by the setup_indexes code and a south
-        # migration
+        index_together = [
+            # Team activity stream.  There's often lots of activity per-team,
+            # so we add some extra indexes here
+            ('team', 'created'),
+            ('team', 'type', 'created'),
+            ('team', 'language_code', 'created'),
+            ('team', 'type', 'video_language_code', 'created'),
+            # Video activity stream
+            ('video', 'copied_from', 'created'),
+            # User activity stream
+            ('user', 'copied_from', 'created'),
+        ]
 
     def __unicode__(self):
         return u'ActivityRecord: {}'.format(self.type)

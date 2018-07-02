@@ -34,10 +34,10 @@ subtitle_loader.add_style('amara-style',
                           textAlign="center")
 subtitle_loader.add_region('bottom', 'amara-style',
                            extent='100% 20%',
-                           origin='0 80%')
+                           origin='0% 80%')
 subtitle_loader.add_region('top', 'amara-style',
                            extent='100% 20%',
-                           origin='0 0')
+                           origin='0% 0%')
 
 def create_new_subtitles(language_code, title='', description='',
                          frame_rate=None, frame_rate_multiplier=None):

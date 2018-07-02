@@ -294,7 +294,7 @@ class ActivityFilterBackend(filters.BaseFilterBackend):
     # map filter query params to the model field to filter on
     filter_map = {
         'type': 'type',
-        'user': 'user__username',
+        'user': 'user',
         'team': 'team__slug',
         'language': 'language_code',
         'video': 'video__video_id',
@@ -324,6 +324,8 @@ class ActivityFilterBackend(filters.BaseFilterBackend):
             except ValueError:
                 # Case where there is no time zone
                 return dateutil.parser.parse(value)
+        elif name == 'user':
+            return userlookup.lookup_user(value)
         else:
             return value
 

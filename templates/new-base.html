@@ -1,5 +1,4 @@
 {% load i18n media_bundle announcement_tags messages_tags auth_tags profiles_tags assets %}
-{% load url from future %}
 
 <!DOCTYPE html>
 <html {% if LANGUAGE_BIDI %}dir="rtl"{% endif %} {% block html_attrs %}{% endblock %}>
@@ -77,7 +76,7 @@
       <a href="//amara.org"><img src="{{ STATIC_URL }}images/amara-logotype.png" alt="Amara's green circle logotype" /></a>
       <ul>
         <li><a href="//blog.amara.org/tos/">{% trans 'Terms' %}</a></li>
-        <li><a href="//pculture.org/pcf/websites-privacy/">{% trans 'Privacy' %}</a></li>
+        <li><a href="//pculture.org/pcf/privacy/">{% trans 'Privacy' %}</a></li>
         <li><a href="/security">{% trans 'Security' %}</a></li>
       </ul>
     </div>

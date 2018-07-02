@@ -39,6 +39,7 @@ they're present.
 import os
 import sys
 
+from django import apps
 from django.conf.urls import patterns, include, url
 
 project_root = os.path.abspath(os.path.dirname(__file__))
@@ -79,13 +80,14 @@ def get_apps():
         list of app names from our optional repositories to add to
         INSTALLED_APPS.
     """
-    apps = []
-    for directory in get_repository_paths():
-        for potential_app in os.listdir(directory):
-            appdir = os.path.join(directory, potential_app)
-            if os.path.exists(os.path.join(appdir, 'models.py')):
-                apps.append(potential_app)
-    return tuple(apps)
+    app_names = []
+    repo_paths = [os.path.abspath(p) for p in get_repository_paths()]
+    for app_config in apps.apps.get_app_configs():
+        app_path = os.path.abspath(app_config.path)
+        for repo_path in repo_paths:
+            if app_path.startswith(repo_path):
+                app_names.append(app_config.name)
+    return tuple(app_names)
 
 def get_urlpatterns():
     """Get Django urlpatterns for URLs from our optional apps.

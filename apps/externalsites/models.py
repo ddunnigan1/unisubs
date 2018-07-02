@@ -47,7 +47,23 @@ def now():
     # define now as a function so it can be patched in the unittests
     return datetime.datetime.now()
 
-class ExternalAccountManager(models.Manager):
+class ExternalAccountQuerySet(query.QuerySet):
+    def for_owner(self, owner):
+        if isinstance(owner, Team):
+            type_ = ExternalAccount.TYPE_TEAM
+        elif isinstance(owner, User):
+            type_ = ExternalAccount.TYPE_USER
+        else:
+            raise TypeError("Invalid owner type: %r" % owner)
+        return self.filter(type=type_, owner_id=owner.id)
+
+    def team_accounts(self):
+        return self.filter(type=ExternalAccount.TYPE_TEAM)
+
+    def user_accounts(self):
+        return self.filter(type=ExternalAccount.TYPE_USER)
+
+class ExternalAccountManagerBase(models.Manager):
     def create(self, team=None, user=None, **kwargs):
         if team is not None and user is not None:
             raise ValueError("team and user can't both be specified")
@@ -58,16 +74,7 @@ class ExternalAccountManager(models.Manager):
             kwargs['type'] = ExternalAccount.TYPE_USER
             kwargs['owner_id'] = user.id
 
-        return super(ExternalAccountManager, self).create(**kwargs)
-
-    def for_owner(self, owner):
-        if isinstance(owner, Team):
-            type_ = ExternalAccount.TYPE_TEAM
-        elif isinstance(owner, User):
-            type_ = ExternalAccount.TYPE_USER
-        else:
-            raise TypeError("Invalid owner type: %r" % owner)
-        return self.filter(type=type_, owner_id=owner.id)
+        return super(ExternalAccountManagerBase, self).create(**kwargs)
 
     def get_sync_account(self, video, video_url):
         team_video = video.get_team_video()
@@ -84,11 +91,8 @@ class ExternalAccountManager(models.Manager):
             return self.get(type=ExternalAccount.TYPE_USER,
                           owner_id=video.user_id)
 
-    def team_accounts(self):
-        return self.filter(type=ExternalAccount.TYPE_TEAM)
-
-    def user_accounts(self):
-        return self.filter(type=ExternalAccount.TYPE_USER)
+ExternalAccountManager = ExternalAccountManagerBase.from_queryset(
+    ExternalAccountQuerySet)
 
 class ExternalAccount(models.Model):
     account_type = NotImplemented

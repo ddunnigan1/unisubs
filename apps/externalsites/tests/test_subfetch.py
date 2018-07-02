@@ -52,9 +52,9 @@ class TestLookupYoutubeAccounts(TestCase):
         self.team_account = YouTubeAccountFactory(channel_id="team",
                                                   team=self.team)
         self.videourl_in_user_account = YouTubeVideoFactory(
-            channel_id=None).get_primary_videourl_obj()
+            channel_id=self.user_account.channel_id).get_primary_videourl_obj()
         self.videourl_in_team_account = YouTubeVideoFactory(
-            channel_id=None).get_primary_videourl_obj()
+            channel_id=self.team_account.channel_id).get_primary_videourl_obj()
 
     def test_public_video_added_by_owner(self):
         assert_items_equal(
@@ -66,7 +66,7 @@ class TestLookupYoutubeAccounts(TestCase):
         assert_items_equal(
             lookup_youtube_accounts(self.videourl_in_user_account,
                                     UserFactory(), None),
-            [])
+            [self.user_account])
 
     def test_video_added_to_linked_team(self):
         assert_items_equal(
@@ -85,7 +85,7 @@ class TestLookupYoutubeAccounts(TestCase):
         # and team have accounts linked.  It's not clear what we should do,
         # but for now, we just use the team account
         assert_items_equal(
-            lookup_youtube_accounts(self.videourl_in_user_account,
+            lookup_youtube_accounts(self.videourl_in_team_account,
                                     self.user, self.team),
             [self.team_account])
 
@@ -96,7 +96,7 @@ class TestLookupYoutubeAccounts(TestCase):
         assert_items_equal(
             lookup_youtube_accounts(self.videourl_in_team_account,
                                     UserFactory(), self.team),
-            [self.team_account, team_account2])
+            [self.team_account])
 
 class SubFetchTestCase(TestCase):
     @test_utils.patch_for_test("externalsites.google.get_video_info")

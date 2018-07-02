@@ -167,6 +167,8 @@ class ActivityTest(TestCase):
         self.check_list(url, record3, record2, record1)
         self.check_list(url + '?video=video1', record3, record1)
         self.check_list(url + '?user=test-user', record3)
+        self.check_list(url + '?user=id${}'.format(self.user.secure_id()),
+                        record3)
         self.check_list(url + '?video_language=fr', record3, record1)
         self.check_list(url + '?type=video-added', record2, record1)
         self.check_list(url + '?language=en', record3)

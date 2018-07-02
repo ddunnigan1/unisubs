@@ -1,6 +1,5 @@
 {% extends "future/base.html" %}
 {% load i18n %}
-{% load url from future %}
 {% block header %}{% include "future/header.html" with brand="future/teams/brand.html" brand_url=team.get_absolute_url primarynav="future/teams/primarynav.html" %}{% endblock %}
 {% block page-controls %}
   {% if perms.teams.edit_team %}

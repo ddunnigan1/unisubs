@@ -136,23 +136,8 @@ class AlreadyEditingException(Exception):
 
 
 # Video
-class VideoManager(models.Manager):
-    def get_queryset(self):
-        return VideoQueryset(self.model, using=self._db)
 
-    def featured(self):
-        return self.filter(featured__isnull=False).order_by('-featured')
-
-    def latest(self):
-        return self.public().order_by('-id')
-
-    def public(self):
-        return self.filter(is_public=True)
-
-    def search(self, text):
-        return self.all().search(text)
-
-class VideoQueryset(query.QuerySet):
+class VideoQuerySet(query.QuerySet):
     def select_has_public_version(self):
         """Add a subquery to check if there is a public version for this video
 
@@ -166,6 +151,15 @@ EXISTS(
             OR (sv.visibility_override = '' AND sv.visibility='public')))"""
 
         return self.extra({ '_has_public_version': sql })
+
+    def featured(self):
+        return self.filter(featured__isnull=False).order_by('-featured')
+
+    def latest(self):
+        return self.public().order_by('-id')
+
+    def public(self):
+        return self.filter(is_public=True)
 
     def search(self, query):
         # If only one query term, search normally,
@@ -413,7 +407,7 @@ class Video(models.Model):
 
     cache = VideoCacheManager()
 
-    objects = VideoManager()
+    objects = VideoQuerySet.as_manager()
 
     class DuplicateUrlError(Exception):
         """
@@ -2222,20 +2216,20 @@ class Action(models.Model):
 
 class VideoUrlManager(models.Manager):
     def get_queryset(self):
-        return VideoUrlQueryset(self.model, using=self._db)
+        return VideoUrlQuerySet(self.model, using=self._db)
 
-class VideoUrlQueryset(query.QuerySet):
+class VideoUrlQuerySet(query.QuerySet):
     def get(self, **kwargs):
         if 'url' in kwargs:
             url = url_escape(kwargs.pop('url'))
             kwargs['url_hash'] = url_hash(url)
-        return super(VideoUrlQueryset, self).get(**kwargs)
+        return super(VideoUrlQuerySet, self).get(**kwargs)
 
     def filter(self, **kwargs):
         if 'url' in kwargs:
             url = url_escape(kwargs.pop('url'))
             kwargs['url_hash'] = url_hash(url)
-        return super(VideoUrlQueryset, self).filter(**kwargs)
+        return super(VideoUrlQuerySet, self).filter(**kwargs)
 
 # VideoUrl
 class VideoUrl(models.Model):

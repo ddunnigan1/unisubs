@@ -20,6 +20,8 @@ from __future__ import absolute_import
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.template import RequestContext
+from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 
 from teams import views as old_views
@@ -27,6 +29,41 @@ from teams import forms
 from teams.workflows import TeamWorkflow
 from utils.breadcrumbs import BreadCrumb
 from .subtitleworkflows import TeamVideoWorkflow
+from videos.behaviors import VideoPageCustomization, SubtitlesPageCustomization
+
+def render_team_header(request, team):
+    return render_to_string('future/header.html', {
+        'team': team,
+        'brand': 'future/teams/brand.html',
+        'brand_url': team.get_absolute_url(),
+        'primarynav': 'future/teams/primarynav.html',
+    }, RequestContext(request))
+
+class SimpleVideoPageCustomization(VideoPageCustomization):
+    def __init__(self, team, request, video):
+        self.team = team
+        self.request = request
+        self.sidebar = None
+        self.setup_header()
+
+    def setup_header(self):
+        if self.team:
+            self.header = render_team_header(self.request, self.team)
+        else:
+            self.header = None
+
+class SimpleSubtitlesPageCustomization(SubtitlesPageCustomization):
+    def __init__(self, request, video, subtitle_language, team):
+        super(SimpleSubtitlesPageCustomization, self).__init__(request.user, video, subtitle_language)
+        self.request = request
+        self.team = team
+        self.setup_header()
+
+    def setup_header(self):
+        if self.team:
+            self.header = render_team_header(self.request, self.team)
+        else:
+            self.header = None
 
 class SimpleTeamWorkflow(TeamWorkflow):
     """Workflow for basic public/private teams
@@ -68,3 +105,24 @@ class SimpleTeamWorkflow(TeamWorkflow):
             ],
         })
 
+    def video_page_customize(self, request, video):
+        team = self.find_team_for_page(request)
+        return SimpleVideoPageCustomization(team, request, video)
+
+    def subtitles_page_customize(self, request, video, subtitle_language):
+        team = self.find_team_for_page(request)
+        return SimpleSubtitlesPageCustomization(request, video, subtitle_language, team)
+
+    def find_team_for_page(self, request):
+        slug = request.GET.get('team')
+        if slug == self.team.slug:
+            team = self.team
+        else:
+            try:
+                team = Team.objects.get(slug=slug)
+            except Team.DoesNotExist:
+                return None
+        if team.user_is_member(request.user):
+            return team
+        else:
+            return None

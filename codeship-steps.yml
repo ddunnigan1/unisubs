@@ -17,6 +17,10 @@
   image_tag: "{{.CommitID}}"
   registry: https://241878618260.dkr.ecr.us-east-1.amazonaws.com
   dockercfg_service: aws_generator
+- name: GUI Tests
+  service: deploy-agent
+  command: amara-guitest
+  tag: dev
 - name: Tag branch
   service: amara
   type: push

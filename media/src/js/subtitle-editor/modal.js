@@ -104,6 +104,12 @@
             buttons: [ 'continueButton', 'cancel' ],
             allowClose: true
         },
+        confirmDeleteEmptySubtitles: {
+            title: 'Delete Empty Subtitles',
+            text: 'This will remove all subtitles with empty text. Do you want to continue?',
+            buttons: [ 'continueButton', 'cancel' ],
+            allowClose: true
+        },
         confirmChangesReset: {
             title: 'Confirm Changes Reset',
             text: 'This will revert all changes made since the last saved revision. Do you want to continue?',

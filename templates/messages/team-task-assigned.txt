@@ -1,4 +1,3 @@
-{% load url from future %}
 Dear {{ user }},
 
 The {{ team.name }} team has assigned you a new task:

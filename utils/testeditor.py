@@ -45,11 +45,11 @@ def dxfp_sample(language_code):
  </body>
 </tt>""" % language_code)
 
-class TestEditor(object):
+class MockEditor(object):
     """Simulates the editor widget for unit tests"""
     def __init__(self, client, video, original_language_code=None,
                  base_language_code=None, mode=None):
-        """Construct a TestEditor
+        """Construct a MockEditor
 
         :param client: django TestClient object for HTTP requests
         :param video: Video object to edit

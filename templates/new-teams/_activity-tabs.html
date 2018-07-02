@@ -1,5 +1,4 @@
 {% load i18n teams_tags %}
-{% load url from future %}
 <ul class="tabs">
     <li {% if tab == "activity" %}class="current"{% endif %}>
         <a href="{% url "teams:activity" team.slug %}">{% trans "Videos" %}</a>

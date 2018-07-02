@@ -31,7 +31,7 @@ from auth.models import CustomUser as User
 from subtitles import pipeline
 from subtitles.models import SubtitleLanguage, SubtitleVersion
 from subtitles.tests.utils import make_video, make_video_2
-from subtitles.tests.test_workflows import TestAction
+from subtitles.tests.test_workflows import MockAction
 from utils.factories import *
 from utils import test_utils
 
@@ -601,7 +601,7 @@ class TestBasicAdding(TestCase):
     @test_utils.patch_for_test('subtitles.workflows.DefaultLanguageWorkflow.get_actions')
     def test_action(self, mock_get_actions):
         user = UserFactory()
-        test_action = TestAction('action')
+        test_action = MockAction('action')
         mock_get_actions.return_value = [ test_action ]
         version = pipeline.add_subtitles(self.video, 'en', None,
                                          author=user, action='action')
@@ -611,7 +611,7 @@ class TestBasicAdding(TestCase):
     @test_utils.patch_for_test('subtitles.workflows.DefaultLanguageWorkflow.get_actions')
     def test_action_completes_subtitles(self, mock_get_actions):
         user = UserFactory()
-        test_action = TestAction('action', True)
+        test_action = MockAction('action', True)
         mock_get_actions.return_value = [ test_action ]
         version = pipeline.add_subtitles(self.video, 'en',
                                          SubtitleSetFactory(num_subs=10),
@@ -626,7 +626,7 @@ class TestBasicAdding(TestCase):
         # test an action that has complete set to a value, but the
         # pipeline.add_subtitles call has complete set to a different value.
         user = UserFactory()
-        test_action = TestAction('action', True)
+        test_action = MockAction('action', True)
         mock_get_actions.return_value = [ test_action ]
         with assert_raises(ValueError):
             version = pipeline.add_subtitles(self.video, 'en',

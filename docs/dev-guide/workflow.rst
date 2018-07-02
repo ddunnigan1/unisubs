@@ -33,6 +33,15 @@ and only trivial commits should be made to ``dev``.  Instead, Amara development
 tries to follow a "one branch per feature or bugfix" workflow (See
 :ref:`Workflow <workflow>`)
 
+When should you create a new branch?
+
+  - Most issues should have a single branch created for them
+  - When you are touching the same code in several issues, and/or when the
+    functionality of the issues seem to be too dependent on each other to work,
+    use a single branch for all issues
+  - Also consider using a single branch for multiple issues if the testing is
+    going to be the same for both.
+
 As you work on your topic branch, other branches may have been merged into
 ``dev`` by other people.  Make sure you merge ``staging`` back to your branch
 as often as possible to keep it up-to-date.

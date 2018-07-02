@@ -50,6 +50,11 @@ class SimpleCode(object):
         self.slug = slug
         self.label = label
 
+# UnusedCode represents a number in the underlying integer field that's not
+# used anymore.  Use this when a code is deleted, since removing it from the
+# list would change all subsequent codes
+UnusedCode = SimpleCode('unused', 'Unused')
+
 class CodeField(models.PositiveSmallIntegerField):
     """
     Store codes in a database field.
@@ -106,7 +111,9 @@ class CodeField(models.PositiveSmallIntegerField):
     def _add_choices(self, ext_id, choices):
         self.current_ext_ids.add(ext_id)
         for i, code in enumerate(choices):
-            if isinstance(code, type):
+            if code is UnusedCode:
+                continue
+            elif isinstance(code, type):
                 # If we get passed in a class, create an instance from it
                 code = code()
             elif isinstance(code, tuple):

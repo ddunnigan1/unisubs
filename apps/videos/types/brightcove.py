@@ -130,6 +130,9 @@ class BrightcoveVideoType(VideoType):
     def _resolve_url_redirects(self, url):
         return requests.head(url, allow_redirects=True).url
 
+    def get_direct_url(self, prefer_audio=False):
+        return self.url
+
     @property
     def video_id(self):
         return self.brightcove_id

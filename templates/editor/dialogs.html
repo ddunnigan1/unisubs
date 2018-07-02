@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load url from future %}
 <aside modal-dialog="guidelines" allow-close class="modal" role="dialog" id="guidelines-modal" tabindex="-1" aria-labeledby="guidelines-heading" dir="[[ workingSubtitles.language.dir ]]">
     <ng-switch on="showTeamGuidelines()">
     <h3 ng-switch-when="true">[[ teamName ]] Guidelines</h3>
@@ -164,11 +163,6 @@
                 <td> {% trans "Insert line break" %}</td>
                 <td> {% trans "Shift + ENTER" %}</td>
                 <td> {% trans "Shift + ENTER" %}</td>
-            </tr>
-            <tr>
-                <td> {% trans "Delete empty subtitle" %}</td>
-                <td> {% trans "ESC" %}</td>
-                <td> {% trans "ESC" %}</td>
             </tr>
             <tr>
                 <td> {% trans "Exit edit mode of current subtitle" %}</td>

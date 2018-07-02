@@ -29,8 +29,11 @@ describe('Test the subtitle-repeat directive', function() {
         }
         $rootScope.timeline = { shownSubtitle: null };
         $rootScope.currentEdit = {
-            draft: null,
-            isForSubtitle: jasmine.createSpy().and.returnValue(false)
+            subtitle: null,
+            isForSubtitle: jasmine.createSpy().and.returnValue(false),
+            initialCaretPos: 0,
+            update: jasmine.createSpy(),
+            hasChanges: jasmine.createSpy().and.returnValue(true)
         };
 
         scope = $rootScope.$new();
@@ -154,38 +157,27 @@ describe('Test the subtitle-repeat directive', function() {
     });
 
     it('adds/removes a textarea based on bind-to-edit', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         expect($('textarea', childLIs()[0]).length).toEqual(1);
         expect($('textarea', childLIs()[0]).val())
             .toEqual(subtitles[0].markdown);
-        scope.currentEdit.draft = subtitles[1].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[1];
         scope.$digest();
         expect($('textarea', childLIs()[0]).length).toEqual(0);
         expect($('textarea', childLIs()[1]).length).toEqual(1);
         expect($('textarea', childLIs()[1]).val())
             .toEqual(subtitles[1].markdown);
-        scope.currentEdit.draft = null;
+        scope.currentEdit.subtitle = null;
         scope.$digest();
         expect($('textarea', childLIs()[1]).length).toEqual(0);
     });
 
-    it('sets the caret position to the end of the text',
+    it('sets the caret position to initialCaretPos',
             inject(function(DomUtil) {
         spyOn(DomUtil, 'setSelectionRange');
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
-        scope.$digest();
-        var textarea = $('textarea', elm)[0];
-        expect(DomUtil.setSelectionRange).toHaveBeenCalledWith(textarea,
-            subtitles[0].markdown.length, subtitles[0].markdown.length);
-
-    }));
-
-    it('sets the caret position to initialCaretPos if set',
-            inject(function(DomUtil) {
-        spyOn(DomUtil, 'setSelectionRange');
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
-        scope.currentEdit.draft.initialCaretPos = 2;
+        scope.currentEdit.subtitle = subtitles[0];
+        scope.currentEdit.initialCaretPos = 2;
         scope.$digest();
         var textarea = $('textarea', elm)[0];
         expect(DomUtil.setSelectionRange).
@@ -197,7 +189,7 @@ describe('Test the subtitle-repeat directive', function() {
             expect(this.length).toEqual(1);
             expect(this[0]).toEqual($('textarea', elm)[0]);
         });
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         expect($.fn.focus.calls.count()).toEqual(1);
     });
@@ -207,38 +199,38 @@ describe('Test the subtitle-repeat directive', function() {
             expect(this.length).toEqual(1);
             expect(this[0]).toEqual($('textarea', elm)[0]);
         });
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         expect($.fn.autosize.calls.count()).toEqual(1);
     });
 
     it('adds the edit class based on bind-to-edit', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         expect(childLIs().eq(0).hasClass('edit')).toBeTruthy();
-        scope.currentEdit.draft = subtitles[1].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[1];
         scope.$digest();
         expect(childLIs().eq(0).hasClass('edit')).toBeFalsy();
         expect(childLIs().eq(1).hasClass('edit')).toBeTruthy();
-        scope.currentEdit.draft = null;
+        scope.currentEdit.subtitle = null;
         scope.$digest();
         expect(childLIs().eq(1).hasClass('edit')).toBeFalsy();
     });
 
     it('updates the bind-to-edit var on keyup', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         var textarea = $('textarea', childLIs()[0]);
         textarea.val('new content');
         textarea.keyup();
-        expect(scope.currentEdit.draft.markdown).toEqual('new content');
+        expect(scope.currentEdit.update).toHaveBeenCalledWith(subtitleList, 'new content');
     });
 
     it('emits edit-keydown in edit-mode', function() {
         scope.onEditKeydown = function(evt) {
             expect(evt.type).toEqual('keydown');
         };
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         var textarea = $('textarea', childLIs()[0]);
         var spy = spyOn(scope, 'onEditKeydown');
@@ -250,7 +242,7 @@ describe('Test the subtitle-repeat directive', function() {
         // If the subtitles are not being editing, you can't split
         expect(scope.canSplitSubtitle(subtitles[0])).toBeFalsy();
         // Once an edit starts, you can split
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         spyOn(DomUtil, 'getSelectionRange').and.returnValue({
             start: 0, end: 0
@@ -259,7 +251,7 @@ describe('Test the subtitle-repeat directive', function() {
     });
 
     it('can calulate subtitle splits', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         spyOn(DomUtil, 'getSelectionRange').and.returnValue({
             start: 3, end: 4 // between the 'b' and 't'
@@ -271,7 +263,7 @@ describe('Test the subtitle-repeat directive', function() {
     });
 
     it('can calulate subtitle splits with draft subtitles', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         var textarea = $('textarea', childLIs()[0]);
         textarea.val('draft subtitle');
@@ -285,7 +277,7 @@ describe('Test the subtitle-repeat directive', function() {
     });
 
     it('trims whitespace after/before subtitle splits', function() {
-        scope.currentEdit.draft = subtitles[0].draftSubtitle();
+        scope.currentEdit.subtitle = subtitles[0];
         scope.$digest();
         var textarea = $('textarea', childLIs()[0]);
         textarea.val(' one  two ');

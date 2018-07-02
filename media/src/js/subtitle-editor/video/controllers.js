@@ -66,8 +66,8 @@
         };
 
         function recalcCurrentSubtitle() {
-            if($scope.currentEdit.draft) {
-                setCurrentSubtitle($scope.currentEdit.draft);
+            if($scope.currentEdit.inProgress()) {
+                setCurrentSubtitle($scope.currentEdit.subtitle);
             } else {
                 setCurrentSubtitle($scope.timeline.shownSubtitle);
             }
@@ -83,7 +83,7 @@
             }
         }
 
-        $scope.$watch('currentEdit.draft.content()', recalcCurrentSubtitle);
+        $scope.$watch('currentEdit.subtitle.content()', recalcCurrentSubtitle);
         $scope.$watch('timeline.shownSubtitle', recalcCurrentSubtitle);
 
         $scope.$root.$on('subtitle-selected', function($event, scope) {
