@@ -1,72 +1,21 @@
-{% extends "hands_base.html" %}
+{% extends "future/base.html" %}
 
-{% load i18n %}
+{% load i18n forms %}
 
-{% block body_attrs %}id="create"{% endblock %}
-
-{% block main_content %}
-<div id="create-banner" class="top-banner">
-  <div class="container">
-    <div class="row">
-      <div class="col-xs-12 col-md-11 col-lg-10">
-        <div id="submit_video_form">
-          {% if vidscraper_error %}
-            {% blocktrans %}
-              "Sorry, we couldn't identify the video at the link you sent. Perhaps it's a link we don't recognize, or perhaps you've linked to a page that has multiple videos. Try entering a different link to the video you want to submit. If you think there's been some mistake, <a href="mailto:feedback@universalsubtitles.org">contact us</a>!"
-            {% endblocktrans %}
-          {% endif %}
-
-          <form action="{% url "videos:create" %}" method="POST" class="main_video_form">
-
-            <h1 class="main_heading">{% trans 'Subtitle a Video' %}</h1>
-            <p class="subtext create-instructions">
-              {% trans 'Enter a video URL to use the Amara Editor. It will appear and remain on your public profile.' %} <a target="_blank" href="https://support.amara.org/solution/articles/218220-what-does-adding-a-video-to-amara-do-">{% trans 'Learn more' %}</a>
-            </p>
-
-            <input type="text" id="submit_video_field" class="prefocus main_video_form_field"{% if initial_url %} value="{{ initial_url }}"{% endif %} name="video_url" />
-            <button class="blue-green-button" type="submit" value="Begin">
-              {% trans 'Begin' %} &raquo;
-            </button>
-            <ul class="errorlist">
-              <li>{% trans 'Acceptable Formats Include: Vimeo, Youtube, mp4, WebM, flv, ogg &amp; mp3' %}</li>
-            </ul>
-            {{ video_form.video_url.errors }}
-            {{ video_form.non_field_errors }}
-          </form>
-
-          <script type="text/javascript">
-            jQuery('#submit_video_field').input_replacement({
-              text: '{% trans "for example" %}: http://www.youtube.com/watch?v=h4ce747',
-              prefocus_class: 'prefocus'
-            });
-          </script>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="container whitespace-tall">
-  <div class="row">
-    <div class="col-xs-12">
-
-      <h3>Getting started with Amara</h3>
-
-      <ul>
-        <li>
-          <h5><a target="_blank" href="//www.youtube.com/watch?v=-NxoPqYwVwo&list=PLjdLzz0k39ykXZJ91DcSd5IIXrm4YuGgE">{% trans 'Learn the Amara subtitle editor (videos)' %}</a></h5>
-        </li>
-        <li>
-          <h5><a target="_blank" href="http://support.amara.org/solution/articles/200446-using-completed">{% trans 'Use your completed subtitles' %}</a></h5>
-        </li>
-        <li>
-          <h5><a target="_blank" href="http://support.amara.org/solution/articles/200447-the-basics-of-collaboration-on">{% trans 'Invite friends and fans to help caption &amp; translate' %}</a></h5>
-        </li>
-        <li>
-          <h5><a target="_blank" href="//pro.amara.org/">{% trans 'Get professional tools and On Demand subtitles' %}</a></h5>
-        </li>
-      </ul>
-    </div>
+{% block content %}
+<div class="container">
+  <div class="videosCreateForm bg-sea-green{% if not request.user.is_authenticated %} text-center{% endif %}">
+    <h1>{% trans "Subtitle a Video" %}</h1>
+    {% if request.user.is_authenticated %}
+    <p>{% trans "Enter a video URL to use the Amara Editor. It will appear and remain on your public profile." %}</p>
+    <form method="POST">
+      {% csrf_token %}
+      {% trans "Begin" as label %}
+      {% button_field create_form.video_url label "plum" %}
+    </form>
+    {% else %}
+    <a href="{% url "auth:login" %}?next={% url "videos:create" %}" data-persistent-tab-value="#create-form" class="button plum persistentTab">{% trans "Login to get started" %}</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

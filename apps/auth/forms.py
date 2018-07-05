@@ -240,11 +240,14 @@ class DeleteUserForm(forms.Form):
             _('<a href="{link}">Forgot your password?</a>'),
             link=reverse('password_reset')
             )
+        self.fields['delete_videos_and_subtitles'].help_text = format_html(
+            _('This will delete videos that you have added to Amara that no other user has added subtitles to. It will also delete the related subtitles. For more details on deactivating or deleting your profile or removing subtitles and videos you\'ve collaborated on with other Amara members please read <a href="{link}">Deactivating your Amara Account</a>'),
+            link="https://support.amara.org/support/solutions/articles/216336-deactivating-your-user-account"
+            )
 
     password = forms.CharField(widget=forms.PasswordInput(), 
-        label="Please enter your login password to confirm.")
+        label="Please enter your password to confirm.")
     delete_account_data = forms.BooleanField(required=False,
         help_text="This will erase your personal data, including your personal name, photo, and any other data on your user profile.")
-    delete_videos_and_subtitles = forms.BooleanField(required=False,
-        help_text="This will delete videos that you have added to Amara that no other user has added subtitles to. It will also delete the related subtitles. If you want to delete other videos/subtitles that you've worked on, please email support@amara.org.")
+    delete_videos_and_subtitles = forms.BooleanField(required=False)
 

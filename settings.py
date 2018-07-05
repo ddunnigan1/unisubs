@@ -180,8 +180,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'utils.context_processors.current_commit',
     'utils.context_processors.custom',
     'utils.context_processors.user_languages',
-    'utils.context_processors.run_locally',
-    'utils.context_processors.experiments',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.i18n',
     'staticmedia.context_processors.staticmedia',
@@ -373,9 +371,8 @@ ANONYMOUS_DEFAULT_USERNAME = u"amara-bot"
 ANONYMOUS_FULL_NAME = u"Amara Bot"
 
 #Use on production
-GOOGLE_ANALYTICS_NUMBER = 'UA-163840-22'
-EXPERIMENTS_CODE = "QL2-1BUpSyeABVHp9b6G8w"
-MIXPANEL_TOKEN = '44205f56e929f08b602ccc9b4605edc3'
+GOOGLE_ANALYTICS_NUMBER = None
+GOOGLE_ADWORDS_CODE = None
 
 # API integration settings
 GOOGLE_CLIENT_ID = None
@@ -725,10 +722,6 @@ EMAIL_BACKEND = "utils.safemail.InternalOnlyBackend"
 EMAIL_FILE_PATH = '/tmp/unisubs-messages'
 # on staging and dev only the emails listed bellow will receive actual mail
 EMAIL_NOTIFICATION_RECEIVERS = ("arthur@stimuli.com.br", "steve@stevelosh.com", "@pculture.org")
-# If True will not try to load media (e.g. javascript files) from third parties.
-# If you're developing and have no net access, enable this setting on your
-# settings_local.py
-RUN_LOCALLY = False
 
 def log_handler_info():
     rv = {

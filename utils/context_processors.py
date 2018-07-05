@@ -20,12 +20,6 @@ from django.conf import settings
 from utils.translation import get_user_languages_from_request
 
 
-def run_locally(request):
-    return {"RUN_LOCALLY": getattr(settings, "RUN_LOCALLY", False)}
-
-def experiments(request):
-    return {"EXPERIMENTS_CODE": getattr(settings, "EXPERIMENTS_CODE", False)}
-
 def current_site(request):
     return {
         'HOSTNAME': settings.HOSTNAME,
@@ -39,7 +33,7 @@ def current_commit(request):
 def custom(request):
     return {
         'GOOGLE_ANALYTICS_NUMBER': settings.GOOGLE_ANALYTICS_NUMBER,
-        'MIXPANEL_TOKEN': settings.MIXPANEL_TOKEN,
+        'GOOGLE_ADWORDS_CODE': settings.GOOGLE_ADWORDS_CODE,
         'DEBUG': settings.DEBUG
     }
 

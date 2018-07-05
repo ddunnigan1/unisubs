@@ -126,16 +126,17 @@ class TestRules(BaseTestPermission):
     def test_roles_assignable(self):
         user, team = self.user, self.team
 
-        # Owners can do anything except create other owners.
+        # Owners can do anything including creating other owners.
         with self.role(ROLE_OWNER):
             self.assertItemsEqual(roles_user_can_assign(team, user, None), [
-                ROLE_ADMIN, ROLE_MANAGER, ROLE_CONTRIBUTOR
+                ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER, ROLE_CONTRIBUTOR,
+                ROLE_PROJ_LANG_MANAGER
             ])
 
         # Admins can do anything except assign owners and changing owners' roles.
         with self.role(ROLE_ADMIN):
             self.assertItemsEqual(roles_user_can_assign(team, user, None), [
-                ROLE_MANAGER, ROLE_CONTRIBUTOR
+                ROLE_MANAGER, ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
             ])
             self.assertItemsEqual(roles_user_can_assign(team, user, self.owner.user), [])
 

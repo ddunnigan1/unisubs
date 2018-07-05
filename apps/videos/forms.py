@@ -226,14 +226,15 @@ class NewCreateVideoUrlForm(forms.Form):
         return self.video_url
 
 class VideoForm(forms.Form):
-    video_url = VideoURLField()
+    video_url = VideoURLField(
+        help_text=_('Acceptable formats include: Vimeo, YouTube, '
+                    'MP4, WebM, FLV, OGG, and MP3'))
 
     def __init__(self, user=None, *args, **kwargs):
         if user and not user.is_authenticated():
             user = None
         self.user = user
         super(VideoForm, self).__init__(*args, **kwargs)
-        self.fields['video_url'].widget.attrs['class'] = 'main_video_form_field'
 
     def clean(self):
         if self._errors:

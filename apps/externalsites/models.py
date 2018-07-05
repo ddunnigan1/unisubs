@@ -1086,3 +1086,7 @@ class OpenIDConnectLink(models.Model):
 
     def __unicode__(self):
         return u'OpenIDConnectLink: {}'.format(self.user.username)
+
+    @property
+    def last_login(self):
+        return self.user.last_login

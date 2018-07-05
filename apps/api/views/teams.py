@@ -673,6 +673,7 @@ class TeamMemberSerializer(serializers.Serializer):
     default_error_messages = {
         'user-does-not-exist': "User does not exist: {username}",
         'user-already-member': "User is already a team member",
+        'user-cannot-change-own-role': "User cannot change their own role",
     }
 
     ROLE_CHOICES = (
@@ -705,9 +706,13 @@ class TeamMemberUpdateSerializer(TeamMemberSerializer):
     user = UserField(read_only=True)
 
     def update(self, instance, validated_data):
-        instance.role = validated_data['role']
-        instance.save()
-        return instance
+        # don't allow users to change their own role via the API
+        if self.context.get('user') == instance.user:
+            self.fail('user-cannot-change-own-role')
+        else:
+            instance.role = validated_data['role']
+            instance.save()
+            return instance
 
 class TeamSubviewMixin(object):
     def initial(self, request, *args, **kwargs):

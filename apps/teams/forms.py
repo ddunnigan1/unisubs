@@ -1735,15 +1735,15 @@ class ChangeMemberRoleForm(ManagementForm):
                 (TeamMember.ROLE_CONTRIBUTOR, _('Contributor')),
                 (TeamMember.ROLE_PROJ_LANG_MANAGER, _('Project/Language Manager')),
                 (TeamMember.ROLE_MANAGER, _('Manager')),
-                (TeamMember.ROLE_ADMIN, _('Admin')),
            ], initial='', label=_('Member Role'))
 
     projects = MultipleProjectField(label=_('Project'), null_label=_('No change'), required=False)
     languages = MultipleLanguageField(label=_('Subtitle language(s)'), options='null all', required=False)
 
     def __init__(self, user, queryset, selection, all_selected,
-                 data=None, files=None, **kwargs):
+                 data=None, files=None, is_owner=False, **kwargs):
         self.user = user
+        self.is_owner = is_owner
         super(ChangeMemberRoleForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files)
         self.fields['projects'].setup(kwargs['team'])
@@ -1757,6 +1757,11 @@ class ChangeMemberRoleForm(ManagementForm):
                 raise forms.ValidationError(_(u"Please select a project or language"))
 
         return cleaned_data
+
+    def setup_fields(self):
+        if self.is_owner:
+            self.fields['role'].choices += [(TeamMember.ROLE_ADMIN, _('Admin'))]
+            self.fields['role'].choices += [(TeamMember.ROLE_OWNER, _('Owner'))]
 
     def would_remove_last_owner(self, member, role):
         if role == TeamMember.ROLE_OWNER:
@@ -1789,21 +1794,27 @@ class ChangeMemberRoleForm(ManagementForm):
     def perform_submit(self, members):
         self.error_count = 0
         self.only_owner_count = 0
+        self.invalid_permission_count = 0
         self.changed_count = 0
 
-        if self.cleaned_data['role'] != '':
+        role = self.cleaned_data['role']
+
+        if role != '':
             for member in members:
                 # check if user is last owner on team
-                if self.would_remove_last_owner(member, self.cleaned_data['role']):
+                if self.would_remove_last_owner(member, role):
                     self.only_owner_count += 1
+                # check if user has permission to change the member's role
+                elif not permissions.can_assign_role(member.team, self.user, role, member.user):
+                    self.invalid_permission_count += 1
                 else:
                     try:
-                        if self.cleaned_data['role'] == TeamMember.ROLE_PROJ_LANG_MANAGER:
+                        if role == TeamMember.ROLE_PROJ_LANG_MANAGER:
                             member.change_role(TeamMember.ROLE_CONTRIBUTOR)
                             self.update_proj_lang_management(member)
                         else:
                             member.remove_as_proj_lang_manager()
-                            member.change_role(self.cleaned_data['role'])
+                            member.change_role(role)
                         self.changed_count += 1
                     except Exception as e:
                         logger.error(e, exc_info=True)
@@ -1826,6 +1837,12 @@ class ChangeMemberRoleForm(ManagementForm):
             "Could not change %(count)s member role because there would be no owners left in the team",
             "Could not change %(count)s member roles because there would be no owners left in the team",
             self.only_owner_count), count=self.only_owner_count))
+        if self.invalid_permission_count:
+            errors.append(fmt(self.ungettext(
+            "Member not changed because you do not have permission to change this role",
+            "%(count)s member not changed because you do not have permission to change this role",
+            "%(count)s members not changed because you do not have permission to change these roles",
+            self.invalid_permission_count), count=self.invalid_permission_count))
         if self.error_count:
             errors.append(fmt(self.ungettext(
                 "Member could not be edited",
@@ -1839,7 +1856,7 @@ class RemoveMemberForm(ManagementForm):
     label = _("Remove Member")
 
     def __init__(self, user, queryset, selection, all_selected,
-                 data=None, files=None, **kwargs):
+                 data=None, files=None, is_owner=False, **kwargs):
         self.user = user
         super(RemoveMemberForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files, **kwargs)

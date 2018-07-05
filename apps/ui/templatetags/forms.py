@@ -47,7 +47,6 @@ def render_field_reverse_required(field):
         'label': calc_label(field, reverse_required=True),
     })
 
-
 @register.filter
 def render_filter_field(field):
     return render_to_string('future/forms/filter-field.html', {
@@ -55,6 +54,16 @@ def render_filter_field(field):
         'widget_type': calc_widget_type(field),
         'label': field.label,
     })
+
+@register.inclusion_tag('future/forms/button-field.html')
+def button_field(field, button_label, button_class="cta"):
+    return {
+        'field': field,
+        'widget_type': calc_widget_type(field),
+        'no_help_block': isinstance(field.help_text, HelpTextList),
+        'button_label': button_label,
+        'button_class': button_class,
+    }
 
 def calc_widget_type(field):
     if field.is_hidden:
@@ -72,7 +81,6 @@ def calc_widget_type(field):
     elif isinstance(widget, forms.CheckboxInput):
         return 'checkbox'
     elif isinstance(widget, forms.Textarea):
-        widget.attrs['class'] = 'form-control'
         return 'default'
     else:
         return 'default'

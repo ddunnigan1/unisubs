@@ -105,6 +105,10 @@ class ThirdPartyAccount(models.Model):
     def identifier(self):
         return self.id
 
+    @property
+    def last_login(self):
+        return self.user.last_login
+
 
 class TwitterAccount(ThirdPartyAccount):
     """The Twitter-account-related data for a given User.
@@ -156,4 +160,3 @@ class FacebookAccount(ThirdPartyAccount):
     @property
     def identifier(self):
         return self.uid
-

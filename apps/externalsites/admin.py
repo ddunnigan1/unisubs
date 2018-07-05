@@ -75,6 +75,7 @@ class OpenIDConnectLinkAdmin(admin.ModelAdmin):
     raw_id_fields = (
         'user',
     )
+    readonly_fields = [ 'last_login' ]
 
 class YoutubeAccountForm(forms.ModelForm):
     resync_subtitles = forms.BooleanField(required=False)

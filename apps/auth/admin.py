@@ -82,9 +82,9 @@ class CustomUserForm(forms.ModelForm):
         ]
 
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff',
+    list_display = ('username', 'email', 'first_name', 'last_name', 'username_old', 'is_staff',
                     'is_superuser', 'last_ip', 'partner', 'secure_id')
-    search_fields = ('username', 'first_name', 'last_name', 'email', 'id')
+    search_fields = ('username', 'username_old', 'first_name', 'last_name', 'email', 'id')
     raw_id_fields = ('created_by',)
     form = CustomUserForm
 

@@ -227,26 +227,39 @@ def search(request):
         queryset = Video.objects.none()
     return video_listing_page(request, subheader, queryset, query)
 
-@login_required
+@behavior
+def videos_create_template():
+    return 'videos/create.html'
+
+@behavior
+def videos_create_extra_data(request, create_form):
+    return {}
+
 def create(request):
-    video_form = VideoForm(request.user, request.POST or None)
-    context = {
-        'video_form': video_form,
-        'initial_url': request.GET.get('initial_url'),
+    initial = {
+        'video_url': request.GET.get('initial_url'),
     }
-    if video_form.is_valid():
-        video = video_form.video
-        messages.info(request, message=_(u'''Here is the subtitle workspace for your video.
-        You can share the video with friends, or get an embed code for your site. To start
-        new subtitles, click \"Add a new language!\" in the sidebar.'''))
+    if request.user.is_authenticated():
+        if request.method == 'POST':
+            create_form = VideoForm(request.user, data=request.POST,
+                                   initial=initial)
+            if create_form.is_valid():
+                video = create_form.video
+                messages.info(request, message=_(u'''Here is the subtitle workspace for your video.
+                You can share the video with friends, or get an embed code for your site. To start
+                new subtitles, click \"Add a new language!\" in the sidebar.'''))
 
-        if video_form.created:
-            messages.info(request, message=_(u'''Existing subtitles will be imported in a few minutes.'''))
-        return redirect(video.get_absolute_url())
-    return render_to_response('videos/create.html', context,
-                              context_instance=RequestContext(request))
+                if create_form.created:
+                    messages.info(request, message=_(u'''Existing subtitles will be imported in a few minutes.'''))
+                return redirect(video.get_absolute_url())
+        else:
+            create_form = VideoForm(request.user, initial=initial)
+    else:
+        create_form = None
 
-create.csrf_exempt = True
+    data = { 'create_form': create_form }
+    data.update(videos_create_extra_data(request, create_form))
+    return render(request, videos_create_template(), data)
 
 def shortlink(request, encoded_pk):
     pk = base62.to_decimal(encoded_pk)

@@ -26,6 +26,7 @@ class TwitterAccountAdmin(admin.ModelAdmin):
     list_display = ('twitter_username', 'amara_user')
     list_filter = ('created', 'modified')
     raw_id_fields = ['user']
+    readonly_fields = ['last_login']
 
     def twitter_username(self, o):
         return '@%s' % o.username
@@ -41,6 +42,7 @@ class FacebookAccountAdmin(admin.ModelAdmin):
     list_display = ('facebook_uid', 'amara_user')
     list_filter = ('created', 'modified')
     raw_id_fields = ['user']
+    readonly_fields = ['last_login']
 
     def facebook_uid(self, o):
         return o.uid
