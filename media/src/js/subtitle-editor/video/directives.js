@@ -179,16 +179,16 @@ var angular = angular || null;
             var bottomOverlay = overlays.filter('.bottom');
 
             function recalcSubtitlePosition() {
-                if(!$scope.currentSubtitle) {
+                if(!$scope.displayedSubtitle) {
                     bottomOverlay.append(text);
-                } else if($scope.currentSubtitle.region == 'top') {
+                } else if($scope.displayedSubtitle.region == 'top') {
                     topOverlay.append(text);
                 } else {
                     bottomOverlay.append(text);
                 }
             }
 
-            $scope.$watch('currentSubtitle.region', recalcSubtitlePosition);
+            $scope.$watch('displayedSubtitle.region', recalcSubtitlePosition);
             $scope.workingSubtitles.subtitleList.addChangeCallback(function(change) {
                 recalcSubtitlePosition();
             });
@@ -201,7 +201,7 @@ var angular = angular || null;
 
             text.attr('draggable', true);
             text.on('dragstart', function(evt) {
-                var subtitle = $scope.currentSubtitle;
+                var subtitle = $scope.displayedSubtitle;
                 if(!subtitle) {
                     return;
                 }

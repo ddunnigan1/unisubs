@@ -81,25 +81,25 @@ var angular = angular || null;
         function handlePopcornEvents() {
             // Handle popcorn events
             pop.on('canplay', function() {
-                emitSignal('video-update');
+                emitSignal('video-update', 'can-play-changed');
             }).on('playing', function() {
                 wasPlaying = playing;
                 playing = true;
                 if (!wasPlaying) emitSignal('video-playback-changes');
-                emitSignal('video-update');
+                emitSignal('video-update', 'playback-started');
             }).on('pause', function() {
                 playing = false;
                 emitSignal('video-playback-changes');
-                emitSignal('video-update');
+                emitSignal('video-update', 'playback-paused');
             }).on('ended', function() {
                 playing = false;
-                emitSignal('video-update');
+                emitSignal('video-update', 'playback-ended');
             }).on('durationchange', function() {
-                emitSignal('video-update');
+                emitSignal('video-update', 'duration-changed');
             }).on('loadedmetadata', function() {
                 emitSignal('video-loadedmetadata');
             }).on('seeked', function() {
-                emitSignal('video-update');
+                emitSignal('video-update', 'seek');
             }).on('timeupdate', function() {
                 emitSignal('video-time-update',
                     Math.round(pop.currentTime() * 1000));

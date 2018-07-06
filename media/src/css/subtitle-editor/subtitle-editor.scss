@@ -19,6 +19,7 @@ $CodePro: 'CodeProLC', $OpenSans;
     font-style: normal;
 }
 
+$selection-color: #ddeaf7;
 
 /*******************************************
 * This is to have a page whose size is a multiple
@@ -334,7 +335,7 @@ div.workflow {
     right: 0;
 }
 
-#context-menu {
+.context-menu {
     display: none;
     position: fixed;
     color: #DDDDDD;
@@ -809,6 +810,7 @@ div.subtitles {
                 display: block;
                 resize: none;
                 width: 100%;
+                background: transparent;
 
                 &:focus {
                     outline: none;
@@ -827,16 +829,8 @@ div.subtitles {
             &.edit span.subtitle-text {
                 display: none;
             }
-            &.current-subtitle {
-                background: #ddeaf7;
-            }
-
-            &.empty {
-                background: #fdfdea;
-
-                textarea, span {
-                    background: #fdfdea;
-                }
+            &.selected-subtitle {
+                background: $selection-color;
             }
         }
         &[editable="false"] {
@@ -1746,6 +1740,9 @@ div.timeline {
         }
         div.unsynced {
             background: #FEFFE2;
+        }
+        div.selected-subtitle {
+            background: $selection-color;
         }
     }
     canvas.timing {

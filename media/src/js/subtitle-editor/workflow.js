@@ -110,7 +110,7 @@ var angular = angular || null;
             if((node.dataset) && (node.dataset.target)) {
 		var subtitle = $scope.workflow.subtitleList.getSubtitleById(node.dataset.target);
 		if (subtitle) {
-		    $scope.$root.$emit('scroll-to-subtitle', subtitle);
+                    $scope.selectSubtitle(subtitle);
 		}
             }
         }

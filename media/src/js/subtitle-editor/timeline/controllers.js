@@ -193,11 +193,8 @@
             $scope.redrawSubtitles(redrawSubtitleOptions);
         }
 
-        function scrollToSubtitle(subtitle) {
-            $scope.$root.$emit('scroll-to-subtitle', subtitle);
-        }
 
-        $scope.$root.$on('video-update', function() {
+        $scope.$root.$on('video-update', function(evt, updateType){
             $scope.duration = VideoPlayer.duration();
             $scope.timeline.duration = $scope.duration;
             updateTimeline();
@@ -206,13 +203,13 @@
             } else {
                 cancelTimer();
             }
+            if((VideoPlayer.isPlaying() || updateType == 'seek') &&
+                    $scope.timeline.shownSubtitle !== $scope.selectedSubtitle) {
+                $scope.selectSubtitle($scope.timeline.shownSubtitle);
+            }
         });
         $scope.$root.$on("work-done", function() {
             updateTimeline({forcePlace: true});
-        });
-
-        $scope.$root.$on('dialog-opened', function() {
-            $scope.hideContextMenu();
         });
 
         $scope.$root.$on('sync-next-start-time', function($event) {
@@ -227,7 +224,7 @@
                      */
                     subtitleList.updateSubtitleTime(willSync.end,
                         willSync.end.startTime, syncTime);
-                    scrollToSubtitle(willSync.end);
+                    $scope.selectSubtitle(willSync.end);
                     $scope.$root.$emit("work-done");
                 }
                 return;
@@ -251,7 +248,7 @@
             subtitleList.updateSubtitleTime(subtitle, syncTime,
                 subtitle.endTime);
 
-            scrollToSubtitle(subtitle);
+            $scope.selectSubtitle(subtitle);
             $scope.$root.$emit("work-done");
         });
         // Sets the end of a subtitle at current position. If onlyUnsync is true
@@ -267,7 +264,7 @@
                 MIN_DURATION);
             subtitleList.updateSubtitleTime(subtitle, subtitle.startTime,
                 syncTime);
-            scrollToSubtitle(subtitle);
+            $scope.selectSubtitle(subtitle);
             $scope.$root.$emit("work-done");
         };
         var setEndSubtitleOnlyUnsync = function($event) {

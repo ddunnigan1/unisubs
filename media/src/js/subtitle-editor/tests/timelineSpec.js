@@ -33,6 +33,7 @@ describe('TimelineController', function() {
             currentTime: null,
             duration: null
         };
+        $scope.selectSubtitle = jasmine.createSpy('selectSubtitle');
         $scope.workingSubtitles = {
             'subtitleList': subtitleList,
         }

@@ -21,8 +21,8 @@
     var module = angular.module('amara.SubtitleEditor.video.controllers', []);
 
     module.controller('VideoController', ['$scope', '$sce', 'EditorData', 'VideoPlayer', 'PreferencesService', function($scope, $sce, EditorData, VideoPlayer, PreferencesService) {
-        $scope.subtitleText = null;
-        $scope.showSubtitle = false;
+        $scope.displayedSubtitle = null;
+        $scope.displayedSubtitleMarkup = '';
 
         $scope.videoState = {
             loaded: false,
@@ -46,51 +46,33 @@
         $scope.$root.$on("video-volume-update", function(evt, volume) {
             $scope.videoState.volume = volume;
         });
-        $scope.$root.$on("user-action", function() {
+        function hideTutorial() {
             $scope.toggleTutorial(false);
             if ($scope.hideTutorialNextTime) {
                 PreferencesService.tutorialShown();
                 $scope.hideTutorialNextTime = false;
                 $scope.hideNextTime();
             }
-        });
-
+        }
         $scope.playPauseClicked = function(event) {
             VideoPlayer.togglePlay();
             event.preventDefault();
+            event.stopPropagation();
         };
 
         $scope.volumeToggleClicked = function(event) {
             $scope.volumeBarVisible = !$scope.volumeBarVisible;
             event.preventDefault();
+            event.stopPropagation();
         };
 
-        function recalcCurrentSubtitle() {
-            if($scope.currentEdit.inProgress()) {
-                setCurrentSubtitle($scope.currentEdit.subtitle);
-            } else {
-                setCurrentSubtitle($scope.timeline.shownSubtitle);
-            }
-        }
-        function setCurrentSubtitle(subtitle) {
-            $scope.currentSubtitle = subtitle;
+        $scope.$watch('timeline.shownSubtitle', function(subtitle) {
+            $scope.displayedSubtitle = subtitle;
             if(subtitle) {
-                $scope.showSubtitle = true;
-                $scope.subtitleText = $sce.trustAsHtml(subtitle.content());
+                $scope.displayedSubtitleMarkup = $sce.trustAsHtml(subtitle.content());
             } else {
-                $scope.showSubtitle = false;
-                $scope.subtitleText = '';
+                $scope.displayedSubtitleMarkup = '';
             }
-        }
-
-        $scope.$watch('currentEdit.subtitle.content()', recalcCurrentSubtitle);
-        $scope.$watch('timeline.shownSubtitle', recalcCurrentSubtitle);
-
-        $scope.$root.$on('subtitle-selected', function($event, scope) {
-            if(scope.subtitle.isSynced()) {
-                VideoPlayer.playChunk(scope.startTime, scope.duration());
-            }
-            setCurrentSubtitle(scope.subtitle);
         });
 
         // use evalAsync so that the video player gets loaded after we've

@@ -143,26 +143,8 @@ var angular = angular || null;
         /**
          * Handles the subtitles the user is working on.
          */
-        var willSync = {start: null, end:null};
         var subtitleList = $scope.workingSubtitles.subtitleList;
 
-        function updateSyncHelpers() {
-            var startSub = null, endSub = null;
-            if(willSync.start !== null) {
-                startSub = willSync.start;
-            }
-            if(willSync.end !== null) {
-                endSub = willSync.end;
-            }
-            $scope.positionSyncHelpers(startSub, endSub);
-        }
-
-        $scope.$root.$on('will-sync-changed', function(evt, newWillSync) {
-            willSync = newWillSync;
-            updateSyncHelpers();
-        });
-
-        $scope.$on('subtitle-list-changed', updateSyncHelpers);
         $scope.$watch('currentEdit.inProgress()', function(value) {
             if(value) {
                 trackMouseDown();
@@ -172,14 +154,19 @@ var angular = angular || null;
 
         });
 
+        // For the working subtitles, we want to highlight the selected subtitle
+        $scope.highlightedSubtitle = $scope.selectedSubtitle;
+        $scope.$watch('selectedSubtitle', function(subtitle) {
+            $scope.highlightedSubtitle = subtitle;
+        });
+
         $scope.splitCurrentSubtitle = function() {
-            var currentSubtitle = $scope.currentEdit.subtitle;
-            if(!$scope.canSplitSubtitle(currentSubtitle)) {
+            if(!($scope.selectedSubtitle && $scope.canSplitSubtitle($scope.selectedSubtitle))) {
                 return;
             }
-            var splitInfo = $scope.calcSubtitleSplit(currentSubtitle);
+            var splitInfo = $scope.calcSubtitleSplit($scope.selectedSubtitle);
             $scope.currentEdit.finish(subtitleList);
-            subtitleList.splitSubtitle(currentSubtitle, splitInfo.first, splitInfo.second);
+            subtitleList.splitSubtitle($scope.selectedSubtitle, splitInfo.first, splitInfo.second);
             $scope.$root.$emit('work-done');
         }
 
@@ -202,6 +189,7 @@ var angular = angular || null;
 
         function insertAndStartEdit(before, region, options) {
             var newSub = subtitleList.insertSubtitleBefore(before, region);
+            $scope.selectSubtitle(newSub);
             $scope.currentEdit.start(newSub, options);
         }
 
@@ -253,6 +241,7 @@ var angular = angular || null;
 
                 case 'edit':
                     if(!$scope.currentEdit.isForSubtitle(subtitle)) {
+                        $scope.selectSubtitle(subtitle);
                         var caret = DomWindow.caretPos();
                         $scope.currentEdit.start(subtitle, {initialCaretPos: caret});
                         madeChange = true;
@@ -261,6 +250,7 @@ var angular = angular || null;
             }
             if(madeChange) {
                 evt.preventDefault();
+                evt.stopPropagation();
                 $scope.$root.$emit('work-done');
             }
         }
@@ -291,8 +281,8 @@ var angular = angular || null;
                         $scope.currentEdit.appendAndStart(subtitleList);
                     }
                 } else {
+                    $scope.selectSubtitle(nextSubtitle);
                     $scope.currentEdit.start(nextSubtitle);
-                    $scope.$root.$emit('scroll-to-subtitle', nextSubtitle);
                 }
                 evt.preventDefault();
                 evt.stopPropagation();
@@ -314,6 +304,10 @@ var angular = angular || null;
                 return 'type-shortcuts-help'
             }
         }
+    }]);
+
+    module.controller('ReferenceSubtitlesController', ['$scope', function($scope) {
+        $scope.highlightedSubtitle = null;
     }]);
 
     module.controller("SubtitleMetadataController", ["$scope", function($scope) {

@@ -1,5 +1,5 @@
 {% load i18n %}
-<div id="context-menu" oncontextmenu="return false">
+<div id="timeline-context-menu" class="context-menu" oncontextmenu="return false">
   <ul>
     <li><a href="#" ng-click="toggleTimelineShown()" class="show-timeline">
         <span ng-show="timelineShown">{% trans "Hide" %}</span>
@@ -13,8 +13,7 @@
 <div ng-controller="TimelineController" class="timeline" ng-show="timelineShown" oncontextmenu="return false">
     <div class="current-time-marker"></div>
     <canvas class="timing" width="100" height="65" timeline-timing></canvas>
-    <div timeline-subtitles class="subtitles-container" dir="{{ language.dir }}">
-    </div>
+    <div timeline-subtitles class="subtitles-container" dir="{{ language.dir }}" data-context-menu="timeline-context-menu"></div>
     <div class="nextSubSticker" ng-show="showUpcomingUnsyncedSubtitle">
         <div class="subtitle">
             <span class="handle left"></span><span class="timeline-subtitle-text upcomingUnsyncedSubtitleText"></span>

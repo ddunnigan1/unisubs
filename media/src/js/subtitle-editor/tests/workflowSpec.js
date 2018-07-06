@@ -130,7 +130,7 @@ describe('when up and down sync subtitles', function() {
 
     beforeEach(inject(function($rootScope, $controller, Workflow) {
         $scope = $rootScope;
-        $scope.timelineShown = false;
+        $scope.isSyncing = jasmine.createSpy('isSyncing').and.returnValue(false);
         $controller("AppControllerEvents", {
             $scope: $scope,
         });
@@ -145,7 +145,7 @@ describe('when up and down sync subtitles', function() {
         expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-start-time");
         expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-end-time");
 
-        $scope.timelineShown = true;
+        $scope.isSyncing.and.returnValue(true);
         $scope.handleAppKeyDown(MockEvents.keydown(40));
         expect($scope.$root.$emit).toHaveBeenCalledWith("sync-next-start-time");
         $scope.handleAppKeyDown(MockEvents.keydown(38));

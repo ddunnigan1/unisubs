@@ -40,7 +40,7 @@
 </head>
 <body ng-class="{ 'timeline-shown': timelineShown, 'loading-finished': loadingFinished, 'tutorial-shown': tutorialShown }">
 <aside class="freeze-box" id="loading"><h1>{% trans "Loading subtitle editor&hellip;" %}</h1></aside>
-<aside class="overlay ng-cloak" id="tutorial" ng-cloak>
+<aside class="overlay ng-cloak" ng-click="onTutorialOverlayClick($event);" id="tutorial" ng-cloak>
   {% include 'editor/tutorial.html' %}
 </aside>
 <div class="page ng-cloak" ng-cloak>

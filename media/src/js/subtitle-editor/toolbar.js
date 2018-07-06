@@ -60,17 +60,17 @@ var angular = angular || null;
             }
         }
 
+        function hideToolbarHandler() {
+            hideCurrentMenu();
+        }
+
         function enableClickHandler() {
-            disableClickHandler();
-            $(window).on('click.hide-toolbar', function($event) {
-                hideCurrentMenu();
-                $event.preventDefault();
-                $event.stopPropagation();
-            });
+            // Use the raw addEventListener function, because we want our handler called in the capture phase -- before any other click handlers are called.
+            window.addEventListener('click', hideToolbarHandler, true);
         }
 
         function disableClickHandler() {
-            $(window).off('click.hide-toolbar');
+            window.removeEventListener('click', hideToolbarHandler, true);
         }
 
         $scope.onTimingToolIconClicked = function($event) {

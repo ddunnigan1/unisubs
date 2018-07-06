@@ -24,85 +24,23 @@ var USER_IDLE_MINUTES = 15;
 
     var module = angular.module('amara.SubtitleEditor.subtitles.directives', []);
 
-    module.directive('subtitleEditor', function() {
-        return function link(scope, elm, attrs) {
-            // For some reason using ng-keydown at the HTML tag doesn't work.
-            // Use jquery instead.
-            $(document).keydown(function(evt) {
-                scope.$apply(function(scope) {
-                    scope.handleAppKeyDown(evt);
-                });
-            });
-        };
-    });
     module.directive('workingSubtitles', ['VideoPlayer', '$timeout', function(VideoPlayer, $timeout) {
         return function link(scope, elem, attrs) {
-            var startHelper = $('div.sync-help.begin', elem);
-            var endHelper = $('div.sync-help.end', elem);
             var infoTray = $('div.info-tray', elem);
             var subtitleList = $('.subtitles ul', elem);
-            var currentArrow = undefined;
             var wrapper = $(elem);
-
-            function getSubtitleTop(subtitle) {
-                var li = scope.getSubtitleRepeatItem(subtitle);
-                var top = li.offset().top - wrapper.offset().top;
-                if(top < 0 || top + startHelper.height() >= wrapper.height()) {
-                    return null;
-                }
-                return top;
-            }
-
             var lastSyncStart = null;
             var lastSyncEnd = null;
 
-            scope.positionSyncHelpers = function(startSub, endSub) {
-                if(startSub === undefined) {
-                    startSub = lastSyncStart;
-                }
-                if(endSub === undefined) {
-                    endSub = lastSyncEnd;
-                }
-                lastSyncStart = startSub;
-                lastSyncEnd = endSub;
-
-                if(!scope.timelineShown || !VideoPlayer.isPlaying()) {
-                    startHelper.hide();
-                    endHelper.hide();
-                    return;
-                }
-                var startTop = null;
-                var endTop = null;
-                if(startSub !== null) {
-                    startTop = getSubtitleTop(startSub);
-                }
-                if(endSub !== null) {
-                    endTop = getSubtitleTop(endSub);
-                }
-                if(startTop !== null) {
-                    startHelper.css('top', startTop + 'px');
-                    startHelper.show();
-                } else {
-                    startHelper.hide();
-                }
-                if(endTop !== null) {
-                    endHelper.css('top', endTop + 'px');
-                    endHelper.show();
-                } else {
-                    endHelper.hide();
-                }
-            }
-
             scope.positionInfoTray = function() {
                 var BUFFER = 22;
-                var subtitle = scope.currentEdit.subtitle;
-                if(subtitle === null) {
+                var subtitle = scope.selectedSubtitle;
+                if(subtitle === null || VideoPlayer.isPlaying()) {
                     infoTray.hide();
                     return;
                 }
                 var li = scope.getSubtitleRepeatItem(subtitle);
                 if(li) {
-                    currentArrow = li.find(".arrow");
                     var top = li.offset().top - wrapper.offset().top;
                     var bottom = top + li.height();
 
@@ -117,43 +55,25 @@ var USER_IDLE_MINUTES = 15;
                     if(top + BUFFER >= 0 && top + BUFFER < wrapper.height()) {
                         infoTray.css('top', top + 'px');
                         infoTray.show();
-                        currentArrow.show();
                     } else {
                         infoTray.hide();
-                        currentArrow.hide();
                     }
                 }
             }
 
-            scope.$watch("currentEdit.subtitle", function() {
-                if (currentArrow) {
-                    currentArrow.hide(); // Kinda hate this, i think it would be cleaner to give each line its own controller
-                }
+            scope.$watch("selectedSubtitle && selectedSubtitle.markdown", function() {
                 $timeout(function() {
                     // use timeout to make sure that this happens after the DOM has updated,
                     // since changes to contents of the info tray may have changed its size.
                     scope.positionInfoTray();
                 }, 0, false);
-            });
-
-            scope.$watch("currentEdit.subtitle.markdown", function() {
-                $timeout(function() {
-                    // use timeout to make sure that this happens after the DOM has updated,
-                    // since changes to contents of the info tray may have changed its size.
-                    scope.positionInfoTray();
-                }, 0, false);
-            });
-
-            scope.$watch("timelineShown", function() {
-                scope.positionSyncHelpers();
             });
 
             scope.$root.$on("video-playback-changes", function() {
-                scope.positionSyncHelpers();
+                scope.positionInfoTray();
             });
 
             scope.$root.$on('working-subtitles-scrolled', function() {
-                scope.positionSyncHelpers();
                 scope.positionInfoTray();
             });
         };
@@ -213,23 +133,28 @@ var USER_IDLE_MINUTES = 15;
                 scroller.height(window.height() - scrollerTop);
             }
 
+            function ensureDivVisible(subtitle, div) {
+                var divTop = div.offset().top - scroller.offset().top;
+                var divBottom = divTop + div.height();
+
+                if(divTop < 0 || divBottom > scroller.height()) {
+                    scroller.animate({
+                        scrollTop: scroller.scrollTop() + divTop,
+                    });
+                }
+            }
+
             scope.$watch('timelineShown', resizeScroller);
             window.on('resize', resizeScroller);
             resizeScroller();
 
             if (isWorkingSet) {
-                scope.$root.$on('scroll-to-subtitle', function(evt, subtitle) {
-                    if(scope.currentEdit.inProgress()) {
-                        return;
-                    }
-                    var target = scope.getSubtitleRepeatItem(subtitle);
-                    var prev = target.prev();
-                    if(prev.length > 0) {
-                        target = prev;
-                    }
-                    if(target) {
-                        scroller.scrollTop(scroller.scrollTop() +
-                                target.offset().top - scroller.offset().top);
+                scope.$root.$on('subtitle-selection-changed', function(evt, subtitle) {
+                    if(subtitle) {
+                        var target = scope.getSubtitleRepeatItem(subtitle);
+                        if(target) {
+                            ensureDivVisible(subtitle, target);
+                        }
                     }
                 });
             }
@@ -302,12 +227,12 @@ var USER_IDLE_MINUTES = 15;
                 });
             }
 
-            $scope.$watch('timeline.shownSubtitle', function(newSub, oldSub) {
+            $scope.$watch('highlightedSubtitle', function(newSub, oldSub) {
                 if(newSub && subtitleMap[newSub.id]) {
-                    subtitleMap[newSub.id].addClass('current-subtitle');
+                    subtitleMap[newSub.id].addClass('selected-subtitle');
                 }
                 if(oldSub && subtitleMap[oldSub.id]) {
-                    subtitleMap[oldSub.id].removeClass('current-subtitle');
+                    subtitleMap[oldSub.id].removeClass('selected-subtitle');
                 }
             });
 
@@ -343,11 +268,8 @@ var USER_IDLE_MINUTES = 15;
                 var content = subtitle.content();
                 var classes = ["sub"];
 
-                if($scope.timeline.shownSubtitle === subtitle) {
-                    classes.push('current-subtitle');
-                }
-                if(content == '') {
-                    classes.push('empty');
+                if($scope.highlightedSubtitle === subtitle) {
+                    classes.push('selected-subtitle');
                 }
                 if(subtitle.startOfParagraph) {
                     classes.push('paragraph-start');

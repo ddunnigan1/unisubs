@@ -27,7 +27,7 @@ describe('Test the subtitle-repeat directive', function() {
             subtitleList.updateSubtitleParagraph(sub, false);
             subtitles.push(sub);
         }
-        $rootScope.timeline = { shownSubtitle: null };
+        $rootScope.highlightedSubtitle = null;
         $rootScope.currentEdit = {
             subtitle: null,
             isForSubtitle: jasmine.createSpy().and.returnValue(false),
@@ -87,17 +87,15 @@ describe('Test the subtitle-repeat directive', function() {
 
     it('adds conditional classes', function() {
         for(var i=0; i < subtitles.length; i++) {
-            expect(childLIs().eq(i).hasClass('empty')).toBeFalsy();
             expect(childLIs().eq(0).hasClass('paragraph-start')).toBeFalsy();
-            expect(childLIs().eq(0).hasClass('current-subtitle')).toBeFalsy();
+            expect(childLIs().eq(0).hasClass('selected-subtitle')).toBeFalsy();
         }
         subtitleList.updateSubtitleContent(subtitles[0], '');
         subtitleList.updateSubtitleParagraph(subtitles[1], true);
-        scope.timeline.shownSubtitle = subtitles[2];
+        scope.highlightedSubtitle = subtitles[2];
         scope.$digest();
-        expect(childLIs().eq(0).hasClass('empty')).toBeTruthy();
         expect(childLIs().eq(1).hasClass('paragraph-start')).toBeTruthy();
-        expect(childLIs().eq(2).hasClass('current-subtitle')).toBeTruthy();
+        expect(childLIs().eq(2).hasClass('selected-subtitle')).toBeTruthy();
     });
 
     it('updates the DOM on changes', function() {

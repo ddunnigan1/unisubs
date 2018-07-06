@@ -96,6 +96,10 @@ var angular = angular || null;
         div.css('left', -durationToPixels(deltaTime, this.scale) + 'px');
     }
 
+    VisibleTimespan.prototype.isSubtitleVisible = function(subtitle) {
+        return this.startTime < subtitle.startTime && this.endTime > subtitle.endTime;
+    }
+
     module.directive('timelineTiming', ["displayTimeSecondsFilter", function(displayTimeSecondsFilter) {
         return function link(scope, elem, attrs) {
             var canvas = $(elem);
@@ -202,17 +206,13 @@ var angular = angular || null;
             var timelineDivWidth = 0;
             var bufferTimespan = null;
             var visibleTimespan = null;
+            var contextMenu = $('#' + elem.data('context-menu'));
             var dragCounter = 0; // increments 1 for each drag we do.  Used to create unique changeGroups for updateSubtitleTimes
             // Map XML subtitle nodes to the div we created to show them
             var timelineDivs = {}
             // Store the DIV for the unsynced subtitle
             var unsyncedDiv = null;
             var unsyncedSubtitle = null;
-
-            scope.hideContextMenu = function() {
-                var contextMenu = $('#context-menu');
-                contextMenu.hide();
-            }
 
             function handleDragLeft(context, deltaMS) {
                 context.startTime = context.initialStartTime + deltaMS;
@@ -267,13 +267,13 @@ var angular = angular || null;
             }
 
             function handleMouseDown(evt) {
-                scope.handleAppMouseClick(evt);
                 if (evt.which == 3) return;
+                var subtitle = evt.data.subtitle;
+                scope.selectSubtitle(subtitle);
                 if(!scope.canSync) {
                     return false;
                 }
                 VideoPlayer.pause();
-                var subtitle = evt.data.subtitle;
                 var dragHandler = evt.data.dragHandler;
                 var context = {
                     subtitle: subtitle,
@@ -375,7 +375,6 @@ var angular = angular || null;
             function makeDivForSubtitle(subtitle) {
                 var div = $('<div/>', {class: 'subtitle'});
                 var span = $('<span/>', {class: 'timeline-subtitle-text'});
-                span.html(subtitle.content());
                 var left = $('<a href="#" class="handle left"></a>');
                 var right = $('<a href="#" class="handle right"></a>');
                 left.on('mousedown',
@@ -390,12 +389,18 @@ var angular = angular || null;
                 div.append(left);
                 div.append(span);
                 div.append(right);
+                updateDivForSubtitle(div, subtitle);
                 timelineDiv.append(div);
                 return div;
             }
 
             function updateDivForSubtitle(div, subtitle) {
                 $('span', div).html(subtitle.content());
+                if(subtitle === scope.selectedSubtitle || subtitle.isDraftFor(scope.selectedSubtitle)) {
+                    div.addClass('selected-subtitle');
+                } else {
+                    div.removeClass('selected-subtitle');
+                }
                 if(subtitle.isSynced()) {
                     div.removeClass('unsynced');
                 }
@@ -403,9 +408,7 @@ var angular = angular || null;
 
             function handleMouseDownInContainer(evt) {
                 if (evt.which == 3) {
-                    var contextMenu = $('#context-menu');
-                    contextMenu.show();
-                    contextMenu.css({"left": evt.clientX, "top": evt.clientY});
+                    showContextMenu(evt);
                 }
             }
 
@@ -527,9 +530,6 @@ var angular = angular || null;
                 }
                 if(shownSubtitle != scope.timeline.shownSubtitle) {
                     scope.timeline.shownSubtitle = shownSubtitle;
-                    if(shownSubtitle !== null) {
-                        scope.$root.$emit('scroll-to-subtitle', shownSubtitle);
-                    }
                     var phase = scope.$root.$$phase;
                     if(phase != '$apply' && phase != '$digest') {
                         scope.$root.$digest();
@@ -581,6 +581,16 @@ var angular = angular || null;
                     unsyncedDiv = null;
                 }
             }
+            function updateSubtitle(subtitle) {
+                if(!subtitle) {
+                    return;
+                }
+                if(timelineDivs.hasOwnProperty(subtitle.id)) {
+                    updateDivForSubtitle(timelineDivs[subtitle.id], subtitle);
+                } else if(unsyncedSubtitle && unsyncedSubtitle.isDraftFor(subtitle)) {
+                    updateDivForSubtitle(unsyncedDiv, subtitle);
+                }
+            }
 
             // Put redrawSubtitles in the scope so that the controller can
             // call it.
@@ -619,6 +629,26 @@ var angular = angular || null;
             });
             // Redraw them now as well
             scope.redrawSubtitles();
+
+            scope.$watch('selectedSubtitle', function(selectedSubtitle, oldSelectedSubtitle) {
+                updateSubtitle(oldSelectedSubtitle);
+                updateSubtitle(selectedSubtitle);
+                if(selectedSubtitle && selectedSubtitle.isSynced() && !visibleTimespan.isSubtitleVisible(selectedSubtitle)) {
+                    VideoPlayer.seek(selectedSubtitle.startTime);
+                }
+            });
+
+            function showContextMenu(evt) {
+                contextMenu.show();
+                contextMenu.css({"left": evt.clientX, "top": evt.clientY});
+                // Use addEventListener because we want to hook up the handler in the capture phase -- before any other handler handles it.
+                window.addEventListener('click', hideContextMenu, true);
+            }
+
+            function hideContextMenu(evt) {
+                contextMenu.hide();
+                window.removeEventListener('click', hideContextMenu, true);
+            }
         }
     }]);
 })();

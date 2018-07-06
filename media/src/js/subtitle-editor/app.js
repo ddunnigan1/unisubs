@@ -66,6 +66,18 @@ var angular = angular || null;
         return $window.editorData;
     }]);
 
+    /*
+     * AppController
+     *
+     * Controller for the root scope.  We split it up into several subcontrollers to keep the code a bit simpler.
+     *
+     * Signals:
+     *    - subtitle-selected -- Emitted whenever a new subtitle is selected
+     *    - work-done -- Some piece of work was done.  This fires for any change, subtitle edit, timing change, metadata edit, etc.
+     *
+     * TODO: explain other signals emitted at the root level
+     */
+
     module.controller("AppController", ['$scope', '$sce', '$controller', 
                       '$window', 'EditorData', 'VideoPlayer', 'Workflow',
                       function($scope, $sce, $controller, $window, EditorData,
@@ -166,6 +178,14 @@ var angular = angular || null;
                $scope.timelineShown = (!$scope.isTyping() && !$scope.isTranslatingTyping());
            }
         };
+        $scope.onTutorialOverlayClick = function($event) {
+            if(event.currentTarget === event.target) {
+                // If the user clicked on the overlay background, rather than any UI element, close the tutorial
+                $scope.toggleTutorial(false);
+            }
+            $event.preventDefault();
+            $event.stopPropagation();
+        }
         $scope.keepHeaderSizeSync = function() {
             var newHeaderSize = Math.max($('div.subtitles.reference .content').outerHeight(),
                                          $('div.subtitles.working .content').outerHeight());
@@ -264,7 +284,6 @@ var angular = angular || null;
         }
 
         $scope.onCopyTimingClicked = function($event) {
-            console.log('copy timing');
             $scope.dialogManager.openDialog('confirmCopyTiming', {
                 continueButton: function() {
                     $scope.workingSubtitles.subtitleList.copyTimingsFrom($scope.referenceSubtitles.subtitleList);
@@ -396,7 +415,6 @@ var angular = angular || null;
         var regainLockTimer;
 
         $scope.minutesIdle = 0;
-
         $scope.releaseLock = function() {
             LockService.releaseLock($scope.videoId, 
                     EditorData.editingVersion.languageCode);
@@ -544,8 +562,6 @@ var angular = angular || null;
 	    var isAltPressed = function(evt) {
 		return (evt.altKey || evt.metaKey);
 	    };
-            $scope.minutesIdle = 0;
-            $scope.$root.$emit("user-action");
             if (evt.keyCode == 9 && !evt.shiftKey) {
                 // Tab, Toggle playback
                 if($scope.dialogManager.current()) {
@@ -602,48 +618,26 @@ var angular = angular || null;
 		    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
 			$scope.currentEdit.subtitle);
                 }
-            } else if (isDel(evt.keyCode) && isAltPressed(evt)) {
-                // Alt+del, remove current subtitle
-		if($scope.currentEdit.inProgress()){
+            } else if (isDel(evt.keyCode)) {
+                // del, remove current subtitle
+                if($scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
-                    var currentSubtitle = $scope.currentEdit.subtitle;
-                    var nextSubtitle = subtitleList.nextSubtitle(currentSubtitle);
-                    var prevSubtitle = subtitleList.prevSubtitle(currentSubtitle);
-                    var replacement = nextSubtitle || prevSubtitle;
 
-                    subtitleList.removeSubtitle(currentSubtitle);
-
-                    // After removing current subtitle, move cursor and open text-area of adjacent subtitle
-                    if (replacement){
-                        // Tell the root scope that we're no longer editing, now.
+                    if($scope.currentEdit.inProgress()){
                         $scope.currentEdit.finish(subtitleList);
-                        $scope.currentEdit.start(replacement);
-                        $scope.$root.$emit('scroll-to-subtitle', replacement);
-                        evt.preventDefault();
-                        evt.stopPropagation();
-                   }
-                   $scope.$root.$emit('work-done');
+                    }
+                    // find a new subtitle to select after selectedSubtitle is removed
+                    var replacement = subtitleList.nextSubtitle($scope.selectedSubtitle);
+                    if(!replacement) {
+                        replacement = subtitleList.prevSubtitle($scope.selectedSubtitle);
+                    }
+                    subtitleList.removeSubtitle($scope.selectedSubtitle);
+
+                    $scope.selectSubtitle(replacement);
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    $scope.$root.$emit('work-done');
                 }
-            } else if (isAltPressed(evt) && ((evt.keyCode === 38) || (evt.keyCode === 40))) {
-		var nextSubtitle;
-		var subtitle = $scope.currentEdit.subtitle;
-		var subtitleList = $scope.workingSubtitles.subtitleList;
-		if(subtitle) {
-		    if (evt.keyCode === 38)
-			nextSubtitle = subtitleList.prevSubtitle(subtitle);
-		    else
-			nextSubtitle = subtitleList.nextSubtitle(subtitle);
-		    if (nextSubtitle) {
-			$scope.currentEdit.finish(subtitleList);
-			$scope.currentEdit.start(nextSubtitle);
-			$scope.$root.$emit('scroll-to-subtitle', nextSubtitle);
-			evt.preventDefault();
-			evt.stopPropagation();
-		    }
-		} else if ((evt.keyCode === 40) && (subtitleList.length() > 0)){
-		    subtitle = $scope.workingSubtitles.subtitleList.firstSubtitle();
-		    $scope.currentEdit.start(subtitle);
-		}
 	    } else if (evt.target.type == 'textarea') {
                 $scope.$root.$emit('text-edit-keystroke');
                 return;
@@ -652,10 +646,22 @@ var angular = angular || null;
             else if (evt.keyCode === 32) {
                 VideoPlayer.togglePlay();
                 // Space: toggle play / pause.
-            } else if ((evt.keyCode == 40) && ($scope.timelineShown)) {
-                $scope.$root.$emit("sync-next-start-time");
-            } else if ((evt.keyCode == 38) && ($scope.timelineShown)) {
-                $scope.$root.$emit("sync-next-end-time");
+            } else if (evt.keyCode == 40) {
+                // Down: sync timing, or select next subtitle
+                if($scope.isSyncing()) {
+                    $scope.$root.$emit("sync-next-start-time");
+                } else if($scope.selectedSubtitle) {
+                    var subtitleList = $scope.workingSubtitles.subtitleList;
+                    $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
+                }
+            } else if (evt.keyCode == 38) {
+                // Up: sync timing, or select next subtitle
+                if($scope.isSyncing()) {
+                    $scope.$root.$emit("sync-next-end-time");
+                } else if($scope.selectedSubtitle) {
+                    var subtitleList = $scope.workingSubtitles.subtitleList;
+                    $scope.selectSubtitle(subtitleList.prevSubtitle($scope.selectedSubtitle));
+                }
             } else if ((evt.keyCode == 13) && (!$scope.timelineShown) && (!$scope.dialogManager.current())) {
                 insertAndEditSubtitle();
             } else {
@@ -665,17 +671,6 @@ var angular = angular || null;
             evt.stopPropagation();
         };
 
-        $scope.handleAppMouseMove = function(evt) {
-            // Reset the lock timer.
-            $scope.minutesIdle = 0;
-        };
-
-        $scope.handleAppMouseClick = function(evt) {
-            // Reset the lock timer.
-            $('#context-menu').hide();
-            $scope.minutesIdle = 0;
-            $scope.$root.$emit("user-action");
-        };
         $scope.handleBadgeMouseClick = function(evt) {
             evt.stopPropagation();
         };
@@ -690,6 +685,17 @@ var angular = angular || null;
             video, SubtitleStorage);
         $scope.referenceSubtitles = new SubtitleVersionManager(
             video, SubtitleStorage);
+
+        // selectedSubtitle tracks the subtitle currently selected from the working subtitles list
+        // Use the selectSubtitle() method to change it.
+        $scope.selectedSubtitle = null;
+        $scope.selectSubtitle = function(subtitle) {
+            if(subtitle != $scope.selectSubtitle) {
+                $scope.currentEdit.finish($scope.workingSubtitles.subtitleList);
+                $scope.selectedSubtitle = subtitle;
+                $scope.$root.$emit('subtitle-selection-changed', subtitle);
+            }
+        }
         var editingVersion = EditorData.editingVersion;
 
         if(editingVersion.versionNumber) {
@@ -782,5 +788,27 @@ var angular = angular || null;
                 true);
 
     }]);
+
+    module.directive('subtitleEditor', function() {
+        return function link(scope, elm, attrs) {
+            // For some reason using ng-keydown at the HTML tag doesn't work.
+            // Use jquery instead.
+            $(document).keydown(function(evt) {
+                scope.$apply(function(scope) {
+                    scope.handleAppKeyDown(evt);
+                });
+            });
+
+            function resetIdle() {
+                scope.minutesIdle = 0;
+            }
+
+            // Use addEventListener to add these events because we want the handlers to happpen in the capture phase -- before other handlers handle them
+            document.addEventListener('keydown', resetIdle, true);
+            document.addEventListener('mousemove', resetIdle, true);
+            document.addEventListener('touchmove', resetIdle, true);
+            document.addEventListener('mousedown', resetIdle, true);
+        };
+    });
 
 }).call(this);

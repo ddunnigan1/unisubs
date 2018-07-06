@@ -213,6 +213,9 @@ var angular = angular || null;
         return new DraftSubtitle(this);
     }
     StoredSubtitle.prototype.isDraft = false;
+    StoredSubtitle.prototype.isDraftFor = function(subtitle) {
+        return false;
+    }
 
     function DraftSubtitle(storedSubtitle) {
         /* Subtitle that we are currently changing */
@@ -223,6 +226,10 @@ var angular = angular || null;
 
     DraftSubtitle.prototype = Object.create(Subtitle.prototype);
     DraftSubtitle.prototype.isDraft = true;
+
+    DraftSubtitle.prototype.isDraftFor = function(subtitle) {
+        return this.storedSubtitle === subtitle;
+    }
 
     /*
      * Manages a list of subtitles.
