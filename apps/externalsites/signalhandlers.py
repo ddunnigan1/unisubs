@@ -19,15 +19,16 @@
 """externalsites.signalhandlers -- Signal handler functions."""
 
 from django.dispatch import receiver
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 
 from externalsites import credit
 from externalsites import subfetch
 from externalsites import tasks
-from externalsites.models import (KalturaAccount,
+from externalsites import google
+from externalsites.models import (KalturaAccount, YouTubeAccount,
                                   get_sync_accounts, get_sync_account)
 from subtitles.models import (SubtitleLanguage, SubtitleVersion, ORIGIN_IMPORTED)
-from videos.models import Video, VideoUrl
+from videos.models import Video, VideoUrl, VIDEO_TYPE_YOUTUBE
 import subtitles.signals
 import videos.signals
 import auth.signals
@@ -84,3 +85,17 @@ def on_video_url_added(sender, video, **kwargs):
 @receiver(auth.signals.user_account_deactivated)
 def on_user_account_deactivated(sender, **kwargs):
     tasks.unlink_external_sync_accounts.delay(sender)
+
+'''
+Signal handler for when a YouTubeAccount is about to get deleted
+This fires off tasks that handle the cleaning up of the video description credits
+in all the videos in the YT account about to be deleted
+'''
+@receiver(pre_delete, sender=YouTubeAccount)
+def remove_credit_in_youtube_videos(sender, instance, **kwargs):
+    video_urls = VideoUrl.objects.filter(type=VIDEO_TYPE_YOUTUBE,
+                               owner_username=instance.channel_id)
+    access_token = google.get_new_access_token(instance.oauth_refresh_token)
+    for video_url in video_urls:
+        if credit.should_remove_credit_to_video_url(video_url, instance):
+            tasks.remove_credit_to_video_url.delay(video_url, access_token)

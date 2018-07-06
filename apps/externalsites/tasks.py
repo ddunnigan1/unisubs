@@ -17,8 +17,10 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 import logging
+import re
 
 from celery.task import task
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from externalsites import credit
@@ -27,7 +29,7 @@ from externalsites import subfetch
 from externalsites.models import (get_account, get_sync_account, SyncHistory,
                                   YouTubeAccount, VimeoSyncAccount)
 from subtitles.models import SubtitleLanguage, SubtitleVersion
-from videos.models import VideoUrl
+from videos.models import VideoUrl, VIDEO_TYPE_YOUTUBE
 from auth.models import CustomUser as User
 from teams.models import Team
 logger = logging.getLogger(__name__)
@@ -170,6 +172,22 @@ def import_video_from_youtube_account(account_id):
 
 @task
 def unlink_external_sync_accounts(owner):
-    credit.remove_credit_from_synced_youtube_videos(owner)
     YouTubeAccount.objects.for_owner(owner).delete()
     VimeoSyncAccount.objects.for_owner(owner).delete()
+
+@task
+def remove_credit_to_video_url(video_url, access_token):
+    video_id = video_url.videoid
+    current_description = google.get_video_info(video_id).description
+
+    new_description = current_description.replace(credit.YOUTUBE_AMARA_CREDIT_TEXT + "\n\n", '')
+
+    protocol = getattr(settings, 'DEFAULT_PROTOCOL')
+    domain = (settings.HOSTNAME).replace("www.",'')
+    empty_short_link = u"{0}://{1}".format(unicode(protocol),
+                                              unicode(domain))
+    # r'^v/\w+/$' is the regex for the video shortlink path
+    shortlink_regex = re.escape(empty_short_link) + r'\/v\/\w+\/'
+    new_description = re.sub(shortlink_regex, '', new_description)
+
+    google.update_video_description(video_id, access_token, new_description)

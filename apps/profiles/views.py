@@ -37,7 +37,7 @@ from profiles.forms import (EditUserForm, EditAccountForm, SendMessageForm,
                             EditAvatarForm, AdminProfileForm, EditNotificationsForm)
 from profiles.rpc import ProfileApiClass
 import externalsites.models
-from externalsites.credit import remove_credit_from_synced_youtube_videos
+# from externalsites.tasks import remove_credit_from_synced_youtube_videos
 from utils.objectlist import object_list
 from utils.orm import LoadRelatedQuerySet
 from utils.rpc import RpcRouter
@@ -380,8 +380,6 @@ def remove_third_party(request, account_type, account_id):
         account_type_name = account._meta.verbose_name
         account_owner = account.get_owner_display()
     if request.method == 'POST':
-        if account_type == 'youtube':
-            remove_credit_from_synced_youtube_videos(request.user)
         account.delete()
         msg = _('Account deleted.')
         messages.success(request, msg)
