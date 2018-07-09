@@ -33,3 +33,6 @@ class Page(object):
 
     def navigate(self):
         self.driver.get(self.full_url())
+
+    def hide_debug_sidebar(self):
+        self.driver.find_element_by_id('djHideToolBarButton').click()
