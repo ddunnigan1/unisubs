@@ -205,4 +205,6 @@
             named: Boolean(named)
         };
     });
+
+    module.constant('MIN_DURATION', 250);
 }).call(this);

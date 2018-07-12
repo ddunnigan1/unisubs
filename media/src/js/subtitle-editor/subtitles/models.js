@@ -186,6 +186,11 @@ var angular = angular || null;
         }
     }
 
+    // Get both start and end time as a list
+    Subtitle.prototype.getTimings = function() {
+        return [this.startTime, this.endTime];
+    }
+
     Subtitle.prototype.isWhiteSpaceOnly = function() {
         return !$.trim(this.markdown)
     }

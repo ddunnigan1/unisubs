@@ -100,6 +100,271 @@ var angular = angular || null;
         return this.startTime < subtitle.startTime && this.endTime > subtitle.endTime;
     }
 
+    // Handle the DnD from the timeline
+    //
+    // We define separate classes to handle the different ways of dragging -- moving subtitles, adjusting start/end times, dragging the timeline, etc.
+    module.service('TimelineDrag', ['MIN_DURATION', '$timeout', '$document', 'VideoPlayer', function(MIN_DURATION, $timeout, $document, VideoPlayer) {
+        $document = $($document); // Ensure we're using jQuery, not jQuery lite
+        var changeGroupCounter = 1;
+
+        // Base class for drag handlers
+        function DragHandler($scope, pageX, subtitleDiv) {
+            this.$scope = $scope;
+            this.initialPageX = pageX;
+            this.subtitleDiv = subtitleDiv;
+            this.subtitleList = this.$scope.workingSubtitles.subtitleList;
+            this.changeGroup = 'timeline-drag-' + changeGroupCounter++;
+            this.minDeltaMS = -Number.MAX_SAFE_INTEGER;
+            this.maxDeltaMS = Number.MAX_SAFE_INTEGER;
+        }
+
+        DragHandler.prototype = {
+            calcDeltaMS: function(pageX) {
+                var deltaMS = pixelsToDuration(pageX - this.initialPageX, this.$scope.scale);
+                deltaMS = Math.max(deltaMS, this.minDeltaMS);
+                deltaMS = Math.min(deltaMS, this.maxDeltaMS);
+                return deltaMS;
+            },
+            // These are implemented by subclasses
+            onDrag: function(pageX) {}, // handle the user moving the mouse with the button held down
+            onEnd: function() {} // Handle the user releasing the mouse or leaving the window
+        }
+
+        // Handler for dragging the timeline
+        //
+        // While the user is dragging, we move the timeline in the direction of the drag.  Note that this
+        // works somewhat unintuitively, moving right seek backwards and
+        // moving left seeks forwards
+        //
+        // Once the user releases the mouse button, we seek the video
+        //
+        function DragHandlerTimeline($scope, pageX, subtitleDiv) {
+            DragHandler.call(this, $scope, pageX, subtitleDiv);
+            this.minDeltaMS = -(this.$scope.duration - this.$scope.currentTime);
+            this.maxDeltaMS = this.$scope.currentTime;
+            this.lastDeltaMS = 0;
+        }
+
+        _.extend(DragHandlerTimeline.prototype, DragHandler.prototype, {
+            onDrag: function(pageX) {
+                var deltaMS = -this.calcDeltaMS(pageX);
+                this.$scope.$emit('timeline-drag', deltaMS);
+                this.$scope.redrawSubtitles({ deltaMS: deltaMS });
+                this.lastDeltaMS = deltaMS;
+            },
+            onEnd: function() {
+                if(this.$scope.currentTime !== null) {
+                    VideoPlayer.seek(this.$scope.currentTime + this.lastDeltaMS);
+                }
+            },
+        });
+
+        // Base class for dragging subtitles
+        function SubtitleDragHandler($scope, pageX, subtitleDiv) {
+            DragHandler.call(this, $scope, pageX, subtitleDiv);
+            this.calcSubtitlesInvolved();
+            this.calcInitialTimings();
+            this.calcDragDoundaries();
+            this.$scope.selectSubtitle(this.draggingSubtitle);
+        }
+
+        _.extend(SubtitleDragHandler.prototype, DragHandler.prototype, {
+            calcSubtitlesInvolved: function() {
+                this.draggingSubtitle = this.subtitleDiv.data('subtitle');
+                this.nextSubtitle = this.subtitleList.nextSubtitle(this.draggingSubtitle);
+                this.prevSubtitle = this.subtitleList.prevSubtitle(this.draggingSubtitle);
+                if(this.nextSubtitle && !this.nextSubtitle.isSynced()) {
+                    this.nextSubtitle = null;
+                }
+                if(this.prevSubtitle && !this.prevSubtitle.isSynced()) {
+                    this.prevSubtitle = null;
+                }
+            },
+            calcInitialTimings: function () {
+                this.initialStartTime = this.draggingSubtitle.startTime;
+                this.initialEndTime = this.draggingSubtitle.endTime;
+                this.initialNextStartTime = this.nextSubtitle ? this.nextSubtitle.startTime : null;
+                this.initialPrevEndTime = this.prevSubtitle ? this.prevSubtitle.endTime : null;
+            },
+            updateSubtitleTimes: function(changes) {
+                this.subtitleList.updateSubtitleTimes(changes, this.changeGroup);
+                this.$scope.$root.$emit("work-done");
+                this.$scope.$root.$digest();
+            }
+        });
+
+        // Handle dragging the subtitle from the middle -- this moves the subtitle in the timeline
+        function SubtitleDragHandlerMiddle($scope, pageX, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+            this.timeout = $timeout(function() { subtitleDiv.addClass('moving'); }, 100);
+        }
+
+        _.extend(SubtitleDragHandlerMiddle.prototype, SubtitleDragHandler.prototype, {
+            calcDragDoundaries: function() {
+                this.minDeltaMS = -this.draggingSubtitle.startTime;
+                if(this.prevSubtitle) {
+                    this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.endTime));
+                }
+
+                this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
+                if(this.nextSubtitle) {
+                    this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
+                }
+            },
+            onDrag: function(pageX) {
+                var deltaMS = this.calcDeltaMS(pageX);
+                var changes = [
+                    {
+                        subtitle: this.draggingSubtitle,
+                        startTime: this.initialStartTime + deltaMS,
+                        endTime: this.initialEndTime + deltaMS,
+                    }
+                ];
+
+                this.updateSubtitleTimes(changes);
+                this.subtitleDiv.addClass('moving');
+            },
+            onEnd: function() {
+                this.subtitleDiv.removeClass('moving');
+                $timeout.cancel(this.timeout);
+            }
+        });
+
+        // Handle dragging the subtitle by the left handle -- this adjusts the start time
+        //
+        // If the user drags it far enough back to hit the previous subtitle, then it also adjusts that subtitle's end time
+        function SubtitleDragHandlerLeft($scope, pageX, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        }
+
+        _.extend(SubtitleDragHandlerLeft.prototype, SubtitleDragHandler.prototype, {
+            calcDragDoundaries: function() {
+                this.minDeltaMS = -this.draggingSubtitle.startTime;
+                this.maxDeltaMS = this.draggingSubtitle.duration() - MIN_DURATION;
+
+                if(this.prevSubtitle) {
+                    this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.startTime - MIN_DURATION));
+                }
+            },
+            onDrag: function(pageX) {
+                var deltaMS = this.calcDeltaMS(pageX);
+                var newStartTime = this.initialStartTime + deltaMS;
+                var changes = [
+                    {
+                        subtitle: this.draggingSubtitle,
+                        startTime: newStartTime,
+                        endTime: this.draggingSubtitle.endTime,
+                    }
+                ];
+
+                if(this.prevSubtitle) {
+                    changes.push({
+                        subtitle: this.prevSubtitle,
+                        startTime: this.prevSubtitle.startTime,
+                        endTime: Math.min(this.initialPrevEndTime, newStartTime)
+                    });
+                }
+
+                this.updateSubtitleTimes(changes);
+            }
+        });
+
+        // Handle dragging the subtitle by the right handle -- this adjusts the end time
+        //
+        // If the user drags it far enough forward to hit the next subtitle, then it also adjusts that subtitle's start time
+        function SubtitleDragHandlerRight($scope, pageX, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        }
+
+        _.extend(SubtitleDragHandlerRight.prototype, SubtitleDragHandler.prototype, {
+            calcDragDoundaries: function() {
+                this.minDeltaMS = -(this.draggingSubtitle.duration() - MIN_DURATION);
+                this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
+
+                if(this.nextSubtitle) {
+                    this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.endTime - this.draggingSubtitle.endTime - MIN_DURATION);
+                }
+            },
+            onDrag: function(pageX) {
+                var deltaMS = this.calcDeltaMS(pageX);
+                var newEndTime = this.initialEndTime + deltaMS;
+                var changes = [
+                    {
+                        subtitle: this.draggingSubtitle,
+                        startTime: this.draggingSubtitle.startTime,
+                        endTime: newEndTime
+                    }
+                ];
+
+                if(this.nextSubtitle) {
+                    changes.push({
+                        subtitle: this.nextSubtitle,
+                        startTime: Math.max(this.initialNextStartTime, newEndTime),
+                        endTime: this.nextSubtitle.endTime
+                    });
+                }
+
+                this.updateSubtitleTimes(changes);
+            }
+        });
+
+        function handleDragAndDrop($scope, subtitlesContainer) {
+            function createDragHandler(evt) {
+                var target = $(evt.target);
+                var subtitleDiv = target.closest('.subtitle', subtitlesContainer);
+
+                if(subtitleDiv.length == 0) {
+                    return new DragHandlerTimeline($scope, evt.pageX, null);
+                }
+                if(target.hasClass('handle')) {
+                    if(target.hasClass('right')) {
+                        return new SubtitleDragHandlerRight($scope, evt.pageX, subtitleDiv);
+                    } else if(target.hasClass('left')) {
+                        return new SubtitleDragHandlerLeft($scope, evt.pageX, subtitleDiv);
+                    }
+                }
+                return new SubtitleDragHandlerMiddle($scope, evt.pageX, subtitleDiv);
+            }
+
+            var dragHandler = null;
+
+            function handleDragEnd(evt) {
+                $document.off('.timelinedrag');
+
+                if(dragHandler.onEnd) {
+                    dragHandler.onEnd(evt);
+                }
+
+                dragHandler = null;
+            }
+
+            subtitlesContainer.on('mousedown', function(evt) {
+                if($scope.duration === null || $scope.currentTime === null) {
+                    // Don't know the duration yet, don't allow dragging
+                    return;
+                }
+
+                dragHandler = createDragHandler(evt);
+
+                $document.on('mousemove.timelinedrag', function(evt) { dragHandler.onDrag(evt.pageX);});
+                $document.on('mouseup.timelinedrag', handleDragEnd);
+                $document.on('mouseleave.timelinedrag', handleDragEnd);
+
+                evt.stopPropagation();
+                evt.preventDefault();
+            });
+        }
+
+        return {
+            DragHandlerTimeline: DragHandlerTimeline,
+            SubtitleDragHandlerLeft: SubtitleDragHandlerLeft,
+            SubtitleDragHandlerMiddle: SubtitleDragHandlerMiddle,
+            SubtitleDragHandlerRight: SubtitleDragHandlerRight,
+            handleDragAndDrop: handleDragAndDrop
+        }
+
+    }]);
+
     module.directive('timelineTiming', ["displayTimeSecondsFilter", function(displayTimeSecondsFilter) {
         return function link(scope, elem, attrs) {
             var canvas = $(elem);
@@ -197,8 +462,7 @@ var angular = angular || null;
         }
     }]);
 
-    module.directive('timelineSubtitles', ["VideoPlayer", "MIN_DURATION", "DEFAULT_DURATION", function(VideoPlayer, MIN_DURATION,
-                DEFAULT_DURATION) {
+    module.directive('timelineSubtitles', ["VideoPlayer", "TimelineDrag", "MIN_DURATION", "DEFAULT_DURATION", function(VideoPlayer, TimelineDrag, MIN_DURATION, DEFAULT_DURATION) {
         return function link(scope, elem, attrs) {
             var timelineDiv = $(elem);
             var container = timelineDiv.parent();
@@ -214,181 +478,18 @@ var angular = angular || null;
             var unsyncedDiv = null;
             var unsyncedSubtitle = null;
 
-            function handleDragLeft(context, deltaMS) {
-                context.startTime = context.initialStartTime + deltaMS;
-                if (context.startTime < context.minStartTime) {
-                    if (context.startTime > context.minStartTimePush) {
-                        context.previousSubtitleEndTimeNew = context.startTime;
-                    } else {
-                        context.startTime = context.minStartTime;
-                        context.previousSubtitleEndTimeNew = context.minStartTime;
-                    }
-                }
-                if(context.startTime > context.endTime - MIN_DURATION) {
-                    context.startTime = context.endTime - MIN_DURATION;
-                }
-            }
-
-            function handleDragRight(context, deltaMS) {
-                context.endTime = context.initialEndTime + deltaMS;
-                if(context.maxEndTime !== null &&
-                        context.endTime > context.maxEndTime) {
-                            if (context.endTime < context.maxEndTimePush) {
-                                context.nextSubtitleStartTimeNew = context.endTime;
-                            } else {
-                                context.nextSubtitleStartTimeNew = context.maxEndTime;
-                                context.endTime = context.maxEndTime;
-                            }
-                        }
-                if(context.endTime < context.startTime + MIN_DURATION) {
-                    context.endTime = context.startTime + MIN_DURATION;
-                }
-            }
-
-            function handleDragMiddle(context, deltaMS) {
-                context.startTime = context.initialStartTime + deltaMS;
-                context.endTime = context.initialEndTime + deltaMS;
-
-                if(context.startTime < context.minStartTime) {
-                    context.startTime = context.minStartTime;
-                    context.endTime = (context.startTime +
-                            context.subtitle.duration());
-                }
-                if(context.endTime > context.maxEndTime) {
-                    context.endTime = context.maxEndTime;
-                    context.startTime = (context.endTime -
-                            context.subtitle.duration());
-                }
-
-            }
+            TimelineDrag.handleDragAndDrop(scope, elem);
 
             function subtitleList() {
                 return scope.workingSubtitles.subtitleList;
             }
 
-            function handleMouseDown(evt) {
-                if (evt.which == 3) return;
-                var subtitle = evt.data.subtitle;
-                scope.selectSubtitle(subtitle);
-                if(!scope.canSync) {
-                    return false;
-                }
-                VideoPlayer.pause();
-                var dragHandler = evt.data.dragHandler;
-                var context = {
-                    subtitle: subtitle,
-                    startTime: subtitle.startTime,
-                    endTime: subtitle.endTime,
-                    initialStartTime: subtitle.startTime,
-                    initialEndTime: subtitle.endTime
-                }
-                if(!subtitle.isDraft) {
-                    var storedSubtitle = subtitle;
-                    var div = timelineDivs[storedSubtitle.id];
-                } else {
-                    var storedSubtitle = subtitle.storedSubtitle;
-                    var div = unsyncedDiv;
-                }
-
-                if(!div) {
-                    return false;
-                }
-
-                var changeGroup = 'timeline-drag-' + dragCounter++;
-
-                var previousDiv = null, nextDiv = null; 
-                var nextSubtitle = subtitleList().nextSubtitle(storedSubtitle);
-                context.nextSubtitleStartTimeOr = context.nextSubtitleStartTimeNew = null;
-                if(nextSubtitle && nextSubtitle.isSynced()) {
-                    nextDiv = timelineDivs[nextSubtitle.id];
-                    context.nextSubtitleStartTimeOr = nextSubtitle.startTime;
-                    context.nextSubtitleStartTimeNew = null;
-                    context.maxEndTime = nextSubtitle.startTime;
-                    context.maxEndTimePush = nextSubtitle.endTime - MIN_DURATION;
-                } else if(scope.duration !== null) {
-                    context.maxEndTime = scope.duration;
-                    context.maxEndTimePush = null;
-                } else {
-                    context.maxEndTime = 10000000000000;
-                    context.maxEndTimePush = null;
-                }
-                var prevSubtitle = subtitleList().prevSubtitle(storedSubtitle);
-                context.prevSubtitleEndTimeOr = context.prevSubtitleEndTimeNew = null;
-                if(prevSubtitle) {
-                    previousDiv = timelineDivs[prevSubtitle.id];
-                    context.prevSubtitleEndTimeOr = prevSubtitle.endTime;
-                    context.minStartTime = prevSubtitle.endTime;
-                    context.minStartTimePush = prevSubtitle.startTime + MIN_DURATION;
-                } else {
-                    context.minStartTime = 0;
-                    context.minStartTimePush = null;
-                }
-
-                var initialPageX = evt.pageX;
-
-                function updateSubtitleTimes() {
-                    var changes = [];
-                    changes.push({
-                        subtitle: storedSubtitle,
-                        startTime: context.startTime,
-                        endTime: context.endTime,
-                    });
-
-                    if (context.previousSubtitleEndTimeNew) {
-                        changes.push({
-                            subtitle: prevSubtitle,
-                            startTime: prevSubtitle.startTime,
-                            endTime: context.previousSubtitleEndTimeNew
-                        });
-                    }
-
-                    if (context.nextSubtitleStartTimeNew) {
-                        changes.push({
-                            subtitle: nextSubtitle,
-                            startTime: context.nextSubtitleStartTimeNew,
-                            endTime: nextSubtitle.endTime
-                        });
-                    }
-
-                    subtitleList().updateSubtitleTimes(changes, changeGroup);
-                    scope.$root.$emit("work-done");
-                    scope.$root.$digest();
-                }
-
-                $(document).on('mousemove.timelinedrag', function(evt) {
-                    var deltaX = evt.pageX - initialPageX;
-                    var deltaMS = pixelsToDuration(deltaX, scope.scale);
-                    dragHandler(context, deltaMS);
-                    updateSubtitleTimes();
-                }).on('mouseup.timelinedrag', function(evt) {
-                    $(document).off('.timelinedrag');
-                    updateSubtitleTimes();
-                }).on('mouseleave.timelinedrag', function(evt) {
-                    $(document).off('.timelinedrag');
-                    updateSubtitleTimes();
-                });
-                // need to prevent the default event from happening so that the
-                // browser's DnD code doesn't mess with us.
-                return false;
-            }
-
             function makeDivForSubtitle(subtitle) {
                 var div = $('<div/>', {class: 'subtitle'});
-                var span = $('<span/>', {class: 'timeline-subtitle-text'});
-                var left = $('<a href="#" class="handle left"></a>');
-                var right = $('<a href="#" class="handle right"></a>');
-                left.on('mousedown',
-                        {subtitle: subtitle, dragHandler: handleDragLeft},
-                        handleMouseDown);
-                right.on('mousedown',
-                        {subtitle: subtitle, dragHandler: handleDragRight},
-                        handleMouseDown);
-                span.on('mousedown',
-                        {subtitle: subtitle, dragHandler: handleDragMiddle},
-                        handleMouseDown);
-                div.append(left);
-                div.append(span);
-                div.append(right);
+                div.data('subtitle', subtitle);
+                div.append($('<a href="#" class="handle left"></a>'));
+                div.append($('<span/>', {class: 'timeline-subtitle-text'}));
+                div.append($('<a href="#" class="handle right"></a>'));
                 updateDivForSubtitle(div, subtitle);
                 timelineDiv.append(div);
                 return div;
@@ -410,44 +511,6 @@ var angular = angular || null;
                 if (evt.which == 3) {
                     showContextMenu(evt);
                 }
-            }
-
-            function handleMouseDownInTimeline(evt) {
-                var initialPageX = evt.pageX;
-                var maxDeltaX = 0;
-                if(evt.which != 1) {
-                    return;
-                }
-                $(document).on('mousemove.timelinedrag', function(evt) {
-                    VideoPlayer.pause();
-                    var deltaX = initialPageX - evt.pageX;
-                    var deltaMS = pixelsToDuration(deltaX, scope.scale);
-                    maxDeltaX = Math.max(Math.abs(deltaX), maxDeltaX);
-                    scope.redrawSubtitles({
-                        deltaMS: deltaMS,
-                    });
-                    scope.$emit('timeline-drag', deltaMS);
-                }).on('mouseup.timelinedrag', function(evt) {
-                    $(document).off('.timelinedrag');
-                    if(maxDeltaX < 3) {
-                        // mouse didn't move that much.  Interpret this as a
-                        // click rather than a drag and seek to the current
-                        // time.
-                        var deltaX = evt.pageX - container.offset().left;
-                        var deltaMS = pixelsToDuration(deltaX, scope.scale);
-                        var seekTo = visibleTimespan.startTime + deltaMS;
-                    } else {
-                        var deltaX = initialPageX - evt.pageX;
-                        var deltaMS = pixelsToDuration(deltaX, scope.scale);
-                        var seekTo = scope.currentTime + deltaMS;
-                    }
-                    VideoPlayer.seek(seekTo);
-                }).on('mouseleave.timelinedrag', function(evt) {
-                    $(document).off('.timelinedrag');
-                    scope.redrawSubtitles();
-                    scope.$emit('timeline-drag', 0);
-                });
-                evt.preventDefault();
             }
 
             function placeSubtitle(startTime, endTime, div) {
@@ -620,7 +683,6 @@ var angular = angular || null;
             };
 
             // Handle drag and drop.
-            timelineDiv.on('mousedown', handleMouseDownInTimeline);
             container.on('mousedown', handleMouseDownInContainer);
             // Redraw the subtitles on window resize
             $(window).resize(function() {
