@@ -147,31 +147,16 @@ describe('TimelineDrag', function() {
             expect(sub1.subtitle.getTimings()).toEqual([0, 1000]);
         });
 
-        it('pushes the previous subtitle end time back', function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub2.div, 0);
-            dragHandler.onDrag(-10);
-            expect(sub2.subtitle.getTimings()).toEqual([900, 2000]);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 900]);
-        });
-
-        it("doesn't pull the previous subtitle end time forward", function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub2.div, 0);
-            dragHandler.onDrag(10);
-            expect(sub2.subtitle.getTimings()).toEqual([1100, 2000]);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 1000]);
-        });
-
         it("doesn't adjust start times so much that the subtitle is shorter than MIN_DURATION", function() {
             createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub3.div, 0);
             dragHandler.onDrag(100);
             expect(sub3.subtitle.getTimings()).toEqual([3750, 4000]);
         });
 
-        it("doesn't push the previous subtitle start time so much that it's shorter than MIN_DURATION", function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub2.div, 0);
-            dragHandler.onDrag(-100);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 250]);
-            expect(sub2.subtitle.getTimings()).toEqual([250, 2000]);
+        it("doesn't push past the previous subtitle start time", function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub3.div, 0);
+            dragHandler.onDrag(-101);
+            expect(sub3.subtitle.getTimings()).toEqual([2000, 4000]);
         });
 
         it('selects the subtitle', function() {
@@ -190,20 +175,6 @@ describe('TimelineDrag', function() {
             expect(sub2.subtitle.getTimings()).toEqual([1000, 1900]);
         });
 
-        it('pushes the next subtitle start time forward', function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerRight, sub1.div, 0);
-            dragHandler.onDrag(10);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 1100]);
-            expect(sub2.subtitle.getTimings()).toEqual([1100, 2000]);
-        });
-
-        it("doesn't pull the next subtitle start time back", function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerRight, sub1.div, 0);
-            dragHandler.onDrag(-10);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 900]);
-            expect(sub2.subtitle.getTimings()).toEqual([1000, 2000]);
-        });
-
         it("doesn't adjust end times past scope.duration", function() {
             createHandler(TimelineDrag.SubtitleDragHandlerRight, sub3.div, 0);
             dragHandler.onDrag(10);
@@ -216,16 +187,54 @@ describe('TimelineDrag', function() {
             expect(sub3.subtitle.getTimings()).toEqual([3000, 3250]);
         });
 
-        it("doesn't push the next subtitle end time so much that it's shorter than MIN_DURATION", function() {
-            createHandler(TimelineDrag.SubtitleDragHandlerRight, sub1.div, 0);
-            dragHandler.onDrag(100);
-            expect(sub1.subtitle.getTimings()).toEqual([0, 1750]);
-            expect(sub2.subtitle.getTimings()).toEqual([1750, 2000]);
+        it("doesn't push past the next subtitle start time", function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerRight, sub2.div, 0);
+            dragHandler.onDrag(101);
+            expect(sub2.subtitle.getTimings()).toEqual([1000, 3000]);
         });
 
         it('selects the subtitle', function() {
             createHandler(TimelineDrag.SubtitleDragHandlerRight, sub2.div, 0);
             expect($scope.selectSubtitle).toHaveBeenCalledWith(sub2.subtitle);
+        });
+    });
+
+    describe('SubtitleDragHandlerDual', function() {
+        it('adjusts both start and end times', function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div, 0);
+            dragHandler.onDrag(10);
+            expect(sub1.subtitle.getTimings()).toEqual([0, 1100]);
+            expect(sub2.subtitle.getTimings()).toEqual([1100, 2000]);
+
+            dragHandler.onDrag(-10);
+            expect(sub1.subtitle.getTimings()).toEqual([0, 900]);
+            expect(sub2.subtitle.getTimings()).toEqual([900, 2000]);
+        });
+
+        it("doesn't adjust end times so much that the subtitle is shorter than MIN_DURATION", function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div, 0);
+            dragHandler.onDrag(-100);
+            expect(sub1.subtitle.getTimings()).toEqual([0, 250]);
+            expect(sub2.subtitle.getTimings()).toEqual([250, 2000]);
+        });
+
+        it("doesn't adjust start times so much that the second subtitle is shorter than MIN_DURATION", function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div, 0);
+            dragHandler.onDrag(100);
+            expect(sub1.subtitle.getTimings()).toEqual([0, 1750]);
+            expect(sub2.subtitle.getTimings()).toEqual([1750, 2000]);
+        });
+
+        it('selects the both subtitles', function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div, 0);
+            expect($scope.selectSubtitle).toHaveBeenCalledWith(sub1.subtitle, sub2.subtitle);
+        });
+
+        it('selects the only the first subtitle once the drag stops', function() {
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div, 0);
+            $scope.selectSubtitle.calls.reset();
+            dragHandler.onEnd();
+            expect($scope.selectSubtitle).toHaveBeenCalledWith(sub1.subtitle);
         });
     });
 

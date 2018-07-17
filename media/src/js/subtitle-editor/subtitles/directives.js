@@ -26,15 +26,20 @@ var USER_IDLE_MINUTES = 15;
 
     module.directive('workingSubtitles', ['VideoPlayer', '$timeout', function(VideoPlayer, $timeout) {
         return function link(scope, elem, attrs) {
-            var infoTray = $('div.info-tray', elem);
+            var primaryInfoTray = $('div.info-tray.primary', elem);
+            var secondaryInfoTray = $('div.info-tray.secondary', elem);
             var subtitleList = $('.subtitles ul', elem);
             var wrapper = $(elem);
             var lastSyncStart = null;
             var lastSyncEnd = null;
 
-            scope.positionInfoTray = function() {
+            function positionInfoTrays() {
+                positionInfoTray(scope.selectedSubtitle, primaryInfoTray);
+                positionInfoTray(scope.secondarySubtitle, secondaryInfoTray);
+            }
+
+            function positionInfoTray(subtitle, infoTray) {
                 var BUFFER = 22;
-                var subtitle = scope.selectedSubtitle;
                 if(subtitle === null || VideoPlayer.isPlaying()) {
                     infoTray.hide();
                     return;
@@ -61,21 +66,15 @@ var USER_IDLE_MINUTES = 15;
                 }
             }
 
-            scope.$watch("selectedSubtitle && selectedSubtitle.markdown", function() {
-                $timeout(function() {
-                    // use timeout to make sure that this happens after the DOM has updated,
-                    // since changes to contents of the info tray may have changed its size.
-                    scope.positionInfoTray();
-                }, 0, false);
+            scope.$watch("selectedSubtitle && selectedSubtitle.markdown", positionInfoTrays);
+            scope.$watch("secondarySubtitle", positionInfoTrays);
+            scope.$watch("currentEdit.subtitle", function() {
+                // use timeout to make sure that this happens after the DOM has updated,
+                // since changes to contents of the info tray may have changed its size.
+                $timeout(positionInfoTrays, 0, false);
             });
-
-            scope.$root.$on("video-playback-changes", function() {
-                scope.positionInfoTray();
-            });
-
-            scope.$root.$on('working-subtitles-scrolled', function() {
-                scope.positionInfoTray();
-            });
+            scope.$root.$on("video-playback-changes", positionInfoTrays);
+            scope.$root.$on('working-subtitles-scrolled', positionInfoTrays);
         };
     }]);
 

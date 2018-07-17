@@ -165,7 +165,7 @@ var angular = angular || null;
             this.calcSubtitlesInvolved();
             this.calcInitialTimings();
             this.calcDragDoundaries();
-            this.$scope.selectSubtitle(this.draggingSubtitle);
+            this.selectSubtitle();
         }
 
         _.extend(SubtitleDragHandler.prototype, DragHandler.prototype, {
@@ -190,6 +190,9 @@ var angular = angular || null;
                 this.subtitleList.updateSubtitleTimes(changes, this.changeGroup);
                 this.$scope.$root.$emit("work-done");
                 this.$scope.$root.$digest();
+            },
+            selectSubtitle: function() {
+                this.$scope.selectSubtitle(this.draggingSubtitle);
             }
         });
 
@@ -243,7 +246,7 @@ var angular = angular || null;
                 this.maxDeltaMS = this.draggingSubtitle.duration() - MIN_DURATION;
 
                 if(this.prevSubtitle) {
-                    this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.startTime - MIN_DURATION));
+                    this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.endTime));
                 }
             },
             onDrag: function(pageX) {
@@ -256,14 +259,6 @@ var angular = angular || null;
                         endTime: this.draggingSubtitle.endTime,
                     }
                 ];
-
-                if(this.prevSubtitle) {
-                    changes.push({
-                        subtitle: this.prevSubtitle,
-                        startTime: this.prevSubtitle.startTime,
-                        endTime: Math.min(this.initialPrevEndTime, newStartTime)
-                    });
-                }
 
                 this.updateSubtitleTimes(changes);
             }
@@ -282,7 +277,7 @@ var angular = angular || null;
                 this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
 
                 if(this.nextSubtitle) {
-                    this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.endTime - this.draggingSubtitle.endTime - MIN_DURATION);
+                    this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
                 }
             },
             onDrag: function(pageX) {
@@ -296,15 +291,45 @@ var angular = angular || null;
                     }
                 ];
 
-                if(this.nextSubtitle) {
-                    changes.push({
+                this.updateSubtitleTimes(changes);
+            }
+        });
+
+        // Handle dragging the subtitle by the "dual" handle -- this adjusts both the end time of this sub, and the start time of the next
+        //
+        function SubtitleDragHandlerDual($scope, pageX, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        }
+
+        _.extend(SubtitleDragHandlerDual.prototype, SubtitleDragHandler.prototype, {
+            calcDragDoundaries: function() {
+                this.minDeltaMS = -(this.draggingSubtitle.duration() - MIN_DURATION);
+                this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
+                this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.endTime - this.draggingSubtitle.endTime - MIN_DURATION);
+            },
+            onDrag: function(pageX) {
+                var deltaMS = this.calcDeltaMS(pageX);
+                var newEndTime = this.initialEndTime + deltaMS;
+                var changes = [
+                    {
+                        subtitle: this.draggingSubtitle,
+                        startTime: this.draggingSubtitle.startTime,
+                        endTime: newEndTime
+                    },
+                    {
                         subtitle: this.nextSubtitle,
-                        startTime: Math.max(this.initialNextStartTime, newEndTime),
-                        endTime: this.nextSubtitle.endTime
-                    });
-                }
+                        startTime: newEndTime,
+                        endTime: this.nextSubtitle.endTime,
+                    }
+                ];
 
                 this.updateSubtitleTimes(changes);
+            },
+            onEnd: function() {
+                this.$scope.selectSubtitle(this.draggingSubtitle);
+            },
+            selectSubtitle: function() {
+                this.$scope.selectSubtitle(this.draggingSubtitle, this.nextSubtitle);
             }
         });
 
@@ -317,7 +342,13 @@ var angular = angular || null;
                     return new DragHandlerTimeline($scope, evt.pageX, null);
                 }
                 if(target.hasClass('handle')) {
-                    if(target.hasClass('right')) {
+                    if(target.hasClass('dual')) {
+                        if(target.hasClass('left')) {
+                            // Ensure that subtitleDiv is for first subtitle
+                            subtitleDiv = subtitleDiv.prev();
+                        }
+                        return new SubtitleDragHandlerDual($scope, evt.pageX, subtitleDiv);
+                    } else if(target.hasClass('right')) {
                         return new SubtitleDragHandlerRight($scope, evt.pageX, subtitleDiv);
                     } else if(target.hasClass('left')) {
                         return new SubtitleDragHandlerLeft($scope, evt.pageX, subtitleDiv);
@@ -360,6 +391,7 @@ var angular = angular || null;
             SubtitleDragHandlerLeft: SubtitleDragHandlerLeft,
             SubtitleDragHandlerMiddle: SubtitleDragHandlerMiddle,
             SubtitleDragHandlerRight: SubtitleDragHandlerRight,
+            SubtitleDragHandlerDual: SubtitleDragHandlerDual,
             handleDragAndDrop: handleDragAndDrop
         }
 
@@ -505,6 +537,42 @@ var angular = angular || null;
                 if(subtitle.isSynced()) {
                     div.removeClass('unsynced');
                 }
+
+                // See if we should create a dual handles -- one that adjusts the end time of this subtitle and the start time of the next at simultaniously.
+                if(shouldCreateDualHandleLeft(subtitle)) {
+                    if($('.handle.dual.left', div).length == 0) {
+                        div.append($('<a href="#" class="handle dual left"></a>'));
+                    }
+                } else {
+                    $('.handle.dual.left', div).remove();
+                }
+                if(shouldCreateDualHandleRight(subtitle)) {
+                    if($('.handle.dual.right', div).length == 0) {
+                        div.append($('<a href="#" class="handle dual right"></a>'));
+                    }
+                } else {
+                    $('.handle.dual.right', div).remove();
+                }
+            }
+
+            function shouldCreateDualHandleRight(subtitle) {
+                if(subtitle.isSynced()) {
+                    var nextSubtitle = subtitleList().nextSubtitle(subtitle);
+                    if(nextSubtitle && nextSubtitle.isSynced() && nextSubtitle.startTime == subtitle.endTime) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function shouldCreateDualHandleLeft(subtitle) {
+                if(subtitle.isSynced()) {
+                    var prevSubtitle = subtitleList().prevSubtitle(subtitle);
+                    if(prevSubtitle && prevSubtitle.isSynced() && prevSubtitle.endTime == subtitle.startTime) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             function handleMouseDownInContainer(evt) {

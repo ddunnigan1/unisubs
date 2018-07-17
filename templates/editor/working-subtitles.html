@@ -41,37 +41,8 @@
 <div class="subtitles-wrapper"
     ng-controller="WorkingSubtitlesController"
     working-subtitles>
-    <div class="info-tray">
-        <table>
-            <tr>
-                <th>Start</th>
-                <td><em ng-class="{'warning': showWarning(selectedSubtitle, 'timing')}">[[ selectedSubtitle.startTime|displayTime ]]</em></td>
-            </tr>
-            <tr>
-                <th>End</th>
-                <td><em ng-class="{'warning': showWarning(selectedSubtitle, 'timing')}">[[ selectedSubtitle.endTime|displayTime ]]</em></td>
-            </tr>
-            <tr>
-                <th>Characters</th>
-                <td ng-class="{'warning': showWarning(selectedSubtitle, 'longline')}">[[ selectedSubtitle.characterCount() ]]</td>
-            </tr>
-            <tr class="child"
-                ng-repeat="count in currentEdit.lineCounts() track by $index">
-                <th>Line [[ $index + 1 ]]</th>
-                <td ng-class="{'warning': showWarning(selectedSubtitle, 'longline', $index)}">[[ count ]]</td>
-            </tr>
-            <tr class="char-rate" ng-show="selectedSubtitle.isSynced()">
-                <th>Chars/sec</th>
-                <td ng-class="{'warning': showWarning(selectedSubtitle, 'characterRate')}">[[ selectedSubtitle.characterRate() ]]</td>
-            </tr>
-        </table>
-	<div class="warning-text">
-	  <p ng-show="showWarning(selectedSubtitle, 'lines')">{% trans "Avoid more than 2 lines per subtitle; split the subtitle into two." %}</p>
-	  <p ng-show="showWarning(selectedSubtitle, 'timing')">{% trans "Briefly displayed subtitles are hard to read; the duration should be more than 700ms." %}</p>
-	  <p ng-show="showWarning(selectedSubtitle, 'characterRate') && !(showWarning(selectedSubtitle, 'timing'))">{% trans "Reading rate shouldn't exceed 21 characters / sec; lengthen duration, reduce text or split the subtitle." %}</p>
-	  <p ng-show="showWarning(selectedSubtitle, 'longline')">{% trans "Line length shouldn't exceed 42 characters; add a line break if necessary." %}</p>
-	</div>
-    </div>
+    {% include "editor/info-tray.html" with class="info-tray primary" subtitle="selectedSubtitle"%}
+    {% include "editor/info-tray.html" with class="info-tray secondary" subtitle="secondarySubtitle"%}
 
     <div class="working subtitles" subtitle-scroller="working-subtitle-set" />
         <ul class="subtitle-list"

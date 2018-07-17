@@ -19,8 +19,6 @@ $CodePro: 'CodeProLC', $OpenSans;
     font-style: normal;
 }
 
-$selection-color: #ddeaf7;
-
 /*******************************************
 * This is to have a page whose size is a multiple
 * of 100 so that there is no rounding glitch
@@ -68,6 +66,7 @@ $text-color: #565758;
 $reddish-pink: #d24655;
 $teal-tutorial: teal;
 $lighter-blue: #29b0bf;
+$selection-color: #ddeaf7;
 $warning-color: #ff6000;
 $blue: #126295;
 $teal: #15998e;
@@ -578,15 +577,37 @@ div.subtitles-wrapper {
 
     div.info-tray {
         position: absolute;
-        left: 100%;
         top: 45px;
         width: 235px;
         z-index: 61;
+        display: none;
+
+        &.primary {
+          left: 100%;
+        }
+
+        &.secondary {
+          right: 100%;
+        }
 
         background: #e4e5e6;
-        border-top: 1px solid #e6e7e8;
-        border-right: 1px solid #e6e7e8;
-        border-bottom: 1px solid #e6e7e8;
+
+        &:after {
+          content: "";
+          position: absolute;
+          top: 0;
+          border-top: 15px solid transparent;
+          border-bottom: 15px solid transparent;
+        }
+        &.primary:after {
+          right: 100%;
+          border-right: 15px solid #e4e5e6;
+        }
+        &.secondary:after {
+          left: 100%;
+          border-left: 15px solid #e4e5e6;
+        }
+
         table, div {
             width: 95%;
             margin: 0px 7px 7px 7px;
@@ -1638,10 +1659,10 @@ div.timeline {
         overflow: hidden;
         position: absolute;
         top: 10px;
-        @include border-radius(3px);
+        @include border-radius(5px);
 
         .timeline-subtitle-text {
-            padding: 7px 12px;
+            padding: 7px 18px;
             display: block;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1652,56 +1673,25 @@ div.timeline {
             height: 100%;
             position: absolute;
             top: 0;
-            width: 6px;
+            width: 12px;
             &.left {
                 background: #3E8982;
                 left: 0;
-                @include multi-border-radius(3px, 0, 0, 3px);
-                    
-                &:before {
-                    background: #3E8982;
-                    content: "";
-                    display: block;
-                    height: 12px;
-                    left: -3px;
-                    position: absolute;
-                    top: 8px;
-                    width: 12px;
-                    @include border-radius(12px);
-                }
-                &:after {
-                    content: "";
-                    display: block;
-                    height: 100%;
-                    width: 12px;
-                }
+                @include multi-border-radius(5px, 0, 0, 5px);
+                cursor: w-resize;
             }
             &.right {
                 background: #A2A3A4;
                 right: 0;
-                @include multi-border-radius(0, 3px, 3px, 0);
-
-                &:before {
-                    background: #A2A3A4;
-                    content: "";
-                    display: block;
-                    height: 12px;
-                    position: absolute;
-                    right: -3px;
-                    top: 8px;
-                    width: 12px;
-                    @include border-radius(12px);
-                }
-                &:after {
-                    content: "";
-                    display: block;
-                    height: 100%;
-                    width: 12px;
-                    position: absolute;
-                    left: -6px;
-                }
-             }
-         }
+                @include multi-border-radius(0, 5px, 5px, 0);
+                cursor: e-resize;
+            }
+            &.dual {
+                background: none;
+                cursor: ew-resize;
+                width: 6px;
+            }
+        }
     }
     div.nextSubSticker {
         height: 100%;
@@ -1731,12 +1721,13 @@ div.timeline {
         top: 0;
         width: 100%;
         .subtitle {
-            span {
-                cursor: move;
-            }
-            .handle {
-                cursor: col-resize;
-            }
+          span {
+            cursor: default;
+          }
+
+          &.moving span {
+            cursor: move;
+          }
         }
         div.unsynced {
             background: #FEFFE2;

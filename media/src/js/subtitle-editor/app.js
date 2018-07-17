@@ -688,12 +688,16 @@ var angular = angular || null;
 
         // selectedSubtitle tracks the subtitle currently selected from the working subtitles list
         // Use the selectSubtitle() method to change it.
-        $scope.selectedSubtitle = null;
-        $scope.selectSubtitle = function(subtitle) {
-            if(subtitle != $scope.selectSubtitle) {
+        $scope.selectedSubtitle = $scope.secondarySubtitle = null;
+        $scope.selectSubtitle = function(subtitle, secondarySubtitle) {
+            if(secondarySubtitle === undefined) {
+                secondarySubtitle = null;
+            }
+            if(subtitle != $scope.selectSubtitle || secondarySubtitle != $scope.secondarySubtitle) {
                 $scope.currentEdit.finish($scope.workingSubtitles.subtitleList);
                 $scope.selectedSubtitle = subtitle;
-                $scope.$root.$emit('subtitle-selection-changed', subtitle);
+                $scope.secondarySubtitle = secondarySubtitle;
+                $scope.$root.$emit('subtitle-selection-changed', subtitle, secondarySubtitle);
             }
         }
         var editingVersion = EditorData.editingVersion;
