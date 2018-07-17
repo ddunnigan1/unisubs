@@ -162,8 +162,14 @@ var angular = angular || null;
         
     }
 
+    Subtitle.prototype.startTimeSynced = function() {
+        return this.startTime >= 0;
+    }
+    Subtitle.prototype.endTimeSynced = function() {
+        return this.endTime >= 0;
+    }
     Subtitle.prototype.isSynced = function() {
-        return this.startTime >= 0 && this.endTime >= 0;
+        return this.startTimeSynced() && this.endTimeSynced();
     }
 
     Subtitle.prototype.isAt = function(time) {

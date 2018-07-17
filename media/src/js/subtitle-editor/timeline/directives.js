@@ -699,12 +699,12 @@ var angular = angular || null;
 
                 var shownSubtitle = subtitleList().subtitleAt(
                     scope.currentTime);
-                scope.subtitle = shownSubtitle;
                 if(shownSubtitle === null && unsyncedSubtitle !== null &&
                         unsyncedSubtitle.startTime <= scope.currentTime) {
                     shownSubtitle = unsyncedSubtitle.storedSubtitle;
                 }
-                if(shownSubtitle != scope.timeline.shownSubtitle) {
+                scope.subtitle = shownSubtitle;
+                if(shownSubtitle !== scope.timeline.shownSubtitle) {
                     scope.timeline.shownSubtitle = shownSubtitle;
                     var phase = scope.$root.$$phase;
                     if(phase != '$apply' && phase != '$digest') {
@@ -746,7 +746,7 @@ var angular = angular || null;
                 if(unsyncedSubtitle !== null) {
                     if(unsyncedDiv === null) {
                         unsyncedDiv = makeDivForSubtitle(unsyncedSubtitle);
-                        unsyncedDiv.addClass('unsynced')
+                        unsyncedDiv.addClass('unsynced');
                     } else {
                         updateDivForSubtitle(unsyncedDiv, unsyncedSubtitle);
                     }
