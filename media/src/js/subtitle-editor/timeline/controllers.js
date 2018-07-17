@@ -212,7 +212,7 @@
             updateTimeline({forcePlace: true});
         });
 
-        $scope.$root.$on('sync-next-start-time', function($event) {
+        function setSubtitleStartTime() {
             var subtitleList = $scope.workingSubtitles.subtitleList;
             var syncTime = $scope.currentTime;
             var subtitle = willSync.start;
@@ -250,11 +250,11 @@
 
             $scope.selectSubtitle(subtitle);
             $scope.$root.$emit("work-done");
-        });
+        }
         // Sets the end of a subtitle at current position. If onlyUnsync is true
         // it only does it if the current endTime is unsynced, ie partially 
         // synced subtitle
-        var setEndSubtitle = function($event, onlyUnsync) {
+        function setSubtitleEndTime(onlyUnsync) {
             var subtitleList = $scope.workingSubtitles.subtitleList;
             var subtitle = willSync.end;
             if ((subtitle === null) || (onlyUnsync && (subtitle.endTime != -1))) {
@@ -266,16 +266,23 @@
                 syncTime);
             $scope.selectSubtitle(subtitle);
             $scope.$root.$emit("work-done");
-        };
-        var setEndSubtitleOnlyUnsync = function($event) {
-            setEndSubtitle($event, true);
-        };
-        var setEndSubtitleAll = function($event) {
-            setEndSubtitle($event, false);
-        };
+        }
+        $scope.$root.$on('down-pressed', function($event) {
+            if($scope.workflow.stage == 'syncing') {
+                setSubtitleStartTime();
+                $event.preventDefault();
+            }
+        });
+        $scope.$root.$on('up-pressed', function($event) {
+            if($scope.workflow.stage == 'syncing') {
+                setSubtitleEndTime(false);
+                $event.preventDefault();
+            }
+        });
         // If playback is paused, currently partially synced subtitled gets
         // entirely synced to avoid having half-synced subs in the timeline
-        $scope.$root.$on('video-playback-changes', setEndSubtitleOnlyUnsync);
-        $scope.$root.$on('sync-next-end-time', setEndSubtitleAll);
+        $scope.$root.$on('video-playback-changes', function($event) {
+            setSubtitleEndTime(true);
+        });
     }]);
 }).call(this);

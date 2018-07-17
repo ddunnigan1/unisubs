@@ -108,9 +108,8 @@ var angular = angular || null;
         var changeGroupCounter = 1;
 
         // Base class for drag handlers
-        function DragHandler($scope, pageX, subtitleDiv) {
+        function DragHandler($scope, subtitleDiv) {
             this.$scope = $scope;
-            this.initialPageX = pageX;
             this.subtitleDiv = subtitleDiv;
             this.subtitleList = this.$scope.workingSubtitles.subtitleList;
             this.changeGroup = 'timeline-drag-' + changeGroupCounter++;
@@ -119,35 +118,35 @@ var angular = angular || null;
         }
 
         DragHandler.prototype = {
-            calcDeltaMS: function(pageX) {
-                var deltaMS = pixelsToDuration(pageX - this.initialPageX, this.$scope.scale);
-                deltaMS = Math.max(deltaMS, this.minDeltaMS);
-                deltaMS = Math.min(deltaMS, this.maxDeltaMS);
-                return deltaMS;
+            clampDeltaMS: function(deltaMS) {
+                return Math.min(Math.max(deltaMS, this.minDeltaMS), this.maxDeltaMS);
             },
             // These are implemented by subclasses
-            onDrag: function(pageX) {}, // handle the user moving the mouse with the button held down
+            onDrag: function(deltaMS) {}, // handle the user moving the mouse with the button held down
             onEnd: function() {} // Handle the user releasing the mouse or leaving the window
         }
 
         // Handler for dragging the timeline
         //
-        // While the user is dragging, we move the timeline in the direction of the drag.  Note that this
-        // works somewhat unintuitively, moving right seek backwards and
-        // moving left seeks forwards
+        // While the user is dragging, we move the timeline in the direction of
+        // the drag.  Once the user releases the mouse button, we seek the
+        // video
         //
-        // Once the user releases the mouse button, we seek the video
         //
-        function DragHandlerTimeline($scope, pageX, subtitleDiv) {
-            DragHandler.call(this, $scope, pageX, subtitleDiv);
-            this.minDeltaMS = -(this.$scope.duration - this.$scope.currentTime);
-            this.maxDeltaMS = this.$scope.currentTime;
+        function DragHandlerTimeline($scope, subtitleDiv) {
+            DragHandler.call(this, $scope, subtitleDiv);
+            this.minDeltaMS = -this.$scope.currentTime;
+            this.maxDeltaMS = this.$scope.duration - this.$scope.currentTime;
             this.lastDeltaMS = 0;
         }
 
         _.extend(DragHandlerTimeline.prototype, DragHandler.prototype, {
-            onDrag: function(pageX) {
-                var deltaMS = -this.calcDeltaMS(pageX);
+            onDrag: function(deltaMS) {
+                // Since we're dragging the timeline, moving right seeks
+                // backwards and moving left seeks forward.
+                deltaMS = -deltaMS;
+
+                var deltaMS = this.clampDeltaMS(deltaMS);
                 this.$scope.$emit('timeline-drag', deltaMS);
                 this.$scope.redrawSubtitles({ deltaMS: deltaMS });
                 this.lastDeltaMS = deltaMS;
@@ -160,8 +159,8 @@ var angular = angular || null;
         });
 
         // Base class for dragging subtitles
-        function SubtitleDragHandler($scope, pageX, subtitleDiv) {
-            DragHandler.call(this, $scope, pageX, subtitleDiv);
+        function SubtitleDragHandler($scope, subtitleDiv) {
+            DragHandler.call(this, $scope, subtitleDiv);
             this.calcSubtitlesInvolved();
             this.calcInitialTimings();
             this.calcDragDoundaries();
@@ -189,7 +188,6 @@ var angular = angular || null;
             updateSubtitleTimes: function(changes) {
                 this.subtitleList.updateSubtitleTimes(changes, this.changeGroup);
                 this.$scope.$root.$emit("work-done");
-                this.$scope.$root.$digest();
             },
             selectSubtitle: function() {
                 this.$scope.selectSubtitle(this.draggingSubtitle);
@@ -197,8 +195,8 @@ var angular = angular || null;
         });
 
         // Handle dragging the subtitle from the middle -- this moves the subtitle in the timeline
-        function SubtitleDragHandlerMiddle($scope, pageX, subtitleDiv) {
-            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        function SubtitleDragHandlerMiddle($scope, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv);
             this.timeout = $timeout(function() { subtitleDiv.addClass('moving'); }, 100);
         }
 
@@ -214,8 +212,8 @@ var angular = angular || null;
                     this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
                 }
             },
-            onDrag: function(pageX) {
-                var deltaMS = this.calcDeltaMS(pageX);
+            onDrag: function(deltaMS) {
+                var deltaMS = this.clampDeltaMS(deltaMS);
                 var changes = [
                     {
                         subtitle: this.draggingSubtitle,
@@ -236,8 +234,9 @@ var angular = angular || null;
         // Handle dragging the subtitle by the left handle -- this adjusts the start time
         //
         // If the user drags it far enough back to hit the previous subtitle, then it also adjusts that subtitle's end time
-        function SubtitleDragHandlerLeft($scope, pageX, subtitleDiv) {
-            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        function SubtitleDragHandlerLeft($scope, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv);
+            $('.handle.left', subtitleDiv).addClass('adjusting');
         }
 
         _.extend(SubtitleDragHandlerLeft.prototype, SubtitleDragHandler.prototype, {
@@ -249,8 +248,8 @@ var angular = angular || null;
                     this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.endTime));
                 }
             },
-            onDrag: function(pageX) {
-                var deltaMS = this.calcDeltaMS(pageX);
+            onDrag: function(deltaMS) {
+                var deltaMS = this.clampDeltaMS(deltaMS);
                 var newStartTime = this.initialStartTime + deltaMS;
                 var changes = [
                     {
@@ -261,14 +260,18 @@ var angular = angular || null;
                 ];
 
                 this.updateSubtitleTimes(changes);
+            },
+            onEnd: function() {
+                $('.handle.left', this.subtitleDiv).removeClass('adjusting');
             }
         });
 
         // Handle dragging the subtitle by the right handle -- this adjusts the end time
         //
         // If the user drags it far enough forward to hit the next subtitle, then it also adjusts that subtitle's start time
-        function SubtitleDragHandlerRight($scope, pageX, subtitleDiv) {
-            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        function SubtitleDragHandlerRight($scope, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv);
+            $('.handle.right', this.subtitleDiv).addClass('adjusting');
         }
 
         _.extend(SubtitleDragHandlerRight.prototype, SubtitleDragHandler.prototype, {
@@ -280,8 +283,8 @@ var angular = angular || null;
                     this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
                 }
             },
-            onDrag: function(pageX) {
-                var deltaMS = this.calcDeltaMS(pageX);
+            onDrag: function(deltaMS) {
+                var deltaMS = this.clampDeltaMS(deltaMS);
                 var newEndTime = this.initialEndTime + deltaMS;
                 var changes = [
                     {
@@ -292,13 +295,18 @@ var angular = angular || null;
                 ];
 
                 this.updateSubtitleTimes(changes);
+            },
+            onEnd: function() {
+                $('.handle.right', this.subtitleDiv).removeClass('adjusting');
             }
         });
 
         // Handle dragging the subtitle by the "dual" handle -- this adjusts both the end time of this sub, and the start time of the next
         //
-        function SubtitleDragHandlerDual($scope, pageX, subtitleDiv) {
-            SubtitleDragHandler.call(this, $scope, pageX, subtitleDiv);
+        function SubtitleDragHandlerDual($scope, subtitleDiv) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv);
+            this.handles = $('.handle.right', this.subtitleDiv).add($('.handle.left', this.subtitleDiv.next()));
+            this.handles.addClass('adjusting');
         }
 
         _.extend(SubtitleDragHandlerDual.prototype, SubtitleDragHandler.prototype, {
@@ -307,8 +315,8 @@ var angular = angular || null;
                 this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
                 this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.endTime - this.draggingSubtitle.endTime - MIN_DURATION);
             },
-            onDrag: function(pageX) {
-                var deltaMS = this.calcDeltaMS(pageX);
+            onDrag: function(deltaMS) {
+                var deltaMS = this.clampDeltaMS(deltaMS);
                 var newEndTime = this.initialEndTime + deltaMS;
                 var changes = [
                     {
@@ -327,6 +335,7 @@ var angular = angular || null;
             },
             onEnd: function() {
                 this.$scope.selectSubtitle(this.draggingSubtitle);
+                this.handles.removeClass('adjusting');
             },
             selectSubtitle: function() {
                 this.$scope.selectSubtitle(this.draggingSubtitle, this.nextSubtitle);
@@ -339,7 +348,7 @@ var angular = angular || null;
                 var subtitleDiv = target.closest('.subtitle', subtitlesContainer);
 
                 if(subtitleDiv.length == 0) {
-                    return new DragHandlerTimeline($scope, evt.pageX, null);
+                    return new DragHandlerTimeline($scope, null);
                 }
                 if(target.hasClass('handle')) {
                     if(target.hasClass('dual')) {
@@ -347,25 +356,22 @@ var angular = angular || null;
                             // Ensure that subtitleDiv is for first subtitle
                             subtitleDiv = subtitleDiv.prev();
                         }
-                        return new SubtitleDragHandlerDual($scope, evt.pageX, subtitleDiv);
+                        return new SubtitleDragHandlerDual($scope, subtitleDiv);
                     } else if(target.hasClass('right')) {
-                        return new SubtitleDragHandlerRight($scope, evt.pageX, subtitleDiv);
+                        return new SubtitleDragHandlerRight($scope, subtitleDiv);
                     } else if(target.hasClass('left')) {
-                        return new SubtitleDragHandlerLeft($scope, evt.pageX, subtitleDiv);
+                        return new SubtitleDragHandlerLeft($scope, subtitleDiv);
                     }
                 }
-                return new SubtitleDragHandlerMiddle($scope, evt.pageX, subtitleDiv);
+                return new SubtitleDragHandlerMiddle($scope, subtitleDiv);
             }
 
-            var dragHandler = null;
+            var dragHandler, initialPageX;
+            var keyboardDragHandler, keyboardDeltaMS;
 
             function handleDragEnd(evt) {
                 $document.off('.timelinedrag');
-
-                if(dragHandler.onEnd) {
-                    dragHandler.onEnd(evt);
-                }
-
+                dragHandler.onEnd();
                 dragHandler = null;
             }
 
@@ -375,15 +381,54 @@ var angular = angular || null;
                     return;
                 }
 
+                stopKeyboardDrag();
                 dragHandler = createDragHandler(evt);
+                initialPageX = evt.pageX;
 
-                $document.on('mousemove.timelinedrag', function(evt) { dragHandler.onDrag(evt.pageX);});
+                $document.on('mousemove.timelinedrag', function(evt) {
+                    var deltaMS = pixelsToDuration(evt.pageX - initialPageX, $scope.scale);
+                    dragHandler.onDrag(deltaMS);
+                    $scope.$root.$digest();
+                });
                 $document.on('mouseup.timelinedrag', handleDragEnd);
                 $document.on('mouseleave.timelinedrag', handleDragEnd);
 
                 evt.stopPropagation();
                 evt.preventDefault();
             });
+
+            subtitlesContainer.on('click', function(evt) {
+                keyboardDragHandler = createDragHandler(evt);
+                keyboardDeltaMS = 0;
+                // Stop the "drag" on any click.  Use addEventListener because
+                // we want to get the event in the capture phase, before other
+                // code has a chance to handle the event
+                window.addEventListener('click', stopKeyboardDrag, true);
+            });
+
+            function stopKeyboardDrag() {
+                if(keyboardDragHandler) {
+                    keyboardDragHandler.onEnd();
+                    keyboardDragHandler = null;
+                }
+                window.removeEventListener('click', stopKeyboardDrag, true);
+            }
+
+            $scope.$root.$on('left-pressed', function(evt, keyEvent) {
+                if(keyboardDragHandler) {
+                    keyboardDeltaMS -= keyEvent.shiftKey ? 10 : 100;
+                    keyboardDragHandler.onDrag(keyboardDeltaMS);
+                    evt.preventDefault();
+                }
+            });
+            $scope.$root.$on('right-pressed', function(evt, keyEvent) {
+                if(keyboardDragHandler) {
+                    keyboardDeltaMS += keyEvent.shiftKey ? 10 : 100;
+                    keyboardDragHandler.onDrag(keyboardDeltaMS);
+                    evt.preventDefault();
+                }
+            });
+            $scope.$root.$on('escape-pressed', stopKeyboardDrag);
         }
 
         return {

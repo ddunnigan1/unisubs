@@ -647,23 +647,25 @@ var angular = angular || null;
                 VideoPlayer.togglePlay();
                 // Space: toggle play / pause.
             } else if (evt.keyCode == 40) {
-                // Down: sync timing, or select next subtitle
-                if($scope.isSyncing()) {
-                    $scope.$root.$emit("sync-next-start-time");
-                } else if($scope.selectedSubtitle) {
+                var emittedEvent = $scope.$root.$emit("down-pressed", evt);
+                if(!emittedEvent.defaultPrevented && $scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
                     $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
                 }
             } else if (evt.keyCode == 38) {
-                // Up: sync timing, or select next subtitle
-                if($scope.isSyncing()) {
-                    $scope.$root.$emit("sync-next-end-time");
-                } else if($scope.selectedSubtitle) {
+                var emittedEvent = $scope.$root.$emit("up-pressed", evt);
+                if(!emittedEvent.defaultPrevented && $scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
                     $scope.selectSubtitle(subtitleList.prevSubtitle($scope.selectedSubtitle));
                 }
+            } else if (evt.keyCode == 37) {
+                $scope.$root.$emit("left-pressed", evt);
+            } else if (evt.keyCode == 39) {
+                $scope.$root.$emit("right-pressed", evt);
             } else if ((evt.keyCode == 13) && (!$scope.timelineShown) && (!$scope.dialogManager.current())) {
                 insertAndEditSubtitle();
+            } else if (evt.keyCode == 27) {
+                $scope.$root.$emit("escape-pressed");
             } else {
                 return;
             }

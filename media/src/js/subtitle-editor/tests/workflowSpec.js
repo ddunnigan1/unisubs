@@ -121,38 +121,6 @@ describe('NormalWorkflowController', function() {
     }));
 });
 
-describe('when up and down sync subtitles', function() {
-    var $scope;
-
-    beforeEach(module('amara.SubtitleEditor'));
-    beforeEach(module('amara.SubtitleEditor.subtitles.models'));
-    beforeEach(module('amara.SubtitleEditor.mocks'));
-
-    beforeEach(inject(function($rootScope, $controller, Workflow) {
-        $scope = $rootScope;
-        $scope.isSyncing = jasmine.createSpy('isSyncing').and.returnValue(false);
-        $controller("AppControllerEvents", {
-            $scope: $scope,
-        });
-        spyOn($scope, '$emit');
-    }));
-
-    it('syncs when the timeline is shown', inject(function(MockEvents) {
-        $scope.handleAppKeyDown(MockEvents.keydown(40));
-        expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-start-time");
-        expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-end-time");
-        $scope.handleAppKeyDown(MockEvents.keydown(38));
-        expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-start-time");
-        expect($scope.$root.$emit).not.toHaveBeenCalledWith("sync-next-end-time");
-
-        $scope.isSyncing.and.returnValue(true);
-        $scope.handleAppKeyDown(MockEvents.keydown(40));
-        expect($scope.$root.$emit).toHaveBeenCalledWith("sync-next-start-time");
-        $scope.handleAppKeyDown(MockEvents.keydown(38));
-        expect($scope.$root.$emit).toHaveBeenCalledWith("sync-next-end-time");
-    }));
-});
-
 describe('when the enter key creates a new subtitle', function() {
     var keyCodeForEnter = 13;
     var subtitleList;

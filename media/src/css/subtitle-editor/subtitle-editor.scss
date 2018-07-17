@@ -1691,6 +1691,9 @@ div.timeline {
                 cursor: ew-resize;
                 width: 6px;
             }
+            &.adjusting {
+              background: $lighter-blue;
+            }
         }
     }
     div.nextSubSticker {
@@ -1726,6 +1729,7 @@ div.timeline {
           }
 
           &.moving span {
+            background: $lighter-blue;
             cursor: move;
           }
         }
