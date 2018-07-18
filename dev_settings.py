@@ -82,7 +82,7 @@ CELERY_ALWAYS_EAGER = False
 CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)
 
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': lambda request: not request.is_ajax()
+    'SHOW_TOOLBAR_CALLBACK': lambda request: ((not request.is_ajax()) and (os.environ.get('SHOW_DEBUG_TOOLBAR') != "False"))
 }
 
 # Or you can use redis as backend
