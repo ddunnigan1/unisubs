@@ -242,6 +242,8 @@ _RTL_OVERRIDE_MAP = {
     'ug': True,
     # Force Aramaic to be RTL (gh-1073)
     'arc': True,
+    # Force Dari to be RTL (gh-3307)
+    'prs': True,
 }
 
 def is_rtl(language_code):

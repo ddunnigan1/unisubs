@@ -30,6 +30,7 @@ from boto.s3.key import Key
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import to_locale, activate
+import boto3
 
 from deploy.git_helpers import get_current_commit_hash
 from staticmedia import bundles
@@ -54,6 +55,7 @@ class Command(BaseCommand):
         self.options = options
         self.setup_s3_subdir()
         self.setup_connection()
+        self.copy_experimental_editor()
         self.build_bundles()
         self.upload_bundles()
         self.upload_static_dir('images')
@@ -82,10 +84,14 @@ class Command(BaseCommand):
 
     def log_upload(self, key):
         url_base = settings.STATIC_MEDIA_S3_URL_BASE
+        if isinstance(key, basestring):
+            name = key
+        else:
+            name = key.name
         if url_base.startswith("//"):
             # add http: for protocol-relative URLs
             url_base = "http:" + url_base
-        self.stdout.write("-> %s%s\n" % (url_base, key.name))
+        self.stdout.write("-> %s%s\n" % (url_base, name))
 
     def build_bundles(self):
         self.built_bundles = []
@@ -220,3 +226,22 @@ class Command(BaseCommand):
             # HTTP/1.0
             'Expires': self.http_date(datetime.timedelta(days=-365)),
         }
+
+    def copy_experimental_editor(self):
+        # FIXME: only this method uses boto3, we should update the other code
+        # to use it as well
+        client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        self.copy_experimental_editor_file(client, 'js/editor.js')
+        self.copy_experimental_editor_file(client, 'css/editor.css')
+
+    def copy_experimental_editor_file(self, client, path):
+        key = '{}/experimental/{}'.format(self.s3_subdirectory, path)
+        client.copy_object(Bucket=settings.STATIC_MEDIA_S3_BUCKET,
+                           Key=key,
+                           CopySource='{}/experimental/{}'.format(
+                               settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET, path))
+        self.log_upload(key)
+

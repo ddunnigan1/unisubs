@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container">
-  <div class="videosCreateForm bg-sea-green{% if not request.user.is_authenticated %} text-center{% endif %}">
+  <div class="videosCreateForm bg-teal{% if not request.user.is_authenticated %} text-center{% endif %}">
     <h1>{% trans "Subtitle a Video" %}</h1>
     {% if request.user.is_authenticated %}
     <p>{% trans "Enter a video URL to use the Amara Editor. It will appear and remain on your public profile." %}</p>

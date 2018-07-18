@@ -172,6 +172,11 @@ class CodeField(models.PositiveSmallIntegerField):
         try:
             return self.value_to_code[value].slug
         except KeyError:
+            # We're given a raw number, but can't find it, just return that
+            # number.  This is especially useful in database migrations, since
+            # we don't have the code values setup there
+            if isinstance(value, (int, long)):
+                return value
             return 'unknown-code-{}'.format(value)
 
     def get_prep_value(self, value):
@@ -185,6 +190,11 @@ class CodeField(models.PositiveSmallIntegerField):
         except KeyError:
             raise KeyError("Unknown code: {!r}".format(value))
 
+    def deconstruct(self):
+        name, path, args, kwargs = super(CodeField, self).deconstruct()
+        if 'choices' in kwargs:
+            del kwargs['choices']
+        return name, path, args, kwargs
 
 class TinyCodeField(CodeField):
     """Codefield that onll uses a TINYINT to store its values.

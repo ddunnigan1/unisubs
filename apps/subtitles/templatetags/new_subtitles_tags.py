@@ -68,7 +68,7 @@ def render_subtitles(subtitle_version):
     is_rtl = " is-rtl" if subtitle_version.subtitle_language.is_rtl() else ""
     timing_template = string.Template(u"""\
 <div class="subtitlesList-time">
-    <a class="subtitlesList-seek" href="#" data-start-time="$start_time" title="{}">
+    <a class="subtitlesList-seek no-underline" href="#" data-start-time="$start_time" title="{}">
         $start_time_display - $end_time_display
     </a>
 </div>""".format(_('Play video here')))
@@ -88,7 +88,7 @@ def render_subtitles(subtitle_version):
     synced_subs.sort(key=lambda item: item.start_time)
 
     parts = []
-    parts.append(u'<ul class="subtitlesList{}">'.format(is_rtl))
+    parts.append(u'<ul class="subtitlesList{} text-small">'.format(is_rtl))
     for item in synced_subs + unsynced_subs:
         new_paragraph = item.meta.get('new_paragraph', False)
         parts.append(u'<li>')
