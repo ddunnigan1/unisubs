@@ -957,6 +957,11 @@ var angular = angular || null;
             return this.subtitles[this.subtitles.length -1];
         }
 
+        SubtitleList.prototype.firstSubtitleAfter = function(time) {
+            var i = this.indexOfFirstSubtitleAfter(time);
+            return (i != -1) ? this.subtitles[i] : null;
+        }
+
         SubtitleList.prototype.subtitleAt = function(time) {
             /* Find the subtitle that occupies a given time.
              *

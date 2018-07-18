@@ -662,8 +662,11 @@ var angular = angular || null;
                 $scope.$root.$emit("left-pressed", evt);
             } else if (evt.keyCode == 39) {
                 $scope.$root.$emit("right-pressed", evt);
-            } else if ((evt.keyCode == 13) && (!$scope.timelineShown) && (!$scope.dialogManager.current())) {
-                insertAndEditSubtitle();
+            } else if (evt.keyCode == 13) {
+                var emittedEvent = $scope.$root.$emit("enter-pressed", evt);
+                if(!emittedEvent.defaultPrevented) {
+                    insertAndEditSubtitle();
+                }
             } else if (evt.keyCode == 27) {
                 $scope.$root.$emit("escape-pressed");
             } else {

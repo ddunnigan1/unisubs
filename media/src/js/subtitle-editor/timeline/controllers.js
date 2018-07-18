@@ -20,7 +20,7 @@
 
     var module = angular.module('amara.SubtitleEditor.timeline.controllers', []);
 
-    module.controller('TimelineController', ["$scope", "$timeout", "VideoPlayer", "MIN_DURATION", function($scope, $timeout, VideoPlayer, MIN_DURATION) {
+    module.controller('TimelineController', ["$scope", "$timeout", "VideoPlayer", "SubtitleSyncManager", function($scope, $timeout, VideoPlayer, SubtitleSyncManager) {
         // Controls the scale of the timeline, currently we just set this to
         // 1.0 and leave it.
         $scope.scale = 1.0;
@@ -39,6 +39,7 @@
         var lastTimeReturned = null;
         var lastTimeReturnedAt = null;
         var lastTime = null;
+        var SubtitleSyncManager = new SubtitleSyncManager($scope);
 
         // Handle animating the timeline.  We don't use the timeupdate event
         // from popcorn because it doesn't fire granularly enough.
@@ -155,65 +156,165 @@
             updateTimeline({forcePlace: true});
         });
 
-        function setSubtitleStartTime() {
-            var subtitleList = $scope.workingSubtitles.subtitleList;
-            var changes = [];
-            var syncTime = $scope.currentTime;
-
-            var subtitle = subtitleList.firstUnsyncedSubtitle();
-
-            /* Check to see if we're setting the start time for the second
-             * unsynced subtitle.  In this case, we should also set the end
-             * time for the first.
-             */
-            if(subtitle.startTimeSynced()) {
-                syncTime = Math.max(syncTime, subtitle.startTime + MIN_DURATION);
-                changes.push({
-                    subtitle: subtitle,
-                    startTime: subtitle.startTime,
-                    endTime: syncTime
-                });
-
-                subtitle = subtitleList.nextSubtitle(subtitle);
-            }
-
-            if(subtitle) {
-                changes.push({
-                    subtitle: subtitle,
-                    startTime: syncTime,
-                    endTime: -1
-                });
-            }
-
-            subtitleList.updateSubtitleTimes(changes);
-            $scope.$root.$emit("work-done");
-        }
-        // Sets the end of a subtitle at current position. If onlyUnsync is true
-        // it only does it if the current endTime is unsynced, ie partially 
-        // synced subtitle
-        function setSubtitleEndTime() {
-            var subtitleList = $scope.workingSubtitles.subtitleList;
-            var subtitle = subtitleList.firstUnsyncedSubtitle();
-            if (subtitle === null || !subtitle.startTimeSynced()) {
-                return;
-            }
-            var syncTime = Math.max($scope.currentTime, subtitle.startTime +
-                MIN_DURATION);
-            subtitleList.updateSubtitleTime(subtitle, subtitle.startTime,
-                syncTime);
-            $scope.$root.$emit("work-done");
-        }
         $scope.$root.$on('down-pressed', function($event) {
             if(unsyncedShown()) {
-                setSubtitleStartTime();
+                SubtitleSyncManager.syncUnsyncedStartTime();
                 $event.preventDefault();
             }
         });
         $scope.$root.$on('up-pressed', function($event) {
             if(unsyncedShown()) {
-                setSubtitleEndTime();
+                SubtitleSyncManager.syncUnsyncedEndTime();
                 $event.preventDefault();
             }
         });
+        $scope.$root.$on('enter-pressed', function($event) {
+            if(!unsyncedShown()) {
+                SubtitleSyncManager.adjustClosestTiming();
+                $event.preventDefault();
+            }
+        });
+    }]);
+
+    module.service('SubtitleSyncManager', ["MIN_DURATION", function(MIN_DURATION) {
+        function SubtitleSyncManager($scope) {
+            this.subtitleList = $scope.workingSubtitles.subtitleList;
+            this.$scope = $scope;
+        }
+
+        SubtitleSyncManager.prototype = {
+            syncUnsyncedStartTime: function() {
+                var changes = [];
+                var syncTime = this.$scope.currentTime;
+
+                var subtitle = this.subtitleList.firstUnsyncedSubtitle();
+
+                /* Check to see if we're setting the start time for the second
+                 * unsynced subtitle.  In this case, we should also set the end
+                 * time for the first.
+                 */
+                if(subtitle.startTimeSynced()) {
+                    syncTime = Math.max(syncTime, subtitle.startTime + MIN_DURATION);
+                    changes.push({
+                        subtitle: subtitle,
+                        startTime: subtitle.startTime,
+                        endTime: syncTime
+                    });
+
+                    subtitle = this.subtitleList.nextSubtitle(subtitle);
+                }
+
+                if(subtitle) {
+                    changes.push({
+                        subtitle: subtitle,
+                        startTime: syncTime,
+                        endTime: -1
+                    });
+                }
+
+                this.subtitleList.updateSubtitleTimes(changes);
+                this.$scope.$root.$emit("work-done");
+            },
+            // Sets the end of a subtitle at current position. If onlyUnsync is true
+            // it only does it if the current endTime is unsynced, ie partially 
+            // synced subtitle
+            syncUnsyncedEndTime: function() {
+                var subtitle = this.subtitleList.firstUnsyncedSubtitle();
+                if (subtitle === null || !subtitle.startTimeSynced()) {
+                    return;
+                }
+                var syncTime = Math.max(this.$scope.currentTime, subtitle.startTime +
+                        MIN_DURATION);
+                this.subtitleList.updateSubtitleTime(subtitle, subtitle.startTime,
+                        syncTime);
+                this.$scope.$root.$emit("work-done");
+            },
+            adjustClosestTiming: function() {
+                var currentTime = this.$scope.currentTime;
+                var subtitleList = this.subtitleList;
+                var MAX_ADJUSTMENT = 1000;
+                var $scope = this.$scope;
+
+                function syncStartTime(subtitle) {
+                    var changes = [];
+
+                    if(Math.abs(subtitle.startTime - currentTime) > MAX_ADJUSTMENT) {
+                        return;
+                    }
+
+                    changes.push({
+                        subtitle: subtitle,
+                        startTime: currentTime,
+                        endTime: subtitle.endTime
+                    });
+
+
+                    var prevSubtitle = subtitleList.prevSubtitle(subtitle);
+
+                    if(prevSubtitle && prevSubtitle.endTime == subtitle.startTime) {
+                        changes.push({
+                            subtitle: prevSubtitle,
+                            startTime: prevSubtitle.startTime,
+                            endTime: currentTime
+                        });
+                    }
+
+                    subtitleList.updateSubtitleTimes(changes);
+                    $scope.$root.$emit("work-done");
+                }
+
+                function syncEndTime(subtitle) {
+                    var changes = [];
+
+                    if(Math.abs(subtitle.endTime - currentTime) > MAX_ADJUSTMENT) {
+                        return;
+                    }
+
+                    changes.push({
+                        subtitle: subtitle,
+                        startTime: subtitle.startTime,
+                        endTime: currentTime
+                    });
+
+                    var nextSubtitle = subtitleList.nextSubtitle(subtitle);
+
+                    if(nextSubtitle && nextSubtitle.startTime == subtitle.endTime) {
+                        changes.push({
+                            subtitle: nextSubtitle,
+                            startTime: currentTime,
+                            endTime: nextSubtitle.endTime
+                        });
+                    }
+
+                    subtitleList.updateSubtitleTimes(changes);
+                    $scope.$root.$emit("work-done");
+                }
+
+                var nextSubtitle = subtitleList.firstSubtitleAfter(currentTime);
+                if(nextSubtitle) {
+                    if(nextSubtitle.isAt(currentTime)) {
+                        if(nextSubtitle.endTime - currentTime < currentTime - nextSubtitle.startTime) {
+                            syncEndTime(nextSubtitle);
+                        } else {
+                            syncStartTime(nextSubtitle);
+                        }
+                    } else {
+                        prevSubtitle = subtitleList.prevSubtitle(nextSubtitle);
+                        if(prevSubtitle && currentTime - prevSubtitle.endTime < nextSubtitle.startTime - currentTime) {
+                            syncEndTime(prevSubtitle);
+                        } else {
+                            syncStartTime(nextSubtitle);
+                        }
+                    }
+                } else {
+                    var prevSubtitle = subtitleList.lastSyncedSubtitle();
+                    if(prevSubtitle) {
+                        syncEndTime(prevSubtitle);
+                    }
+                }
+            }
+        }
+
+        return SubtitleSyncManager;
     }]);
 }).call(this);

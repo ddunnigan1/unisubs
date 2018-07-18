@@ -1,9 +1,5 @@
-describe('TimelineController', function() {
-    var subtitleList = null;
-    var $scope = null;
-    var subtitles = [];
-    var MIN_DURATION = null;
-    var VideoPlayer = null;
+describe('SubtitleSyncManager', function() {
+    var subtitleList, $scope, subtitles, syncManager;
 
     beforeEach(module('amara.SubtitleEditor.timeline.controllers'));
     beforeEach(module('amara.SubtitleEditor.subtitles.models'));
@@ -24,60 +20,15 @@ describe('TimelineController', function() {
         subtitles = subtitleList.subtitles;
     }));
 
-    beforeEach(inject(function($controller, $rootScope, $injector) {
+    beforeEach(inject(function($rootScope, SubtitleSyncManager) {
         $scope = $rootScope;
-        $scope.timelineShown = true;
-        $scope.timeline = {
-            shownSubtitle: null,
-            currentTime: null,
-            duration: null
-        };
-        $scope.workflow = {
-            stage: 'syncing'
-        };
-        $scope.selectSubtitle = jasmine.createSpy('selectSubtitle');
         $scope.workingSubtitles = {
-            'subtitleList': subtitleList,
+            subtitleList: subtitleList,
         }
-        MIN_DURATION = 250;
-        var controller = $controller('TimelineController', {
-            $scope: $scope,
-            MIN_DURATION: MIN_DURATION,
-        });
-        // in our tests, we make will sync happen by emitting work-done.  In
-        // that case, the TimelineController also calls redrawSubtitles/redrawCanvas, so we
-        // need to mock it.
-        $scope.redrawCanvas = jasmine.createSpy('redrawCanvas');
-        $scope.redrawSubtitles = jasmine.createSpy('redrawSubtitles');
-        VideoPlayer = $injector.get('VideoPlayer');
+        syncManager = new SubtitleSyncManager($scope);
     }));
 
-    beforeEach(function() {
-        jasmine.addMatchers({
-            toHaveStartSub: function(util, customEqualityTesters) {
-                return {
-                    compare: function(actual, expected) {
-                        var start = actual.calls.mostRecent().args[1].start;
-                        return {
-                            pass: util.equals(start, expected)
-                        };
-                    }
-                };
-            },
-            toHaveEndSub: function(util, customEqualityTesters) {
-                return {
-                    compare: function(actual, expected) {
-                        var end = actual.calls.mostRecent().args[1].end;
-                        return {
-                            pass: util.equals(end, expected)
-                        };
-                    }
-                };
-            }
-        });
-    });
-
-    describe('syncing with the up key', function() {
+    describe('syncing end times', function() {
         var subtitle;
         beforeEach(function() {
             spyOn(subtitleList, 'updateSubtitleTime').and.callThrough();
@@ -88,13 +39,13 @@ describe('TimelineController', function() {
             subtitleList.updateSubtitleTime(subtitle, 10000, -1);
             $scope.currentTime = 11000;
             subtitleList.updateSubtitleTime.calls.reset();
-            $scope.$emit('up-pressed');
+            syncManager.syncUnsyncedEndTime();
 
             expect(subtitleList.updateSubtitleTime).toHaveBeenCalledWith(subtitle, 10000, 11000);
         });
 
         it("doesn't set the end time if no start time is set", function() {
-            $scope.$emit('up-pressed');
+            syncManager.syncUnsyncedEndTime();
             expect(subtitleList.updateSubtitleTime).not.toHaveBeenCalled();
         });
 
@@ -102,32 +53,14 @@ describe('TimelineController', function() {
             subtitleList.updateSubtitleTime(subtitle, 10000, -1);
             $scope.currentTime = 10001;
             subtitleList.updateSubtitleTime.calls.reset();
-            $scope.$emit('up-pressed');
+            syncManager.syncUnsyncedEndTime();
 
             expect(subtitleList.updateSubtitleTime).toHaveBeenCalledWith(subtitle, 10000, 10250);
         });
 
-        it("calls preventDefault", function() {
-            subtitleList.updateSubtitleTime(subtitle, 10000, -1);
-            $scope.currentTime = 10001;
-            var evt = $scope.$emit('up-pressed');
-
-            expect(evt.defaultPrevented).toBeTruthy();
-        });
-
-        it("does nothing if no unsynced subtitle is shown", function() {
-            subtitleList.updateSubtitleTime(subtitle, 10000, -1);
-            $scope.currentTime = 4000;
-            subtitleList.updateSubtitleTime.calls.reset();
-            var evt = $scope.$emit('up-pressed');
-
-            expect(subtitleList.updateSubtitleTime).not.toHaveBeenCalled();
-            expect(evt.defaultPrevented).toBeFalsy();
-        });
-
     });
 
-    describe('syncing with the down key', function() {
+    describe('syncing start times', function() {
         var firstSubtitle, secondSubtitle;
         beforeEach(function() {
             spyOn(subtitleList, 'updateSubtitleTimes').and.callThrough();
@@ -137,7 +70,7 @@ describe('TimelineController', function() {
 
         it("sets the start time of the first unsynced subtitle", function() {
             $scope.currentTime = 10000;
-            $scope.$emit('down-pressed');
+            syncManager.syncUnsyncedStartTime();
             expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
                     {
                         subtitle: firstSubtitle,
@@ -147,19 +80,6 @@ describe('TimelineController', function() {
             ]);
         });
 
-        it("calls preventDefault", function() {
-            $scope.currentTime = 10000;
-            var evt = $scope.$emit('down-pressed');
-            expect(evt.defaultPrevented).toBeTruthy();
-        });
-
-        it("does nothing if no unsynced subtitle is shown", function() {
-            $scope.currentTime = 4000;
-            var evt = $scope.$emit('down-pressed');
-            expect(subtitleList.updateSubtitleTimes).not.toHaveBeenCalled();
-            expect(evt.defaultPrevented).toBeFalsy();
-        });
-
         describe('down key when the first unsynced subtitle has a start time set', function() {
             beforeEach(function() {
                 subtitleList.updateSubtitleTime(firstSubtitle, 10000, -1);
@@ -167,7 +87,7 @@ describe('TimelineController', function() {
 
             it("sets the start time of the second unsynced subtitle and the end time of the first unsynced subtitle", function() {
                 $scope.currentTime = 11000;
-                $scope.$emit('down-pressed');
+                syncManager.syncUnsyncedStartTime();
                 expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
                         {
                             subtitle: firstSubtitle,
@@ -184,7 +104,7 @@ describe('TimelineController', function() {
 
             it("respects MIN_DURATION when setting end times", function() {
                 $scope.currentTime = 10001;
-                $scope.$emit('down-pressed');
+                syncManager.syncUnsyncedStartTime();
                 expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
                         {
                             subtitle: firstSubtitle,
@@ -210,7 +130,7 @@ describe('TimelineController', function() {
                         break;
                     }
                 }
-                $scope.$emit('down-pressed');
+                syncManager.syncUnsyncedStartTime();
                 expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
                         {
                             subtitle: firstSubtitle,
@@ -219,6 +139,95 @@ describe('TimelineController', function() {
                         }
                 ]);
             });
+        });
+    });
+
+    describe('adjusting already synced subtitles', function() {
+        beforeEach(function() {
+            spyOn(subtitleList, 'updateSubtitleTimes').and.callThrough();
+            firstSubtitle = subtitleList.firstUnsyncedSubtitle();
+            secondSubtitle = subtitleList.secondUnsyncedSubtitle();
+        });
+
+        it("syncs the closest start/end time to the current time", function() {
+            // moving start time forward
+            $scope.currentTime = 1050;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
+                    {
+                        subtitle: subtitles[1],
+                        startTime: 1050,
+                        endTime: 1500,
+                    }
+            ]);
+
+            // moving end time forward
+            subtitleList.updateSubtitleTimes.calls.reset();
+            $scope.currentTime = 1550;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
+                    {
+                        subtitle: subtitles[1],
+                        startTime: 1050,
+                        endTime: 1550,
+                    }
+            ]);
+
+            // moving start time backward
+            subtitleList.updateSubtitleTimes.calls.reset();
+            $scope.currentTime = 950;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
+                    {
+                        subtitle: subtitles[1],
+                        startTime: 950,
+                        endTime: 1550,
+                    }
+            ]);
+
+            // moving end time backward
+            subtitleList.updateSubtitleTimes.calls.reset();
+            $scope.currentTime = 1450;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
+                    {
+                        subtitle: subtitles[1],
+                        startTime: 950,
+                        endTime: 1450,
+                    }
+            ]);
+        });
+
+        it("doesn't sync if there is no timing within 1 second", function() {
+            subtitleList.removeSubtitle(subtitles[2]);
+            subtitleList.removeSubtitle(subtitles[1]);
+
+            $scope.currentTime = 1999;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).not.toHaveBeenCalled();
+
+            $scope.currentTime = 1501;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).not.toHaveBeenCalled();
+        });
+
+        it("syncs both start and end times if they're touching", function() {
+            subtitleList.updateSubtitleTime(subtitles[0], 0, 1000);
+
+            $scope.currentTime = 1050;
+            syncManager.adjustClosestTiming();
+            expect(subtitleList.updateSubtitleTimes).toHaveBeenCalledWith([
+                    {
+                        subtitle: subtitles[1],
+                        startTime: 1050,
+                        endTime: 1500
+                    },
+                    {
+                        subtitle: subtitles[0],
+                        startTime: 0,
+                        endTime: 1050
+                    }
+            ]);
         });
     });
 
