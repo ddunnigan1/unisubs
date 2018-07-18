@@ -115,6 +115,7 @@ var angular = angular || null;
             this.changeGroup = 'timeline-drag-' + changeGroupCounter++;
             this.minDeltaMS = -Number.MAX_SAFE_INTEGER;
             this.maxDeltaMS = Number.MAX_SAFE_INTEGER;
+            this.snappings = []; // deltaMS values that we gravitate to when adjusting things with the mouse
         }
 
         DragHandler.prototype = {
@@ -164,10 +165,13 @@ var angular = angular || null;
             this.calcSubtitlesInvolved();
             this.calcInitialTimings();
             this.calcDragDoundaries();
+            this.calcSnappings();
             this.selectSubtitle();
         }
 
         _.extend(SubtitleDragHandler.prototype, DragHandler.prototype, {
+            calcDragDoundaries: function() {},
+            calcSnappings: function() {},
             calcSubtitlesInvolved: function() {
                 this.draggingSubtitle = this.subtitleDiv.data('subtitle');
                 this.nextSubtitle = this.subtitleList.nextSubtitle(this.draggingSubtitle);
@@ -212,6 +216,12 @@ var angular = angular || null;
                     this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
                 }
             },
+            calcSnappings: function() {
+                this.snappings = [
+                    this.$scope.currentTime - this.draggingSubtitle.endTime,
+                    this.$scope.currentTime - this.draggingSubtitle.startTime,
+                ];
+            },
             onDrag: function(deltaMS) {
                 var deltaMS = this.clampDeltaMS(deltaMS);
                 var changes = [
@@ -248,6 +258,9 @@ var angular = angular || null;
                     this.minDeltaMS = Math.max(this.minDeltaMS, -(this.draggingSubtitle.startTime - this.prevSubtitle.endTime));
                 }
             },
+            calcSnappings: function() {
+                this.snappings = [this.$scope.currentTime - this.draggingSubtitle.startTime];
+            },
             onDrag: function(deltaMS) {
                 var deltaMS = this.clampDeltaMS(deltaMS);
                 var newStartTime = this.initialStartTime + deltaMS;
@@ -283,6 +296,9 @@ var angular = angular || null;
                     this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.startTime - this.draggingSubtitle.endTime);
                 }
             },
+            calcSnappings: function() {
+                this.snappings = [this.$scope.currentTime - this.draggingSubtitle.endTime];
+            },
             onDrag: function(deltaMS) {
                 var deltaMS = this.clampDeltaMS(deltaMS);
                 var newEndTime = this.initialEndTime + deltaMS;
@@ -315,6 +331,9 @@ var angular = angular || null;
                 this.maxDeltaMS = this.$scope.duration - this.draggingSubtitle.endTime;
                 this.maxDeltaMS = Math.min(this.maxDeltaMS, this.nextSubtitle.endTime - this.draggingSubtitle.endTime - MIN_DURATION);
             },
+            calcSnappings: function() {
+                this.snappings = [this.$scope.currentTime - this.draggingSubtitle.endTime];
+            },
             onDrag: function(deltaMS) {
                 var deltaMS = this.clampDeltaMS(deltaMS);
                 var newEndTime = this.initialEndTime + deltaMS;
@@ -341,6 +360,20 @@ var angular = angular || null;
                 this.$scope.selectSubtitle(this.draggingSubtitle, this.nextSubtitle);
             }
         });
+
+        // convert mouse movement in px to a deltaMS value that we can pass to onDrag
+        function deltaPXToDeltaMS(deltaPX, $scope, deltaMSSnappings) {
+            if(deltaMSSnappings) {
+                for(var i=0; i < deltaMSSnappings.length; i++) {
+                    var snapTo = deltaMSSnappings[i];
+
+                    if(Math.abs(durationToPixels(snapTo, $scope.scale) - deltaPX) <= 5) {
+                        return snapTo;
+                    }
+                }
+            }
+            return pixelsToDuration(deltaPX, $scope.scale);
+        }
 
         function handleDragAndDrop($scope, subtitlesContainer) {
             function createDragHandler(evt) {
@@ -386,7 +419,7 @@ var angular = angular || null;
                 initialPageX = evt.pageX;
 
                 $document.on('mousemove.timelinedrag', function(evt) {
-                    var deltaMS = pixelsToDuration(evt.pageX - initialPageX, $scope.scale);
+                    var deltaMS = deltaPXToDeltaMS(evt.pageX - initialPageX, $scope, dragHandler.snappings);
                     dragHandler.onDrag(deltaMS);
                     $scope.$root.$digest();
                 });
@@ -437,6 +470,7 @@ var angular = angular || null;
             SubtitleDragHandlerMiddle: SubtitleDragHandlerMiddle,
             SubtitleDragHandlerRight: SubtitleDragHandlerRight,
             SubtitleDragHandlerDual: SubtitleDragHandlerDual,
+            deltaPXToDeltaMS: deltaPXToDeltaMS,
             handleDragAndDrop: handleDragAndDrop
         }
 

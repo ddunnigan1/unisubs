@@ -101,6 +101,13 @@ describe('TimelineDrag', function() {
             expect(sub3.subtitle.getTimings()).toEqual([3000, 4000]);
         });
 
+        it("snaps the subtitle's start/end time to the current time", function() {
+            $scope.currentTime = 3400;
+            $scope.duration = 5000;
+            createHandler(TimelineDrag.SubtitleDragHandlerMiddle, sub3.div);
+            expect(dragHandler.snappings.sort()).toEqual([-600, 400]);
+        });
+
         it('selects the subtitle', function() {
             createHandler(TimelineDrag.SubtitleDragHandlerMiddle, sub3.div);
             expect($scope.selectSubtitle).toHaveBeenCalledWith(sub3.subtitle);
@@ -162,6 +169,12 @@ describe('TimelineDrag', function() {
             expect(sub3.subtitle.getTimings()).toEqual([2000, 4000]);
         });
 
+        it("snaps the subtitle's end time to the current time", function() {
+            $scope.currentTime = 3400;
+            createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub3.div);
+            expect(dragHandler.snappings).toEqual([400]);
+        });
+
         it('selects the subtitle', function() {
             createHandler(TimelineDrag.SubtitleDragHandlerLeft, sub2.div);
             expect($scope.selectSubtitle).toHaveBeenCalledWith(sub2.subtitle);
@@ -207,6 +220,12 @@ describe('TimelineDrag', function() {
             expect(sub2.subtitle.getTimings()).toEqual([1000, 3000]);
         });
 
+        it("snaps the subtitle's end time to the current time", function() {
+            $scope.currentTime = 3400;
+            createHandler(TimelineDrag.SubtitleDragHandlerRight, sub3.div);
+            expect(dragHandler.snappings).toEqual([-600]);
+        });
+
         it('selects the subtitle', function() {
             createHandler(TimelineDrag.SubtitleDragHandlerRight, sub2.div);
             expect($scope.selectSubtitle).toHaveBeenCalledWith(sub2.subtitle);
@@ -248,6 +267,12 @@ describe('TimelineDrag', function() {
             dragHandler.onDrag(1000);
             expect(sub1.subtitle.getTimings()).toEqual([0, 1750]);
             expect(sub2.subtitle.getTimings()).toEqual([1750, 2000]);
+        });
+
+        it("snaps the first subtitle's end time to the current time", function() {
+            $scope.currentTime = 1400;
+            createHandler(TimelineDrag.SubtitleDragHandlerDual, sub1.div);
+            expect(dragHandler.snappings).toEqual([400]);
         });
 
         it('selects the both subtitles', function() {
@@ -329,6 +354,22 @@ describe('TimelineDrag', function() {
             createHandler(TimelineDrag.DragHandlerTimeline, null);
             dragHandler.onDrag(-3001);
             expect(timelineDragSpy).toHaveBeenCalledWith(jasmine.any(Object), 3000);
+        });
+    });
+
+    describe('deltaPXToDeltaMS', function() {
+        it("converts 1px to 10 ms", function() {
+            expect(TimelineDrag.deltaPXToDeltaMS(1, $scope)).toEqual(10);
+            expect(TimelineDrag.deltaPXToDeltaMS(10, $scope)).toEqual(100);
+            expect(TimelineDrag.deltaPXToDeltaMS(-1, $scope)).toEqual(-10);
+        });
+
+        it("implements snapping", function() {
+            expect(TimelineDrag.deltaPXToDeltaMS(12, $scope, [100])).toEqual(100);
+            expect(TimelineDrag.deltaPXToDeltaMS(15, $scope, [100])).toEqual(100);
+            expect(TimelineDrag.deltaPXToDeltaMS(5, $scope, [100])).toEqual(100);
+            expect(TimelineDrag.deltaPXToDeltaMS(16, $scope, [100])).toEqual(160);
+            expect(TimelineDrag.deltaPXToDeltaMS(4, $scope, [100])).toEqual(40);
         });
     });
 
