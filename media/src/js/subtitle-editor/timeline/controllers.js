@@ -156,23 +156,22 @@
             updateTimeline({forcePlace: true});
         });
 
-        $scope.$root.$on('down-pressed', function($event) {
+        $scope.$root.$on('key-down', function(evt, keyEvent) {
             if(unsyncedShown()) {
-                SubtitleSyncManager.syncUnsyncedStartTime();
-                $event.preventDefault();
+                if(keyEvent.keyCode == 40) {
+                    SubtitleSyncManager.syncUnsyncedStartTime();
+                    evt.preventDefault();
+                } else if(keyEvent.keyCode == 38) {
+                    SubtitleSyncManager.syncUnsyncedEndTime();
+                    evt.preventDefault();
+                }
+            } else {
+                if(keyEvent.keyCode == 13) {
+                    SubtitleSyncManager.adjustClosestTiming();
+                    evt.preventDefault();
+                }
             }
-        });
-        $scope.$root.$on('up-pressed', function($event) {
-            if(unsyncedShown()) {
-                SubtitleSyncManager.syncUnsyncedEndTime();
-                $event.preventDefault();
-            }
-        });
-        $scope.$root.$on('enter-pressed', function($event) {
-            if(!unsyncedShown()) {
-                SubtitleSyncManager.adjustClosestTiming();
-                $event.preventDefault();
-            }
+
         });
     }]);
 

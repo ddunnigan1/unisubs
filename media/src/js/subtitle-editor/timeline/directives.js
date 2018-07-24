@@ -447,21 +447,22 @@ var angular = angular || null;
                 window.removeEventListener('click', stopKeyboardDrag, true);
             }
 
-            $scope.$root.$on('left-pressed', function(evt, keyEvent) {
+            $scope.$root.$on('key-down', function(evt, keyEvent) {
                 if(keyboardDragHandler) {
-                    keyboardDeltaMS -= keyEvent.shiftKey ? 10 : 100;
-                    keyboardDragHandler.onDrag(keyboardDeltaMS);
-                    evt.preventDefault();
+                    if(keyEvent.keyCode == 37) {
+                        keyboardDeltaMS -= keyEvent.shiftKey ? 10 : 100;
+                        keyboardDragHandler.onDrag(keyboardDeltaMS);
+                        evt.preventDefault();
+                    } else if(keyEvent.keyCode == 39) {
+                        keyboardDeltaMS += keyEvent.shiftKey ? 10 : 100;
+                        keyboardDragHandler.onDrag(keyboardDeltaMS);
+                        evt.preventDefault();
+                    } else if(keyEvent.keyCode == 27) {
+                        stopKeyboardDrag();
+                        evt.preventDefault();
+                    }
                 }
             });
-            $scope.$root.$on('right-pressed', function(evt, keyEvent) {
-                if(keyboardDragHandler) {
-                    keyboardDeltaMS += keyEvent.shiftKey ? 10 : 100;
-                    keyboardDragHandler.onDrag(keyboardDeltaMS);
-                    evt.preventDefault();
-                }
-            });
-            $scope.$root.$on('escape-pressed', stopKeyboardDrag);
         }
 
         return {

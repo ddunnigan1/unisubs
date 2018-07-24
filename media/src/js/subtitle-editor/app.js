@@ -555,6 +555,13 @@ var angular = angular || null;
             }
         }
         $scope.handleAppKeyDown = function(evt) {
+            var emittedEvent = $scope.$root.$emit("key-down", evt);
+            if(emittedEvent.defaultPrevented) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                return;
+            }
+
             // Reset the lock timer.
 	    var isDel = function(key) {
 		return ((key === 46) || (key === 8));
@@ -647,28 +654,17 @@ var angular = angular || null;
                 VideoPlayer.togglePlay();
                 // Space: toggle play / pause.
             } else if (evt.keyCode == 40) {
-                var emittedEvent = $scope.$root.$emit("down-pressed", evt);
-                if(!emittedEvent.defaultPrevented && $scope.selectedSubtitle) {
+                if($scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
                     $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
                 }
             } else if (evt.keyCode == 38) {
-                var emittedEvent = $scope.$root.$emit("up-pressed", evt);
-                if(!emittedEvent.defaultPrevented && $scope.selectedSubtitle) {
+                if($scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
                     $scope.selectSubtitle(subtitleList.prevSubtitle($scope.selectedSubtitle));
                 }
-            } else if (evt.keyCode == 37) {
-                $scope.$root.$emit("left-pressed", evt);
-            } else if (evt.keyCode == 39) {
-                $scope.$root.$emit("right-pressed", evt);
             } else if (evt.keyCode == 13) {
-                var emittedEvent = $scope.$root.$emit("enter-pressed", evt);
-                if(!emittedEvent.defaultPrevented) {
-                    insertAndEditSubtitle();
-                }
-            } else if (evt.keyCode == 27) {
-                $scope.$root.$emit("escape-pressed");
+                $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
             } else {
                 return;
             }
