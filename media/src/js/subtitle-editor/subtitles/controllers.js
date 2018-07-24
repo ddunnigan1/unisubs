@@ -1,4 +1,4 @@
-// Amara, universalsubtitles.org
+
 //
 // Copyright (C) 2013 Participatory Culture Foundation
 //
@@ -279,6 +279,7 @@ var angular = angular || null;
                 if(nextSubtitle === null) {
                     if(!$scope.timelineShown) {
                         $scope.currentEdit.appendAndStart(subtitleList);
+                        $scope.selectSubtitle($scope.currentEdit.subtitle);
                     }
                 } else {
                     $scope.selectSubtitle(nextSubtitle);

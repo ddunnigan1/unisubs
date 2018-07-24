@@ -133,7 +133,7 @@
         }
 
         function syncShownSubtitle() {
-            if($scope.timeline.shownSubtitle !== $scope.selectedSubtitle) {
+            if($scope.timeline.shownSubtitle !== $scope.selectedSubtitle && $scope.workflow.stage != 'typing') {
                 $scope.selectSubtitle($scope.timeline.shownSubtitle);
             }
         }

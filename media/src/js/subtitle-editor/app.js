@@ -562,10 +562,6 @@ var angular = angular || null;
                 return;
             }
 
-            // Reset the lock timer.
-	    var isDel = function(key) {
-		return ((key === 46) || (key === 8));
-	    };
 	    var isAltPressed = function(evt) {
 		return (evt.altKey || evt.metaKey);
 	    };
@@ -625,7 +621,7 @@ var angular = angular || null;
 		    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
 			$scope.currentEdit.subtitle);
                 }
-            } else if (isDel(evt.keyCode)) {
+            } else if (evt.keyCode == 46 && !evt.altKey && !evt.shiftKey && !evt.ctrlKey) {
                 // del, remove current subtitle
                 if($scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
@@ -664,6 +660,7 @@ var angular = angular || null;
                     $scope.selectSubtitle(subtitleList.prevSubtitle($scope.selectedSubtitle));
                 }
             } else if (evt.keyCode == 13) {
+                var subtitleList = $scope.workingSubtitles.subtitleList;
                 $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
             } else {
                 return;
@@ -694,8 +691,10 @@ var angular = angular || null;
             if(secondarySubtitle === undefined) {
                 secondarySubtitle = null;
             }
-            if(subtitle != $scope.selectSubtitle || secondarySubtitle != $scope.secondarySubtitle) {
-                $scope.currentEdit.finish($scope.workingSubtitles.subtitleList);
+            if(subtitle != $scope.selectedSubtitle || secondarySubtitle != $scope.secondarySubtitle) {
+                if($scope.currentEdit.inProgress() && $scope.currentEdit.subtitle != subtitle) {
+                    $scope.currentEdit.finish($scope.workingSubtitles.subtitleList);
+                }
                 $scope.selectedSubtitle = subtitle;
                 $scope.secondarySubtitle = secondarySubtitle;
                 $scope.$root.$emit('subtitle-selection-changed', subtitle, secondarySubtitle);

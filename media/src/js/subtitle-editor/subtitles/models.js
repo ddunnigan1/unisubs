@@ -1116,6 +1116,7 @@ var angular = angular || null;
                 this.subtitle = subtitleList.insertSubtitleAtEnd(this.autoCreatChangeGroup);
                 this.initialCaretPos = 0;
                 this.updateChangeGroup = 'text-edit-' + this.counter++;
+                return this.subtitle;
             },
             update: function(subtitleList, content) {
                 if(this.hasChanges(content)) {
