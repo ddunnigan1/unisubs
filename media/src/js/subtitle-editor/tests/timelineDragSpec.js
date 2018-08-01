@@ -56,8 +56,11 @@ describe('TimelineDrag', function() {
         sub3 = makeSubtitle(3000, 4000, 'sub3');
     }));
 
-    function createHandler(handlerClass, subtitleDiv) {
-        dragHandler = new handlerClass($scope, subtitleDiv);
+    function createHandler(handlerClass, subtitleDiv, clickTime) {
+        if(clickTime === undefined) {
+            clickTime = 0;
+        }
+        dragHandler = new handlerClass($scope, subtitleDiv, clickTime);
     }
 
     describe('SubtitleDragHandlerMiddle', function() {
@@ -316,7 +319,7 @@ describe('TimelineDrag', function() {
         });
 
         it("emits timeline-drag when the timeline is dragged", function() {
-            createHandler(TimelineDrag.DragHandlerTimeline, null);
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
             dragHandler.onDrag(200);
 
             expect(timelineDragSpy).toHaveBeenCalledWith(jasmine.any(Object), -200);
@@ -332,26 +335,32 @@ describe('TimelineDrag', function() {
         });
 
         it("calls redrawSubtitles when the timeline is dragged", function() {
-            createHandler(TimelineDrag.DragHandlerTimeline, null);
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
             dragHandler.onDrag(200);
             expect($scope.redrawSubtitles).toHaveBeenCalledWith({ deltaMS: -200});
         });
 
         it("seeks the video when the mouse is released", function() {
-            createHandler(TimelineDrag.DragHandlerTimeline, null);
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
             dragHandler.onDrag(200);
             dragHandler.onEnd();
             expect(VideoPlayer.seek).toHaveBeenCalledWith(800);
         });
 
+        it("seeks to clickTime if no motion is deticted", function() {
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
+            dragHandler.onEnd();
+            expect(VideoPlayer.seek).toHaveBeenCalledWith(1500);
+        });
+
         it("doesn't seek before time=0", function() {
-            createHandler(TimelineDrag.DragHandlerTimeline, null);
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
             dragHandler.onDrag(1001);
             expect(timelineDragSpy).toHaveBeenCalledWith(jasmine.any(Object), -1000);
         });
 
         it("doesn't seek past duration", function() {
-            createHandler(TimelineDrag.DragHandlerTimeline, null);
+            createHandler(TimelineDrag.DragHandlerTimeline, null, 1500);
             dragHandler.onDrag(-3001);
             expect(timelineDragSpy).toHaveBeenCalledWith(jasmine.any(Object), 3000);
         });
