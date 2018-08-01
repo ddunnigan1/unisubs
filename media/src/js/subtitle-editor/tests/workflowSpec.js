@@ -137,6 +137,7 @@ describe('when the enter key creates a new subtitle', function() {
         $scope.workingSubtitles = {
             subtitleList: subtitleList,
         }
+        $scope.selectSubtitle = jasmine.createSpy('selectSubtitles');
         $scope.timelineShown = false;
         $scope.currentEdit = new CurrentEditManager();
         $scope.getSubtitleRepeatItem = function() {
