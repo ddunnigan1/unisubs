@@ -4,6 +4,7 @@
 <html {% if LANGUAGE_BIDI %}dir="rtl"{% endif %} xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" xml:lang="en" lang="en" {% block html_attrs %}{% endblock %} class="base">
 
 <head>
+  {% include "gtm-head.html" %}
   <title>{% block title %}Amara - {% trans 'Caption, translate, subtitle and transcribe video.' %}{% endblock %}</title>
   <link href='//fonts.googleapis.com/css?family=Raleway:200,300' rel='stylesheet' type='text/css'>
   <link href='//fonts.googleapis.com/css?family=Roboto:300,400' rel='stylesheet' type='text/css'>
@@ -70,6 +71,7 @@
 </head>
 
 <body {% block body_attrs %}{% endblock %}>
+{% include "gtm-body.html" %}
     {% announcement %}
     {% if user.is_authenticated %}
         {% messages %}
