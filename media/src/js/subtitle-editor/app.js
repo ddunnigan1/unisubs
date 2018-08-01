@@ -669,6 +669,14 @@ var angular = angular || null;
             evt.stopPropagation();
         };
 
+        $scope.handleAppMouseDown = function(evt) {
+            // Keep focus in the current text edit when a play button is clicked
+            if($scope.currentEdit.inProgress() &&
+                    $(evt.target).closest('.play-button').length > 0) {
+                evt.preventDefault();
+            }
+        }
+
         $scope.handleBadgeMouseClick = function(evt) {
             evt.stopPropagation();
         };

@@ -5,7 +5,7 @@
     <div class="subtitle-overlay bottom" ng-show="displayedSubtitle" dir="{{ language.dir }}"><div class="subtitle-overlay-text" ng-bind-html="displayedSubtitleMarkup"></div></div>
     <ul class="video-controls group">
         <li class="play-pause" ng-class="{'playing': videoState.playing}">
-        <a href="#" ng-click="playPauseClicked($event);"></a>
+        <a href="#" ng-click="playPauseClicked($event);" class="play-button"></a>
         </li>
         <li class="time">
         <span ng-show="videoState.loaded">

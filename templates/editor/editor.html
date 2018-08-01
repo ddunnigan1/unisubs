@@ -4,8 +4,7 @@
     subtitle-editor
     ng-controller="AppController"
     lang="{{ language.language_code }}"
-    ng-mousemove="handleAppMouseMove($event)"
-    ng-click="handleAppMouseClick($event)">
+    ng-mousedown="handleAppMouseDown($event)">
 <head>
     {% include "gtm-head.html" %}
     <meta charset="utf-8" />
