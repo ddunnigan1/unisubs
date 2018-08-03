@@ -149,9 +149,9 @@ class GUITest(Command):
         ensure_node_modules()
         run_node(['node', 'node_modules/gulp/bin/gulp.js', 'build'])
         run_manage(['setup_guitests'], cwd='guitests')
-        cmdline = ['docker-compose', 'run', '--rm', 'test', 'test', '--gui']
+        cmdline = ['docker-compose', 'run', '--rm', 'test', 'guitest']
         cmdline.extend(self.args)
-        subprocess.call(cmdline, cwd="guitests")
+        subprocess.call(cmdline, cwd='guitests')
         subprocess.call(['docker-compose', 'stop'], cwd='guitests')
 
 class GUITestLogs(Command):

@@ -2,12 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    {% include "gtm-head.html" %}
     <title>Amara widget</title>
     <meta charset="utf-8" />
     {% media_bundle 'embedder.css' %}
     {% media_bundle 'embedder.js' %}
   </head>
   <body>
+    {% include "gtm-body.html" %}
     <!--    <div class="container"> -->
     <div>
       <div id="widget-div" class="amara-embed"></div>

@@ -32,6 +32,7 @@ def current_commit(request):
 
 def custom(request):
     return {
+        'GOOGLE_TAG_MANAGER_ID': settings.GOOGLE_TAG_MANAGER_ID,
         'GOOGLE_ANALYTICS_NUMBER': settings.GOOGLE_ANALYTICS_NUMBER,
         'GOOGLE_ADWORDS_CODE': settings.GOOGLE_ADWORDS_CODE,
         'DEBUG': settings.DEBUG

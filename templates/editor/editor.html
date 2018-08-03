@@ -7,6 +7,7 @@
     ng-mousemove="handleAppMouseMove($event)"
     ng-click="handleAppMouseClick($event)">
 <head>
+    {% include "gtm-head.html" %}
     <meta charset="utf-8" />
     <title>
         {% blocktrans with language.get_language_code_display as language %}
@@ -39,6 +40,7 @@
 
 </head>
 <body ng-class="{ 'timeline-shown': timelineShown, 'loading-finished': loadingFinished, 'tutorial-shown': tutorialShown }">
+{% include "gtm-body.html" %}
 <aside class="freeze-box" id="loading"><h1>{% trans "Loading subtitle editor&hellip;" %}</h1></aside>
 <aside class="overlay ng-cloak" id="tutorial" ng-cloak>
   {% include 'editor/tutorial.html' %}

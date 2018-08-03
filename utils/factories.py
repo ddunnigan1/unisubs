@@ -85,8 +85,9 @@ class VideoFactory(DjangoModelFactory):
                              added_by=video.user)
 
     @factory.post_generation
-    def update_video_search_index(video, created, extracted, **attrs):
-        video.update_search_index()
+    def index(video, create, extracted, **attrs):
+        if extracted:
+            video.update_search_index()
 
     @factory.post_generation
     def with_many_visibility_combinations(video, create, extracted, **kwargs):

@@ -87,16 +87,8 @@ services:
   test:
     image: amara-app
     command: test
-    environment:
-      DJANGO_SETTINGS_MODULE: dev_settings_test
-      LANG: en_US.UTF-8
     volumes:
       - .:/opt/apps/amara:z
       - amara-pytest-data:/var/run/pytest/
-    depends_on:
-      - db
-      - queue
-      - cache
-      - asset-builder
 volumes:
   amara-pytest-data:

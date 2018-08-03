@@ -4,6 +4,7 @@
 <html {% if LANGUAGE_BIDI %}dir="rtl"{% endif %} {% block html_attrs %}{% endblock %}>
 
 <head>
+  {% include "gtm-head.html" %}
   <title>{% block title %}Amara - {% trans 'Caption, translate, subtitle and transcribe video.' %}{% endblock %}</title>
   <link href='//fonts.googleapis.com/css?family=Merriweather:700' rel='stylesheet' type='text/css'>
   <link href='//fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
@@ -44,6 +45,7 @@
 </head>
 
 <body>
+{% include "gtm-body.html" %}
     {% new_announcement %}
     {% if user.is_authenticated %}
         {% messages %}

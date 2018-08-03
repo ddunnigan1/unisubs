@@ -24,12 +24,13 @@ import os
 HOSTNAME = 'unisubs.example.com:8000'
 
 INSTALLED_APPS += (
-    'debug_toolbar',
     'sslserver',
 )
-MIDDLEWARE_CLASSES = (
-        'debug_toolbar.middleware.DebugToolbarMiddleware',
-) + MIDDLEWARE_CLASSES
+if not env_flag_set('DISABLE_DEBUG_TOOLBAR'):
+    INSTALLED_APPS += ('debug_toolbar',)
+    MIDDLEWARE_CLASSES = (
+            'debug_toolbar.middleware.DebugToolbarMiddleware',
+    ) + MIDDLEWARE_CLASSES
 
 BROKER_URL = 'amqp://guest:guest@queue:5672'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -82,7 +83,7 @@ CELERY_ALWAYS_EAGER = False
 CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)
 
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': lambda request: ((not request.is_ajax()) and (os.environ.get('SHOW_DEBUG_TOOLBAR') != "False"))
+    'SHOW_TOOLBAR_CALLBACK': lambda request: not request.is_ajax()
 }
 
 # Or you can use redis as backend
