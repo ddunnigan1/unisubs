@@ -25,6 +25,7 @@ from externalsites import credit
 from externalsites import subfetch
 from externalsites import tasks
 from externalsites import google
+from externalsites.google import OAuthError
 from externalsites.models import (KalturaAccount, YouTubeAccount,
                                   get_sync_accounts, get_sync_account)
 from subtitles.models import (SubtitleLanguage, SubtitleVersion, ORIGIN_IMPORTED)
@@ -95,7 +96,12 @@ in all the videos in the YT account about to be deleted
 def remove_credit_in_youtube_videos(sender, instance, **kwargs):
     video_urls = VideoUrl.objects.filter(type=VIDEO_TYPE_YOUTUBE,
                                owner_username=instance.channel_id)
-    access_token = google.get_new_access_token(instance.oauth_refresh_token)
+    try:
+        access_token = google.get_new_access_token(instance.oauth_refresh_token)
+    except OAuthError as e:
+        logger.error("Failed to get OAuth token for {} when attempting to delete video credits".format(sender))
+        logger.error(e)
+
     for video_url in video_urls:
         if credit.should_remove_credit_to_video_url(video_url, instance):
             tasks.remove_credit_to_video_url.delay(video_url, access_token)

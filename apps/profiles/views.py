@@ -37,7 +37,6 @@ from profiles.forms import (EditUserForm, EditAccountForm, SendMessageForm,
                             EditAvatarForm, AdminProfileForm, EditNotificationsForm)
 from profiles.rpc import ProfileApiClass
 import externalsites.models
-# from externalsites.tasks import remove_credit_from_synced_youtube_videos
 from utils.objectlist import object_list
 from utils.orm import LoadRelatedQuerySet
 from utils.rpc import RpcRouter
