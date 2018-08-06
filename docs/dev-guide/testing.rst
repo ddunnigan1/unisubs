@@ -21,12 +21,11 @@ To stop after the first failure:
 
     $ dev test -x
 
-To run tests from a single file (relative to the unisubs repository root
-directory)
+To run tests from a single module
 
 ::
 
-    $ dev test [path]
+    $ dev test module.name
 
 To run tests matching a particular pattern (matches against filenames, class
 name, method/function name, pytest marks, etc).

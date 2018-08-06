@@ -40,7 +40,7 @@
     </div>
     <div class="selectList-memberDetails">
       <h3>
-        <a href="{% url 'teams:member-profile' slug=team.slug username=member.user.username %}">
+        <a href="{% url 'teams:member-profile' slug=team.slug username=member.user.username %}" class="no-underline">
             {{member.user}}</a>
       </h3>
       <h3>({{member.user.display_username}})</h3>
@@ -71,7 +71,7 @@
       <p>{{ member.user.get_languages|to_localized_display_list }}<p>
     </div>
     <div class="selectList-itemActions">
-      <a href="{% url 'messages:new' %}?user={{ member.user.username }}"><i class="icon icon-mail"></i></a>
+      <a href="{% url 'messages:new' %}?user={{ member.user.username }}" class="no-underline"><i class="icon icon-mail"></i></a>
     </div>
   </li>
   {% endfor %}

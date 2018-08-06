@@ -16,6 +16,10 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+
 class Page(object):
     # Subclasses should define this as
     path = None
@@ -33,3 +37,29 @@ class Page(object):
 
     def navigate(self):
         self.driver.get(self.full_url())
+
+    def wait_for_element(self, css_selector, timeout=10):
+        """
+        Wait for an element to be present in the DOM, then return it
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        return wait.until(expected_conditions.presence_of_element_located(
+            (By.CSS_SELECTOR, css_selector)))
+
+    def wait_for_visible(self, css_selector, timeout=10):
+        """
+        Wait for an element to be present in the DOM, then return it
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        return wait.until(expected_conditions.visibility_of_element_located(
+            (By.CSS_SELECTOR, css_selector)))
+
+    def wait_for_clickable(self, css_selector, timeout=10):
+        """
+        Wait for an element to be clickable, then return that element
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        return wait.until(expected_conditions.element_to_be_clickable(
+            (By.CSS_SELECTOR, css_selector)))
+
+

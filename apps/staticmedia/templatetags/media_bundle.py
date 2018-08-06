@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from django import template
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils.html import format_html
 from django.utils.translation import to_locale
 from utils.translation import get_language_label
 
@@ -29,10 +30,28 @@ from staticmedia import utils
 
 register = template.Library()
 
-@register.simple_tag
-def media_bundle(bundle_name):
+@register.simple_tag(takes_context=True)
+def media_bundle(context, bundle_name):
+    if context.get('experimental') and bundle_name in ('editor.js',
+                                                       'editor.css'):
+        return experimental_editor_tag(bundle_name)
     bundle = bundles.get_bundle(bundle_name)
     return bundle.get_html()
+
+def experimental_editor_tag(bundle_name):
+    # somewhat hacky code to handle the experimental editor
+    if not settings.STATIC_MEDIA_USES_S3:
+        raise AssertionError("Can't use the experimental editor "
+                             "without STATIC_MEDIA_USES_S3 set")
+    if bundle_name == 'editor.js':
+        url = "{}experimental/js/editor.js".format(utils.static_url())
+        return format_html('<script src="{}"></script>', url)
+    elif bundle_name == 'editor.css':
+        url = "{}experimental/css/editor.css".format(utils.static_url())
+        return '<link href="{}" rel="stylesheet" type="text/css" />'.format(
+            url)
+    else:
+        raise ValueError("Unkown bundle name: {}").format(bundle_name)
 
 @register.simple_tag
 def url_for(bundle_name):

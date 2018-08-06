@@ -1,1 +1,0 @@
-Git does not like empty dirs in source control. We forgive you, git.

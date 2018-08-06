@@ -8,7 +8,7 @@
     <div class="content">
       <div class="row">
         <div class="col-xs-12 col-sm-3">
-	  <h1><a href="#">{{ member_user.get_full_name }}</a></h1>
+	  <h1>{{ member_user.get_full_name }}</h1>
 	  <p>{{ member_user.display_username }}</p>
 	  <div class="profileWell">
 	    <div class="row middle-xs">
@@ -16,7 +16,7 @@
 		{{ member_user.avatar_tag_extra_large }}
 	      </div>
 	      <div class="col-xs">
-		<h3>{{ member.get_role_display }} <a href="{{ member_user.send_message_url }}"><i class="icon icon-mail"></i></a></h3>
+		<h3>{{ member.get_role_display }} <a class="no-underline" href="{{ member_user.send_message_url }}"><i class="icon icon-mail"></i></a></h3>
 		<p><!--
 		  <a href="{% url "teams:activity" team.slug %}">{% trans "See team activity" %}</a><br>-->
 		  <a href="{% url "profiles:profile" member_user.username %}">{% trans "See full profile" %}</a>

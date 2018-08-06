@@ -144,7 +144,10 @@ class SubtitleEditorBase(View):
         return ""
 
     def get_title(self):
-        return _('Amara')
+        if self.experimental:
+            return _('Amara - Experimental')
+        else:
+            return _('Amara')
 
     def calc_base_language(self):
         if (self.video.primary_audio_language_code and 
@@ -387,6 +390,7 @@ class SubtitleEditorBase(View):
         self.languages = self.video.newsubtitlelanguage_set.annotate(
             num_versions=Count('subtitleversion'))
         editor_data = self.get_editor_data()
+        self.experimental = 'experimental' in request.GET
 
         context = {
             'title': self.get_title(),
@@ -396,6 +400,7 @@ class SubtitleEditorBase(View):
             'other_languages': self.languages,
             'version': self.editing_version,
             'translated_from_version': self.translated_from_version,
+            'experimental': self.experimental,
             'upload_subtitles_form': SubtitlesUploadForm(
                 request.user, self.video,
                 initial={'language_code':
@@ -410,6 +415,8 @@ class SubtitleEditorBase(View):
 class SubtitleEditor(SubtitleEditorBase):
     @method_decorator(xframe_options_exempt)
     def dispatch(self, request, *args, **kwargs):
+        if 'legacy' in request.GET:
+            return old_editor(request, *args, **kwargs)
         return super(SubtitleEditor, self).dispatch(
             request, *args, **kwargs)
 
