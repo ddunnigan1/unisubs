@@ -98,10 +98,10 @@ def remove_credit_in_youtube_videos(sender, instance, **kwargs):
                                owner_username=instance.channel_id)
     try:
         access_token = google.get_new_access_token(instance.oauth_refresh_token)
+
+        for video_url in video_urls:
+            if credit.should_remove_credit_to_video_url(video_url, instance):
+                tasks.remove_credit_to_video_url.delay(video_url, access_token)
     except OAuthError as e:
         logger.error("Failed to get OAuth token for {} when attempting to delete video credits".format(sender))
-        logger.error(e)
-
-    for video_url in video_urls:
-        if credit.should_remove_credit_to_video_url(video_url, instance):
-            tasks.remove_credit_to_video_url.delay(video_url, access_token)
+        logger.error(e)   
