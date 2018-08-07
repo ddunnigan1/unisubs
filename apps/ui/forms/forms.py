@@ -284,18 +284,18 @@ class ManagementFormList(object):
             pass
         return form_list
 
-    def all(self, *permissions_check_args):
+    def all(self, *permissions_check_args, **permissions_check_kwargs):
         return [
             f for f in self.forms.values()
-            if f.permissions_check(*permissions_check_args)
+            if f.permissions_check(*permissions_check_args, **permissions_check_kwargs)
         ]
 
-    def lookup(self, name, *permissions_check_args):
+    def lookup(self, name, *permissions_check_args, **permissions_check_kwargs):
         try:
             form = self.forms[name]
         except KeyError:
             return None
-        if form.permissions_check(*permissions_check_args):
+        if form.permissions_check(*permissions_check_args, **permissions_check_kwargs):
             return form
         else:
             return None
