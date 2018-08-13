@@ -23,12 +23,13 @@ import os
 
 from babelsubs.generators.srt import SRTGenerator
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from auth.models import CustomUser as User
 from subtitles.forms import SubtitlesUploadForm
-from subtitles.tests.utils import (
+from tests.subtitles.utils import (
     make_video, make_sl, make_subtitle_set, refresh
 )
 
@@ -61,8 +62,9 @@ class SubtitleUploadFormTest(TestCase):
 
     def test_unicode_in_and_out(self):
         # load the srt file
-        app_dir =os.path.join(os.path.split(os.path.dirname(__file__))[0], 'fixtures')
-        rst_data = open(os.path.join(app_dir,  'unicode.srt'), 'r')
+        fixtures_dir = os.path.join(settings.PROJECT_ROOT,
+                                    'apps/subtitles/fixtures')
+        rst_data = open(os.path.join(fixtures_dir,  'unicode.srt'), 'r')
         # upload it
         form = SubtitlesUploadForm(
             self.user,

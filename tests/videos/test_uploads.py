@@ -20,6 +20,7 @@
 import os
 import json
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from auth.models import CustomUser as User
@@ -28,10 +29,10 @@ from subtitles.models import ORIGIN_UPLOAD
 from videos import metadata_manager
 from videos.models import Video, SubtitleLanguage, Subtitle
 from videos.tasks import video_changed_tasks
-from videos.tests.data import (
+from tests.videos.data import (
     get_video, get_user, make_subtitle_language
 )
-from videos.tests.videotestutils import (
+from tests.videos.videotestutils import (
     WebUseTest, refresh_obj, _create_trans
 )
 from widget.rpc import Rpc
@@ -48,7 +49,8 @@ class UploadRequiresLoginTest(WebUseTest):
 
 class UploadSubtitlesTest(WebUseTest):
     def _srt(self, filename):
-        return os.path.join(up(up(__file__)), 'fixtures/%s' % filename)
+        return os.path.join(settings.PROJECT_ROOT, 'apps/videos/fixtures',
+                            filename)
 
     def _data(self, video, language_code, primary_audio_language_code,
               from_language_code, complete, draft):

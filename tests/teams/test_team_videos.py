@@ -24,7 +24,7 @@ from django.test import TestCase
 import mock
 from nose.tools import *
 
-from caching.tests.utils import assert_invalidates_model_cache
+from tests.caching.utils import assert_invalidates_model_cache
 from teams.models import Project, TeamVideoMigration
 from utils import test_utils
 from utils.factories import *

@@ -18,7 +18,7 @@
 
 from django.test import TestCase
 
-from caching.tests.utils import assert_invalidates_model_cache
+from tests.caching.utils import assert_invalidates_model_cache
 from subtitles import pipeline
 from subtitles.models import SubtitleLanguage
 from utils.factories import *

@@ -27,8 +27,8 @@ from utils.factories import *
 from videos.models import Video
 from videos.templatetags.subtitles_tags import language_url
 from videos.templatetags.videos_tags import shortlink_for_video
-from videos.tests.data import get_video, make_subtitle_language
-from videos.tests.videotestutils import WebUseTest
+from tests.videos.data import get_video, make_subtitle_language
+from tests.videos.videotestutils import WebUseTest
 
 class TestTemplateTags(TestCase):
     def test_language_url_for_empty_lang(self):

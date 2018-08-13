@@ -31,7 +31,7 @@ from babelsubs.storage import SubtitleSet
 from auth.models import CustomUser as User
 from subtitles import pipeline
 from subtitles.models import SubtitleLanguage, SubtitleVersion
-from subtitles.tests.utils import (
+from tests.subtitles.utils import (
     make_video, make_video_2, make_video_3, make_sl, refresh, ids, parent_ids,
     ancestor_ids
 )

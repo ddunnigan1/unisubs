@@ -25,7 +25,7 @@ from utils import test_utils
 from utils.factories import *
 from teams.models import TeamVideo
 from videos.models import VideoFeed
-from videos.tests.test_feeds import FeedImportTest
+from tests.videos.test_feeds import FeedImportTest
 
 class TeamAddVideosTest(FeedImportTest):
     def test_video_feed_submit(self):

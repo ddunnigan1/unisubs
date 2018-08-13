@@ -28,7 +28,7 @@ from auth.models import CustomUser as User
 from subtitles.pipeline import add_subtitles
 from utils.factories import *
 from videos.models import Video, SubtitleLanguage, SubtitleVersion
-from videos.tests.data import get_user
+from tests.videos.data import get_user
 
 SRT = u"""1
 00:00:00,004 --> 00:00:02,093

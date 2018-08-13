@@ -24,7 +24,7 @@ from rest_framework.test import APIClient
 import mock
 
 from subtitles import pipeline
-from subtitles.tests.test_workflows import MockAction
+from tests.subtitles.test_workflows import MockAction
 from utils import test_utils
 from utils.factories import *
 

@@ -30,8 +30,8 @@ from babelsubs.storage import SubtitleSet, SubtitleLine
 from auth.models import CustomUser as User
 from subtitles import pipeline
 from subtitles.models import SubtitleLanguage, SubtitleVersion
-from subtitles.tests.utils import make_video, make_video_2
-from subtitles.tests.test_workflows import MockAction
+from tests.subtitles.utils import make_video, make_video_2
+from tests.subtitles.test_workflows import MockAction
 from utils.factories import *
 from utils import test_utils
 

@@ -28,7 +28,7 @@ from rest_framework.test import APIClient, APIRequestFactory
 import factory
 import mock
 
-from api.tests.utils import format_datetime_field, user_field_data
+from tests.api.utils import format_datetime_field, user_field_data
 from auth.models import CustomUser as User
 from notifications.models import TeamNotification
 from subtitles import pipeline

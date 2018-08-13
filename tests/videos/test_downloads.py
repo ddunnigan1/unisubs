@@ -27,7 +27,7 @@ from django.test import TestCase
 from subtitles.templatetags import new_subtitles_tags
 from utils.test_utils import reload_obj
 from videos.models import Video
-from videos.tests.data import (
+from tests.videos.data import (
     get_video, make_subtitle_language, make_subtitle_version
 )
 

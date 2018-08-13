@@ -20,7 +20,7 @@ from __future__ import absolute_import
 
 from django.test import TestCase
 
-from caching.tests.utils import assert_invalidates_model_cache
+from tests.caching.utils import assert_invalidates_model_cache
 from teams.models import MembershipNarrowing
 from utils.factories import *
 

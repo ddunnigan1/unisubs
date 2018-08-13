@@ -27,7 +27,7 @@ from django.test import TestCase
 
 from auth.models import CustomUser
 from subtitles import pipeline
-from subtitles.tests.utils import (
+from tests.subtitles.utils import (
     make_video
 )
 from teams.models import TeamMember

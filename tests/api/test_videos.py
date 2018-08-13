@@ -27,7 +27,7 @@ from rest_framework.test import APIClient, APIRequestFactory
 import mock
 import unittest
 
-from api.tests.utils import format_datetime_field
+from tests.api.utils import format_datetime_field
 from api.views.videos import VideoSerializer, VideoViewSet
 from subtitles import pipeline
 from teams.models import VideoVisibility

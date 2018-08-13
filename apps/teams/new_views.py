@@ -838,13 +838,21 @@ def welcome(request, team):
     })
 
 @team_view
-def manage_videos(request, team):
-    if not permissions.can_view_management_tab(team, request.user):
+def manage_videos(request, team, project_id=None):
+    member = team.get_member(request.user)
+    if (not permissions.can_view_management_tab(team, request.user) and
+       (not bool(project_id) or not member.is_project_manager(int(project_id)))):
         raise PermissionDenied()
+
     filters_form = forms.ManagementVideoFiltersForm(team, request.GET,
                                                     auto_id="id_filters_%s")
     videos = filters_form.get_queryset().select_related('teamvideo',
                                                         'teamvideo__video')
+    header = None
+    if (project_id):
+        header = Project.objects.get(id=int(project_id)).name
+        videos = videos.filter(teamvideo__project=project_id)
+
     enabled_forms = all_video_management_forms(team, request.user)
     paginator = AmaraPaginatorFuture(videos, VIDEOS_PER_PAGE_MANAGEMENT)
     page = paginator.get_page(request)
@@ -875,7 +883,11 @@ def manage_videos(request, team):
             (form.name, form.css_class, form.label)
             for form in enabled_forms
         ],
-    }
+        'project_id': project_id,
+        'management_extra_tabs' : team.new_workflow.management_page_extra_tabs(request, project_id=project_id),
+        'header': header,
+    }    
+
     if request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
         response_renderer.replace(
@@ -888,7 +900,6 @@ def manage_videos(request, team):
             '#videos-deselect-all', 'future/teams/management/videos-deselect-all.html',
             {})
         return response_renderer.render()
-
     return render(request, 'future/teams/management/videos.html', context)
 
 def manage_videos_context_menu(team, video, enabled_forms):

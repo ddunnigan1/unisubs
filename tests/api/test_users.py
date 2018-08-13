@@ -27,7 +27,7 @@ from rest_framework.test import APIClient, APIRequestFactory
 import mock
 
 from api.fields import UserField
-from api.tests.utils import user_field_data
+from tests.api.utils import user_field_data
 from auth.models import CustomUser as User, LoginToken
 from utils import test_utils
 from utils.factories import *

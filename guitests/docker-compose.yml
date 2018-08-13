@@ -8,6 +8,7 @@ services:
       LANG: en_US.UTF-8
       WORKERS: "2"
       DISABLE_LOGIN_CAPTCHA: "1"
+      DISABLE_DEBUG_TOOLBAR: "1"
     volumes:
       - ..:/opt/apps/amara:z
     depends_on:

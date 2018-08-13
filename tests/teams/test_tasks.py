@@ -8,7 +8,7 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 
 from auth.models import CustomUser as User
-from caching.tests.utils import assert_invalidates_model_cache
+from tests.caching.utils import assert_invalidates_model_cache
 from teams.forms import TaskCreateForm, TaskAssignForm
 from teams.models import Task, Team, TeamVideo, TeamMember
 from utils.testeditor import MockEditor

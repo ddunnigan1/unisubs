@@ -32,7 +32,7 @@ from subtitles.models import SubtitleLanguage
 from videos import signals
 from videos.models import Video, VideoUrl, VideoTypeUrlPattern
 from videos.tasks import video_changed_tasks
-from videos.tests.data import (
+from tests.videos.data import (
     get_video, make_subtitle_language, make_subtitle_version, make_rollback_to
 )
 from widget import video_cache

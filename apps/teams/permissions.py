@@ -529,6 +529,14 @@ def can_view_management_tab(team, user):
     """Return whether the given user can view the management pages """
     return team.user_is_manager(user)
 
+def can_view_project_or_language_management_tab(team, user):
+    member = team.get_member(user)
+    if not member:
+        return False
+    return (member.is_a_project_or_language_manager() and
+            not team.user_is_manager(user))
+
+
 def can_view_stats_tab(team, user):
     role = get_role_for_target(user, team)
     return not role == ROLE_OUTSIDER

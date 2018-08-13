@@ -22,7 +22,7 @@ RUN mkdir -p /opt/extras/pictures
 RUN mkdir -p /opt/extras/videos
 # this fixes the nose bug (https://github.com/django-nose/django-nose/issues/54)
 RUN rm /usr/local/man
-RUN mkdir -p /var/run/amara
+RUN mkdir -p /var/run/amara && mkdir -p /var/run/amara/tests
 RUN useradd --home /var/run/amara --shell /bin/bash amara
 RUN mkdir /var/run/amara/test-output/
 RUN chown -R amara:amara /var/run/amara

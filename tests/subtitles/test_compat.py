@@ -24,7 +24,7 @@ from django.test import TestCase
 from subtitles.compat import (
     subtitlelanguage_is_translation, subtitlelanguage_original_language_code
 )
-from subtitles.tests.utils import make_video, make_sl
+from tests.subtitles.utils import make_video, make_sl
 
 
 class TestTranslationShims(TestCase):

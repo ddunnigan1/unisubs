@@ -35,7 +35,7 @@ from teams.models import Task
 from teams.permissions_const import ROLE_ADMIN
 from videos.tasks import video_changed_tasks
 from videos.templatetags.subtitles_tags import format_sub_time
-from videos.tests.videotestutils import (
+from tests.videos.videotestutils import (
     WebUseTest, create_langs_and_versions
 )
 from videos import views
@@ -43,7 +43,7 @@ from videos.models import (
     Video, VideoUrl, Action, VIDEO_TYPE_YOUTUBE, SubtitleVersion,
     SubtitleLanguage, Subtitle
 )
-from videos.tests.data import (
+from tests.videos.data import (
     get_video, make_subtitle_language, make_subtitle_version
 )
 from widget import video_cache

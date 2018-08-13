@@ -2095,15 +2095,25 @@ class EditVideosForm(VideoManagementForm):
     thumbnail = forms.ImageField(widget=AmaraClearableFileInput,
                                  label=_('Thumbnail'), required=False)
 
+    '''
+    don't allow project managers to change the project of a video
+    '''
     def setup_fields(self):
-        self.fields['project'].setup(self.team)
+        member = self.team.get_member(self.user)
+        if not member.is_manager():
+            del self.fields['project']
+            self.show_project_field = False
+        else:
+            self.fields['project'].setup(self.team)
+            self.show_project_field = True
 
     def setup_single_selection(self, video):
         team_video = video.teamvideo
         self.fields['title'].required = True
-        self.fields['project'].required = True
-        self.fields['project'].initial = team_video.project.id
-        self.fields['project'].choices = self.fields['project'].choices[1:]
+        if self.show_project_field:
+            self.fields['project'].required = True
+            self.fields['project'].initial = team_video.project.id
+            self.fields['project'].choices = self.fields['project'].choices[1:]
         if video.primary_audio_language_code:
             self.fields['language'].set_options("popular all unset")
         else:

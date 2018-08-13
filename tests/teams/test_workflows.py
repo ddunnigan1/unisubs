@@ -19,7 +19,7 @@
 from django.test import TestCase
 
 from subtitles import pipeline
-from subtitles.tests.test_workflows import CompletePublishLogicTestBase
+from tests.subtitles.test_workflows import CompletePublishLogicTestBase
 from utils.factories import *
 from utils.test_utils import *
 

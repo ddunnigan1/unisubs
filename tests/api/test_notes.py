@@ -23,7 +23,7 @@ from nose.tools import *
 from rest_framework.test import APIClient
 import mock
 
-from api.tests.utils import format_datetime_field, user_field_data
+from tests.api.utils import format_datetime_field, user_field_data
 from subtitles import workflows
 from subtitles.models import SubtitleNote
 from utils import test_utils

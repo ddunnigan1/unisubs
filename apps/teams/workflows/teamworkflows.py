@@ -138,7 +138,7 @@ class TeamWorkflow(object):
         """
         return []
 
-    def management_page_extra_tabs(self, request):
+    def management_page_extra_tabs(self, request, *args, **kwargs):
         """Add extra sub tabs to the team management page.
 
         These appear near the top of the page.
