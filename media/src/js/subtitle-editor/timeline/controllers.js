@@ -157,16 +157,20 @@
         });
 
         $scope.$root.$on('key-down', function(evt, keyEvent) {
-            if(unsyncedShown()) {
-                if(keyEvent.keyCode == 40) {
-                    SubtitleSyncManager.syncUnsyncedStartTime();
-                    evt.preventDefault();
-                } else if(keyEvent.keyCode == 38) {
-                    SubtitleSyncManager.syncUnsyncedEndTime();
-                    evt.preventDefault();
+            if($scope.currentEdit.inProgress()) {
+                return;
+            } else if($scope.workflow.stage == 'syncing') {
+                if(unsyncedShown()) {
+                    if(keyEvent.keyCode == 40) {
+                        SubtitleSyncManager.syncUnsyncedStartTime();
+                        evt.preventDefault();
+                    } else if(keyEvent.keyCode == 38) {
+                        SubtitleSyncManager.syncUnsyncedEndTime();
+                        evt.preventDefault();
+                    }
                 }
             } else {
-                if(keyEvent.keyCode == 13) {
+                if(keyEvent.keyCode == 40) {
                     SubtitleSyncManager.adjustClosestTiming();
                     evt.preventDefault();
                 }

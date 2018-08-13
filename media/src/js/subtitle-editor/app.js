@@ -623,6 +623,9 @@ var angular = angular || null;
                 }
             } else if (evt.keyCode == 46 && !evt.altKey && !evt.shiftKey && !evt.ctrlKey) {
                 // del, remove current subtitle
+                if($scope.currentEdit.inProgress()) {
+                    return;
+                }
                 if($scope.selectedSubtitle) {
                     var subtitleList = $scope.workingSubtitles.subtitleList;
 
@@ -645,7 +648,7 @@ var angular = angular || null;
                 $scope.$root.$emit('text-edit-keystroke');
                 return;
 	    }
-		// Shortcuts that should be disabled while editing a subtitle
+            // Shortcuts that should be disabled while editing a subtitle
             else if (evt.keyCode === 32) {
                 VideoPlayer.togglePlay();
                 // Space: toggle play / pause.

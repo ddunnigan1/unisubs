@@ -42,8 +42,7 @@
             </div>
             <div class="instruction-item-small"></div>
             <div class="instruction-item blue-key clickable" ng-click="handleMouseKeyDown('38')">
-                <div class="key-pattern small">
-                    <img src="{{ STATIC_URL }}images/subtitle-editor/up_arrow.png"></img></div>
+                <div class="key-pattern small"><img src="{{ STATIC_URL }}images/subtitle-editor/up_arrow.png"></img></div>
                 <div class="shortcut-desc">{% trans "End subtitle" %}</div>
             </div>
         </div>
@@ -60,7 +59,7 @@
             <div class="shortcut-desc">{% trans "Skip back" %}</div>
         </div>
         <div class="instruction-item blue-key">
-            <div class="key-pattern">Enter</div>
+            <div class="key-pattern small"><img src="{{ STATIC_URL }}images/subtitle-editor/down_arrow.png"></img></div>
             <div class="shortcut-desc">{% trans "Sync start/end time to current time" %}</div>
         </div>
     </div>

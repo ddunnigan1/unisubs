@@ -66,7 +66,8 @@
             event.stopPropagation();
         };
 
-        $scope.$watch('timeline.shownSubtitle', function(subtitle) {
+        $scope.$watch('timeline.shownSubtitle.markdown', function() {
+            var subtitle = $scope.timeline.shownSubtitle;
             $scope.displayedSubtitle = subtitle;
             if(subtitle) {
                 $scope.displayedSubtitleMarkup = $sce.trustAsHtml(subtitle.content());

@@ -195,6 +195,12 @@ var angular = angular || null;
                 this.initialPrevEndTime = this.prevSubtitle ? this.prevSubtitle.endTime : null;
             },
             updateSubtitleTimes: function(changes) {
+                // Some of the changed subtitles might be drafts, if so, make sure we update the actual subtitle
+                _.each(changes, function(change) {
+                    if(change.subtitle.isDraft) {
+                        change.subtitle = change.subtitle.storedSubtitle;
+                    }
+                });
                 this.subtitleList.updateSubtitleTimes(changes, this.changeGroup);
                 this.$scope.$root.$emit("work-done");
             },
@@ -413,8 +419,7 @@ var angular = angular || null;
 
             function calcClickTime(evt) {
                 // FIXME: Would it be cleaner to just create a single BufferTimespan and VisibleTimespan?
-                var bufferTimespan = new BufferTimespan($scope);
-                return (bufferTimespan.startTime +
+                return ($scope.subtitlesContainerStartTime +
                         pixelsToDuration(evt.pageX - subtitlesContainer.offset().left, $scope.scale));
             }
 
@@ -623,6 +628,7 @@ var angular = angular || null;
             // Store the DIV for the unsynced subtitle
             var unsyncedDiv = null;
             var unsyncedSubtitle = null;
+            scope.subtitlesContainerStartTime = 0;
 
             TimelineDrag.handleDragAndDrop(scope, elem);
 
@@ -847,7 +853,8 @@ var angular = angular || null;
                         options.deltaMS);
                 if(bufferTimespan === null ||
                     !visibleTimespan.fitsInBuffer(bufferTimespan)) {
-                        bufferTimespan = new BufferTimespan(scope);
+                    bufferTimespan = new BufferTimespan(scope);
+                    scope.subtitlesContainerStartTime = bufferTimespan.startTime;
                     if(bufferTimespan.width != timelineDivWidth) {
                         timelineDivWidth = bufferTimespan.width;
                         timelineDiv.css('width', bufferTimespan.width + 'px');
