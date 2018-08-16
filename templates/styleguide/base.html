@@ -17,13 +17,21 @@
       <h1>Amara styleguide</h1>
       <hr>
       <div class="row styleGuide">
-        <div class="col-md-3"> {{ styleguide.toc|safe }} </div>
-        <div class="col-md-9">
-          <div class="styleGuide-sections">
-            {% for section in styleguide.sections %}
-            <div class="styleGuide-section" id="{{ section.id }}">{{ section.content|safe }}</div>
+        <div class="col-md-3">
+          <ul>
+            {% for name, links in styleguide.toc %}
+            <li>{{ name }}
+              <ul>
+                {% for link in links %}
+                <li>{% if link.section_id == active_section %}{{ link.active  }}{% else %}{{ link }}{% endif %}</li>
+                {% endfor %}
+              </ul>
+            </li>
             {% endfor %}
-          </div>
+          </ul>
+        </div>
+        <div class="col-md-9">
+        {% block "content" %}{% endblock %}
         </div>
       </div>
     </div>

@@ -107,6 +107,7 @@ class Build(Command):
     """Build the app container."""
 
     def add_arguments(self, parser):
+        parser.add_argument('--production', action='store_true')
         parser.add_argument('--no-cache', action='store_true')
 
     def run(self):
@@ -114,6 +115,8 @@ class Build(Command):
         cmdline = ['python', build_script, 'amara-app']
         if self.args.no_cache:
             cmdline.append('--no-cache')
+        if not self.args.production:
+            cmdline.append('--dev')
         subprocess.call(cmdline)
 
 class Manage(Command):

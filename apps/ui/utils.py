@@ -22,11 +22,13 @@ This module contains a few utility classes that's used by the views code.
 """
 
 from __future__ import absolute_import
+from copy import copy
 from collections import deque
 from urllib import urlencode
 
 from collections import namedtuple
 from django.core.urlresolvers import reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -36,6 +38,7 @@ class Link(object):
     def __init__(self, label, view_name, *args, **kwargs):
         self.label = label
         query = kwargs.pop('query', None)
+        self.class_ = kwargs.pop('class_', None)
         if '/' in view_name or view_name == '#':
             # URL path passed in, don't try to reverse it
             self.url = view_name
@@ -45,7 +48,23 @@ class Link(object):
             self.url += '?' + urlencode(query)
 
     def __unicode__(self):
-        return mark_safe(u'<a href="{}">{}</a>'.format(self.url, self.label))
+        if self.class_:
+            return format_html(u'<a href="{}" class="{}">{}</a>', self.url,
+                               self.class_, self.label)
+        else:
+            return format_html(u'<a href="{}">{}</a>', self.url, self.label)
+
+    def active(self):
+        if self.class_:
+            class_ = self.class_ + ' active'
+        else:
+            class_ = 'active'
+        return self.clone(class_=class_)
+
+    def clone(self, **new_attrs):
+        rv = copy(self)
+        rv.__dict__.update(new_attrs)
+        return rv
 
     def __eq__(self, other):
         return (type(self) == type(other) and
@@ -60,7 +79,7 @@ class AjaxLink(Link):
         self.url = '?' + urlencode(query_params)
 
     def __unicode__(self):
-        return mark_safe(u'<a class="ajaxLink" data-href="{}">{}</a>'.format(self.url, self.label))
+        return format_html(u'<a class="ajaxLink" data-href="{}">{}</a>', self.url, self.label)
 
 class CTA(Link):
     def __init__(self, label, icon, view_name, block=False,

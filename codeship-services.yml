@@ -15,6 +15,12 @@ amara:
     image: 241878618260.dkr.ecr.us-east-1.amazonaws.com/amara
     dockerfile: Dockerfile
   cached: true
+amara-dev:
+  build:
+    dockerfile: Dockerfile
+    args:
+      DEV_INSTALL: "1"
+  cached: true
 deploy-agent:
   image: 241878618260.dkr.ecr.us-east-1.amazonaws.com/deploy-agent
   encrypted_env_file: creds.encrypted

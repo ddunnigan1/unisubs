@@ -10,8 +10,9 @@ import django.utils.encoding
 import py.path
 import pytest
 
+from amara.signals import before_tests
 from auth.models import CustomUser
-from utils.test_utils import monkeypatch, before_tests, restframeworkcompat
+from utils.test_utils import monkeypatch, restframeworkcompat
 
 patcher = None
 

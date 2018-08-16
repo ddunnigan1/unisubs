@@ -86,11 +86,27 @@ Exceptions
   parent/child relationship, like lists and tables.  So, even though we
   generally don't allow nested selectors, something like this is fine: ``ul.blockName > li { ... }``
 
-Examples
---------
+Styleguide
+----------
 
-The styleguide `<https://amara.org/styleguide>`_ has many examples using the BEM notation.  Check it out to see how this works in practice.
+We use the styleguide `<https://amara.org/styleguide>`_ to document our
+elements.  You can use that for examples of BEM in practice.
 
+If you're adding a new element, document it with the styleguide.  There are 2 ways to do this:
+
+ - **Django template** (preferred method):
+
+   - Create a template in ``templates/styleguide/your-element-name.html``.  Check out the other
+     templates there for examples on how to do this.
+   - Add an entry to ``apps/styleguide/styleguide-toc.yml`` using a dict with the id/title keys
+   - Optionally, you can also add a form for the page by creating the form
+     class in ``styleguide.forms`` and adding it to
+     ``styleguide.views.forms_by_section``.
+
+ - **KSS** (legacy method):
+
+   - Add some KSS code to the SCSS file.
+   - Add an entry to ``apps/styleguide/styleguide-toc.yml`` that's just the KSS id as a string.
 
 Legacy code
 -----------

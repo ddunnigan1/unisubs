@@ -1,0 +1,22 @@
+{% extends "styleguide/base.html" %}
+{% load forms %}
+{% block "content" %}
+<h2>{{ section.title }}</h2>
+
+<p>
+{% if form.is_valid %}
+Submitted role: {{ form.cleaned_data.role  }}
+{% else %}
+Submit the form below to test form processing
+{% endif %}
+</p>
+
+<form method="POST">
+  {% csrf_token %}
+  {{ form.role|render_field }}
+  <div class="form-actions">
+    <button class="button cta" type="submit">Submit</button>
+  </div>
+</form>
+
+{% endblock %}

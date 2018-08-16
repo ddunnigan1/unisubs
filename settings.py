@@ -203,6 +203,7 @@ INSTALLED_APPS = (
     # our apps
     'accountlinker',
     'activity',
+    'amara',
     'amaradotorg',
     'amaracelery',
     'api',

@@ -26,7 +26,15 @@ HOSTNAME = 'unisubs.example.com:8000'
 INSTALLED_APPS += (
     'sslserver',
 )
-if not env_flag_set('DISABLE_DEBUG_TOOLBAR'):
+
+def should_enable_debug_toolbar():
+    try:
+        import debug_toolbar
+    except ImportError:
+        return False
+    return not env_flag_set('DISABLE_DEBUG_TOOLBAR')
+
+if should_enable_debug_toolbar():
     INSTALLED_APPS += ('debug_toolbar',)
     MIDDLEWARE_CLASSES = (
             'debug_toolbar.middleware.DebugToolbarMiddleware',

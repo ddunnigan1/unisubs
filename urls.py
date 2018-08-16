@@ -73,7 +73,7 @@ urlpatterns = patterns('',
         name='password_reset_confirm_external'),
     url(r'^reset/done/$',
         'auth.views.password_reset_complete'),
-    url(r'^styleguide/', include('styleguide.urls')),
+    url(r'^styleguide/', include('styleguide.urls', namespace='styleguide')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^staff/', include('staff.urls', namespace='staff')),
     url(r'^subtitles/',
@@ -168,14 +168,18 @@ urlpatterns += patterns('',
 
 
 if settings.DEBUG:
-    import debug_toolbar
-    urlpatterns += patterns('',
-        (r'^site_media/(?P<path>.*)$', 'django.views.static.serve',
-         {'document_root': settings.STATIC_ROOT, 'show_indexes': True}),
-        (r'^user-data/(?P<path>.*)$', 'django.views.static.serve',
-         {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
-        url(r'^__debug__/', include(debug_toolbar.urls)),
-    )
+    try:
+        import debug_toolbar
+    except ImportError:
+        pass
+    else:
+        urlpatterns += patterns('',
+            (r'^site_media/(?P<path>.*)$', 'django.views.static.serve',
+             {'document_root': settings.STATIC_ROOT, 'show_indexes': True}),
+            (r'^user-data/(?P<path>.*)$', 'django.views.static.serve',
+             {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
+            url(r'^__debug__/', include(debug_toolbar.urls)),
+        )
 
 def ensure_user(request):
     if not hasattr(request, 'user'):

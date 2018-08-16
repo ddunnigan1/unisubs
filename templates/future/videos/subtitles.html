@@ -15,13 +15,13 @@
         <div class="content">
           <p><a href="{{video.get_absolute_url}}{% query_string %}">{% trans "Return to Video" %}</a></p>
           {% include "future/videos/embed.html" with width=848 subtitle_language=subtitle_language %}
-          <h2>{% if subtitle_version and subtitle_language and subtitle_language.get_title %}
-            {% if subtitle_language.is_rtl %} class="is-rtl"{% endif %}>
+          {% if subtitle_version and subtitle_language and subtitle_language.get_title %}
+          <h2{% if subtitle_language.is_rtl %} class="is-rtl"{% endif %}>
             <bdi>{{ subtitle_language.title_display }}</bdi>
-          {% else %}
-            {{video.title_display}}
-          {% endif %}
           </h2>
+          {% else %}
+          <h2>{{ video.title_display }}</h2>
+          {% endif %}
           <ul class="nav nav-tabs">
             <li class="active"><a href="#subtitles_list" data-toggle="tab" aria-expanded="true">{% trans "Subtitles" %}</a></li>
             <li><a href="#subtitles_info" data-toggle="tab" aria-expanded="false">{% trans "Subtitles info" %}</a></li>

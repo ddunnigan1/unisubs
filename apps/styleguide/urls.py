@@ -20,6 +20,7 @@ from django.conf.urls import *
 
 urlpatterns = patterns(
     'styleguide.views',
-    url(r'^$', 'styleguide', name='styleguide'),
+    url(r'^$', 'home', name='home'),
     url(r'^member-search$', 'member_search', name='member_search'),
+    url(r'^(?P<section_id>[\w-]+)$', 'section', name='section'),
 )

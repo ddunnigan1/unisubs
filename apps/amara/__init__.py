@@ -1,6 +1,6 @@
 # Amara, universalsubtitles.org
 #
-# Copyright (C) 2015 Participatory Culture Foundation
+# Copyright (C) 2018 Participatory Culture Foundation
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -9,19 +9,11 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see
+# along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-"""utils.test_utils -- Testing functions/classes """
-
-from __future__ import absolute_import
-
-from .api import *
-from .monkeypatch import *
-from .requests import *
-from .tools import *
-from .video_types import *
+default_app_config = 'amara.apps.AmaraConfig'

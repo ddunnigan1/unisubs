@@ -23,7 +23,14 @@ from django.conf import settings
 from django.http import HttpResponse
 import json
 
+from styleguide import forms
 from styleguide.styleguide import StyleGuide
+
+# add your form class here if you need to test form processing on a styleguide
+# section
+forms_by_section = {
+    'dependent-checkboxes': forms.DependentCheckboxes,
+}
 
 _cached_styleguide = None
 def get_styleguide():
@@ -32,10 +39,30 @@ def get_styleguide():
         _cached_styleguide = StyleGuide()
     return _cached_styleguide
 
-def styleguide(request):
-    return render(request, 'styleguide/styleguide.html', {
+def home(request):
+    return render(request, 'styleguide/home.html', {
         'styleguide': get_styleguide(),
+        'active_section': None,
     })
+
+def section(request, section_id):
+    styleguide = get_styleguide()
+    section = styleguide.sections[section_id]
+
+    return render(request, section.template_name, {
+        'styleguide': styleguide,
+        'section': section,
+        'active_section': section_id,
+        'form': get_form_for_section(request, section_id),
+    })
+
+def get_form_for_section(request, section_id):
+    FormClass = forms_by_section.get(section_id)
+    if FormClass:
+        data=request.POST if request.method == 'POST' else None
+        return FormClass(data=data)
+    else:
+        return None
 
 def member_search(request):
     data = {
