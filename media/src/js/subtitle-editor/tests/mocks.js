@@ -42,6 +42,10 @@
         ]);
     });
 
+    module.factory('runningOnOSX', function() {
+        return jasmine.createSpy('runningOnOSX').and.returnValue(false);
+    });
+
     module.factory('SubtitleStorage', ["$q", function($q) {
         var methodNames = [
             'getLanguages',

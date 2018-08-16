@@ -26,6 +26,7 @@ var angular = angular || null;
         'amara.SubtitleEditor.dom',
         'amara.SubtitleEditor.durationpicker',
         'amara.SubtitleEditor.gettext',
+        'amara.SubtitleEditor.keys',
         'amara.SubtitleEditor.lock',
         'amara.SubtitleEditor.preferences',
         'amara.SubtitleEditor.notes',
@@ -579,12 +580,6 @@ var angular = angular || null;
                     return;
                 }
                 VideoPlayer.seek(VideoPlayer.currentTime() - 2000);
-            } else if (evt.keyCode === 188 && evt.shiftKey && evt.ctrlKey) {
-                // Control+Shift+Comma, go back 4 seconds
-                VideoPlayer.seek(VideoPlayer.currentTime() - 4000);
-            } else if (evt.keyCode === 190 && evt.shiftKey && evt.ctrlKey) {
-                // Control+Shift+Period, go forward 4 seconds
-                VideoPlayer.seek(VideoPlayer.currentTime() + 4000);
             } else if (evt.keyCode === 90 && ctrlOrCmd(evt) && !evt.altKey) {
                 // Ctrl-Z -- undo
                 if($scope.currentEdit.inProgress()) {

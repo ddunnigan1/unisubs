@@ -20,7 +20,7 @@
 
     var module = angular.module('amara.SubtitleEditor.video.controllers', []);
 
-    module.controller('VideoController', ['$scope', '$sce', 'EditorData', 'VideoPlayer', 'PreferencesService', function($scope, $sce, EditorData, VideoPlayer, PreferencesService) {
+    module.controller('VideoController', ['$scope', '$sce', 'EditorData', 'VideoPlayer', 'PreferencesService', 'Keys', function($scope, $sce, EditorData, VideoPlayer, PreferencesService, Keys) {
         $scope.displayedSubtitle = null;
         $scope.displayedSubtitleMarkup = '';
 
@@ -82,6 +82,14 @@
               VideoPlayer.init();
         });
 
+        Keys.bind('default', {
+            'shift ctrl ,': function() {
+                VideoPlayer.seek(VideoPlayer.currentTime() - 4000);
+            },
+            'shift ctrl .': function() {
+                VideoPlayer.seek(VideoPlayer.currentTime() + 4000);
+            }
+        });
     }]);
 
     module.controller('PlaybackModeController', ['$scope', '$timeout', 'VideoPlayer', 'EditorData', 'PreferencesService',

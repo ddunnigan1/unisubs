@@ -622,6 +622,7 @@ MEDIA_BUNDLES = {
             'src/js/subtitle-editor/durationpicker.js',
             'src/js/subtitle-editor/gettext.js',
             'src/js/subtitle-editor/help.js',
+            'src/js/subtitle-editor/keys.js',
             'src/js/subtitle-editor/lock.js',
             'src/js/subtitle-editor/preferences.js',
             'src/js/subtitle-editor/modal.js',
