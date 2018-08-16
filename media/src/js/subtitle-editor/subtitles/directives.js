@@ -396,13 +396,6 @@ var USER_IDLE_MINUTES = 15;
                             $scope.$root.$digest();
                         }
                     });
-                    if($scope.onEditKeydown) {
-                        textarea.on('keydown', function(evt) {
-                            $scope.$apply(function() {
-                                $scope.onEditKeydown(evt);
-                            });
-                        });
-                    }
                 }
             }
             function stopEditOn(subtitle) {

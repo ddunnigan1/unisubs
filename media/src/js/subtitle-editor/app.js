@@ -33,6 +33,7 @@ var angular = angular || null;
         'amara.SubtitleEditor.session',
         'amara.SubtitleEditor.shifttime',
         'amara.SubtitleEditor.toolbar',
+        'amara.SubtitleEditor.utils',
         'amara.SubtitleEditor.workflow',
         'amara.SubtitleEditor.subtitles.controllers',
         'amara.SubtitleEditor.subtitles.directives',
@@ -519,68 +520,9 @@ var angular = angular || null;
         startRegainLockTimer();
     }]);
 
-    module.controller("AppControllerEvents", ["$scope", "VideoPlayer", function($scope, VideoPlayer) {
-        $scope.isMac = navigator.platform.toUpperCase().indexOf('MAC') > -1;
-        function insertAndEditSubtitle() {
-            var sub = $scope.workingSubtitles.subtitleList.insertSubtitleBefore(null);
-            $scope.currentEdit.start(sub);
-        }
-
-        // This function is to have the keyboard shortcut help
-        // panel trigger same actions as keystrokes
-        $scope.handleMouseKeyDown = function(keyString) {
-            var evt = {
-                ctrlKey: false,
-                shiftKey: false,
-                preventDefault: function() {},
-                stopPropagation: function() {},
-                target: {}
-            }
-            var keys = keyString.split('-');
-            evt.keyCode = parseInt(keys[0]);
-            for (var i = 1 ; i < keys.length ; i++) {
-                if (keys[i] == "ctrl")
-                    evt.ctrlKey = true;
-                else if (keys[i] == "shift")
-                    evt.shiftKey = true;
-            }
-            $scope.handleAppKeyDown(evt);
-        }
-        if($scope.isMac) {
-            function ctrlOrCmd(evt) {
-                return evt.metaKey;
-            }
-        } else {
-            function ctrlOrCmd(evt) {
-                return evt.ctrlKey;
-            }
-        }
-        $scope.handleAppKeyDown = function(evt) {
-            var emittedEvent = $scope.$root.$emit("key-down", evt);
-            if(emittedEvent.defaultPrevented) {
-                evt.preventDefault();
-                evt.stopPropagation();
-                return;
-            }
-
-	    var isAltPressed = function(evt) {
-		return (evt.altKey || evt.metaKey);
-	    };
-            if (evt.keyCode == 9 && !evt.shiftKey) {
-                // Tab, Toggle playback
-                if($scope.dialogManager.current()) {
-                    // If a dialog is open, then don't mess with playback.  The user probably wants to navigate the form
-                    return;
-                }
-                VideoPlayer.togglePlay();
-            } else if (evt.keyCode === 9 && evt.shiftKey) {
-                // Shift+Tab, go back 2 seconds
-                if($scope.dialogManager.current()) {
-                    // If a dialog is open, then don't mess with playback.  The user probably wants to navigate the form
-                    return;
-                }
-                VideoPlayer.seek(VideoPlayer.currentTime() - 2000);
-            } else if (evt.keyCode === 90 && ctrlOrCmd(evt) && !evt.altKey) {
+    module.controller("AppControllerEvents", ["$scope", "VideoPlayer", "Keys", function($scope, VideoPlayer, Keys) {
+        Keys.bind('default', {
+            'ctrl z': function() {
                 // Ctrl-Z -- undo
                 if($scope.currentEdit.inProgress()) {
                     if($scope.currentEdit.undoAutoCreatedSubtitle($scope.workingSubtitles.subtitleList)) {
@@ -597,74 +539,26 @@ var angular = angular || null;
                     $scope.workingSubtitles.subtitleList.undo();
                     $scope.$root.$emit('work-done');
                 }
-            } else if ( (!$scope.isMac && evt.keyCode === 89 && evt.ctrlKey) ||
-                        ($scope.isMac && evt.keyCode === 90 && evt.metaKey && evt.shiftKey)) {
+            },
+            'ctrl y': function() {
                 // Ctrl-Y -- redo
                 if($scope.workingSubtitles.subtitleList.canRedo()) {
                     $scope.workingSubtitles.subtitleList.redo();
                     $scope.$root.$emit('work-done');
                 }
-            } else if (evt.keyCode === 73 && isAltPressed(evt) && evt.shiftKey) {
-                // Alt+Shift+i, insert subtitle below
-		if($scope.currentEdit.inProgress()) {
-		    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
-			$scope.workingSubtitles.subtitleList.nextSubtitle($scope.currentEdit.subtitle));
-                }
-            } else if (evt.keyCode === 73 && isAltPressed(evt)) {
-                // Alt+i, insert subtitle above
-		if($scope.currentEdit.inProgress()) {
-		    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
-			$scope.currentEdit.subtitle);
-                }
-            } else if (evt.keyCode == 46 && !evt.altKey && !evt.shiftKey && !evt.ctrlKey) {
-                // del, remove current subtitle
-                if($scope.currentEdit.inProgress()) {
-                    return;
-                }
-                if($scope.selectedSubtitle) {
-                    var subtitleList = $scope.workingSubtitles.subtitleList;
-
-                    if($scope.currentEdit.inProgress()){
-                        $scope.currentEdit.finish(subtitleList);
-                    }
-                    // find a new subtitle to select after selectedSubtitle is removed
-                    var replacement = subtitleList.nextSubtitle($scope.selectedSubtitle);
-                    if(!replacement) {
-                        replacement = subtitleList.prevSubtitle($scope.selectedSubtitle);
-                    }
-                    subtitleList.removeSubtitle($scope.selectedSubtitle);
-
-                    $scope.selectSubtitle(replacement);
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    $scope.$root.$emit('work-done');
-                }
-	    } else if (evt.target.type == 'textarea') {
-                $scope.$root.$emit('text-edit-keystroke');
-                return;
-	    }
-            // Shortcuts that should be disabled while editing a subtitle
-            else if (evt.keyCode === 32) {
-                VideoPlayer.togglePlay();
-                // Space: toggle play / pause.
-            } else if (evt.keyCode == 40) {
-                if($scope.selectedSubtitle) {
-                    var subtitleList = $scope.workingSubtitles.subtitleList;
-                    $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
-                }
-            } else if (evt.keyCode == 38) {
-                if($scope.selectedSubtitle) {
-                    var subtitleList = $scope.workingSubtitles.subtitleList;
-                    $scope.selectSubtitle(subtitleList.prevSubtitle($scope.selectedSubtitle));
-                }
-            } else if (evt.keyCode == 13) {
-                var subtitleList = $scope.workingSubtitles.subtitleList;
-                $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
-            } else {
-                return;
             }
-            evt.preventDefault();
-            evt.stopPropagation();
+        });
+
+        // This function is to have the keyboard shortcut help
+        // panel trigger same actions as keystrokes
+        $scope.triggerKey = function(keyString) {
+            Keys.trigger(keyString);
+        }
+
+        $scope.handleAppKeyDown = function(evt) {
+	    if (evt.target.type == 'textarea') {
+                $scope.$root.$emit('text-edit-keystroke');
+            }
         };
 
         $scope.handleAppMouseDown = function(evt) {
@@ -678,6 +572,22 @@ var angular = angular || null;
         $scope.handleBadgeMouseClick = function(evt) {
             evt.stopPropagation();
         };
+
+        $scope.$watch('currentEdit.inProgress()', function(inProgress) {
+            if(inProgress) {
+                Keys.enableContext('edit');
+                Keys.disableContext('no-edit');
+            } else {
+                Keys.enableContext('no-edit');
+                Keys.disableContext('edit');
+            }
+        });
+        $scope.$on('dialog-opened', function() { Keys.disable(); });
+        $scope.$on('dialog-closed', function() {
+            if(!$scope.dialogManager.current()) {
+                Keys.enable();
+            }
+        });
     }]);
 
     module.controller("AppControllerSubtitles", ["$scope", "$timeout", "EditorData", "SubtitleStorage", "CurrentEditManager", "SubtitleBackupStorage", "SubtitleVersionManager", function($scope, $timeout,

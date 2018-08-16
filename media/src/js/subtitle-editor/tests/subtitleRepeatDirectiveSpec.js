@@ -224,18 +224,6 @@ describe('Test the subtitle-repeat directive', function() {
         expect(scope.currentEdit.update).toHaveBeenCalledWith(subtitleList, 'new content');
     });
 
-    it('emits edit-keydown in edit-mode', function() {
-        scope.onEditKeydown = function(evt) {
-            expect(evt.type).toEqual('keydown');
-        };
-        scope.currentEdit.subtitle = subtitles[0];
-        scope.$digest();
-        var textarea = $('textarea', childLIs()[0]);
-        var spy = spyOn(scope, 'onEditKeydown');
-        textarea.keydown();
-        expect(spy.calls.count()).toEqual(1);
-    });
-
     it('knows when you can split subtitles', function() {
         // If the subtitles are not being editing, you can't split
         expect(scope.canSplitSubtitle(subtitles[0])).toBeFalsy();

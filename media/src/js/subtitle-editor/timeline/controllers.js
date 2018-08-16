@@ -20,7 +20,7 @@
 
     var module = angular.module('amara.SubtitleEditor.timeline.controllers', []);
 
-    module.controller('TimelineController', ["$scope", "$timeout", "VideoPlayer", "SubtitleSyncManager", function($scope, $timeout, VideoPlayer, SubtitleSyncManager) {
+    module.controller('TimelineController', ["$scope", "$timeout", "VideoPlayer", "SubtitleSyncManager", "Keys", function($scope, $timeout, VideoPlayer, SubtitleSyncManager, Keys) {
         // Controls the scale of the timeline, currently we just set this to
         // 1.0 and leave it.
         $scope.scale = 1.0;
@@ -156,26 +156,23 @@
             updateTimeline({forcePlace: true});
         });
 
-        $scope.$root.$on('key-down', function(evt, keyEvent) {
-            if($scope.currentEdit.inProgress()) {
-                return;
-            } else if($scope.workflow.stage == 'syncing') {
-                if(unsyncedShown()) {
-                    if(keyEvent.keyCode == 40) {
+        Keys.bind('no-edit', {
+            'down': function() {
+                if($scope.workflow.stage == 'syncing') {
+                    if(unsyncedShown()) {
                         SubtitleSyncManager.syncUnsyncedStartTime();
-                        evt.preventDefault();
-                    } else if(keyEvent.keyCode == 38) {
+                    }
+                } else {
+                    SubtitleSyncManager.adjustClosestTiming();
+                }
+            },
+            'up': function() {
+                if($scope.workflow.stage == 'syncing') {
+                    if(unsyncedShown()) {
                         SubtitleSyncManager.syncUnsyncedEndTime();
-                        evt.preventDefault();
                     }
                 }
-            } else {
-                if(keyEvent.keyCode == 40) {
-                    SubtitleSyncManager.adjustClosestTiming();
-                    evt.preventDefault();
-                }
-            }
-
+            },
         });
     }]);
 

@@ -8,6 +8,7 @@ describe('TimelineDrag', function() {
     var dragHandler;
     var subtitleContainer;
 
+    beforeEach(module('amara.SubtitleEditor.keys'));
     beforeEach(module('amara.SubtitleEditor.mocks'));
     beforeEach(module('amara.SubtitleEditor.subtitles.models'));
     beforeEach(module('amara.SubtitleEditor.timeline.directives'));

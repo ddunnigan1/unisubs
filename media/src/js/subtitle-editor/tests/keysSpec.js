@@ -27,8 +27,8 @@ describe("The Keys service", function() {
     var B_KEYCODE = 66;
     var ENTER_KEYCODE = 13;
 
-    beforeEach(module('amara.SubtitleEditor.keys'));
     beforeEach(module('amara.SubtitleEditor.mocks'));
+    beforeEach(module('amara.SubtitleEditor.keys'));
 
     beforeEach(inject(function($injector) {
         $document = $($injector.get('$document'));
@@ -118,6 +118,15 @@ describe("The Keys service", function() {
         expect(evt.isDefaultPrevented()).toBeFalsy();
     });
 
+    it("manually triggers keys", function() {
+        Keys.bind('default', {
+            'ctrl a': callback,
+        });
+        Keys.trigger('ctrl a');
+        expect(callback).toHaveBeenCalled();
+    });
+
+
     it("raises an exception on invalid keys", function() {
         // Invalid modifier
         expect(function() { Keys.bind('default', { 'foo a': callback, })}).toThrow("Error parsing keybinding: foo a");
@@ -125,6 +134,19 @@ describe("The Keys service", function() {
         expect(function() { Keys.bind('default', { 'a b': callback, })}).toThrow("Error parsing keybinding: a b");
         // No key
         expect(function() { Keys.bind('default', { 'ctrl': callback, })}).toThrow("Error parsing keybinding: ctrl");
+    });
+
+    it("can be disabled", function() {
+        Keys.bind('default', {
+            'a': callback,
+        });
+        Keys.disable();
+        triggerKey(A_KEYCODE);
+        expect(callback).not.toHaveBeenCalled();
+
+        Keys.enable();
+        triggerKey(A_KEYCODE);
+        expect(callback).toHaveBeenCalled();
     });
 
     describe('command and control handling', function() {

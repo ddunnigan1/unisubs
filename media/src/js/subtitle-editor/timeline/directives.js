@@ -103,7 +103,7 @@ var angular = angular || null;
     // Handle the DnD from the timeline
     //
     // We define separate classes to handle the different ways of dragging -- moving subtitles, adjusting start/end times, dragging the timeline, etc.
-    module.service('TimelineDrag', ['MIN_DURATION', '$timeout', '$document', 'VideoPlayer', function(MIN_DURATION, $timeout, $document, VideoPlayer) {
+    module.service('TimelineDrag', ['MIN_DURATION', '$timeout', '$document', 'VideoPlayer', 'Keys', function(MIN_DURATION, $timeout, $document, VideoPlayer, Keys) {
         $document = $($document); // Ensure we're using jQuery, not jQuery lite
         var changeGroupCounter = 1;
 
@@ -471,6 +471,7 @@ var angular = angular || null;
                     return;
                 }
                 keyboardDeltaMS = 0;
+                Keys.enableContext('timeline-nudge');
                 // Stop the "drag" on any click.  Use addEventListener because
                 // we want to get the event in the capture phase, before other
                 // code has a chance to handle the event
@@ -482,24 +483,21 @@ var angular = angular || null;
                     keyboardDragHandler.onEnd();
                     keyboardDragHandler = null;
                 }
+                Keys.disableContext('timeline-nudge');
                 window.removeEventListener('mousedown', stopKeyboardDrag, true);
             }
 
-            $scope.$root.$on('key-down', function(evt, keyEvent) {
-                if(keyboardDragHandler) {
-                    if(keyEvent.keyCode == 37) {
-                        keyboardDeltaMS -= keyEvent.shiftKey ? 10 : 100;
-                        keyboardDragHandler.onDrag(keyboardDeltaMS);
-                        evt.preventDefault();
-                    } else if(keyEvent.keyCode == 39) {
-                        keyboardDeltaMS += keyEvent.shiftKey ? 10 : 100;
-                        keyboardDragHandler.onDrag(keyboardDeltaMS);
-                        evt.preventDefault();
-                    } else if(keyEvent.keyCode == 27) {
-                        stopKeyboardDrag();
-                        evt.preventDefault();
-                    }
-                }
+            function dragWithKeyboard(deltaMS) {
+                keyboardDeltaMS += deltaMS;
+                keyboardDragHandler.onDrag(keyboardDeltaMS);
+            }
+
+            Keys.bind('timeline-nudge', {
+                'left': function() { dragWithKeyboard(-100); },
+                'right': function() { dragWithKeyboard(100); },
+                'shift left': function() { dragWithKeyboard(-10); },
+                'shift right': function() { dragWithKeyboard(10); },
+                'escape': function() { stopKeyboardDrag(); }
             });
         }
 

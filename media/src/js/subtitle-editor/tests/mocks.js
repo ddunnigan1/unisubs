@@ -199,6 +199,16 @@
         return mockTimeout;
     });
 
+    module.factory('Keys', function() {
+        return jasmine.createSpyObj('Keys', [
+            'bind',
+            'enableConntext',
+            'disableContext',
+            'enable',
+            'disable',
+        ]);
+    });
+
     module.value('gettext', jasmine.createSpy().and.callFake(function(text) { return text; }));
     module.value('pgettext', jasmine.createSpy().and.callFake(function(context, text) { return text; }));
     module.value('interpolate', function(text, data, named) {

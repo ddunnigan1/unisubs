@@ -83,6 +83,11 @@
         });
 
         Keys.bind('default', {
+            'space': VideoPlayer.togglePlay,
+            'tab': VideoPlayer.togglePlay,
+            'shift tab': function() {
+                VideoPlayer.seek(VideoPlayer.currentTime() - 2000);
+            },
             'shift ctrl ,': function() {
                 VideoPlayer.seek(VideoPlayer.currentTime() - 4000);
             },

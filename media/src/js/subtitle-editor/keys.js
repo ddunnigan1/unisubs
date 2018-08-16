@@ -24,13 +24,6 @@ var angular = angular || null;
 (function() {
     var module = angular.module('amara.SubtitleEditor.keys', []);
 
-    module.factory("runningOnOSX", [ function(){
-        var cachedValue = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-        return function() {
-            return cachedValue;
-        }
-    }]);
-
     // Map key codes to special characters, copied from mousestrap
     // (https://github.com/ccampbell/mousetrap/)
     var specialKeyMap = {
@@ -38,7 +31,7 @@ var angular = angular || null;
         9: 'tab',
         13: 'enter',
         20: 'capslock',
-        27: 'esc',
+        27: 'escape',
         32: 'space',
         33: 'pageup',
         34: 'pagedown',
@@ -101,6 +94,7 @@ var angular = angular || null;
      * disable bindings once a context is no longer active.
      */
     module.factory("Keys", ["$document", "runningOnOSX", function($document, runningOnOSX){
+        var globalDisable = false;
         var enabledContexts = [];
 
         $document = $($document); // Get a JQuery element rather than JQuery-lite
@@ -169,25 +163,28 @@ var angular = angular || null;
         };
 
         $document.on('keydown', function(evt) {
-            var keyString = keyStringFromEvent(evt);
-            var callback = lookupCallback(keyString);
-
-            if(callback) {
-                var rv = callback();
-                if(rv !== true) {
-                    evt.preventDefault();
-                }
+            if(globalDisable) {
+                return;
             }
+            var keyString = keyStringFromEvent(evt);
+            trigger(keyString, evt);
         });
 
-        function lookupCallback(keyString) {
+        function trigger(keyString, evt) {
             var context = _.find(enabledContexts, function(context) {
                 return allBindings[context][keyString];
             });
             if(context === undefined) {
                 context = 'default';
             }
-            return allBindings[context][keyString];
+            var callback = allBindings[context][keyString];
+
+            if(callback) {
+                var rv = callback();
+                if(rv !== true && evt) {
+                    evt.preventDefault();
+                }
+            }
         }
 
 
@@ -221,6 +218,9 @@ var angular = angular || null;
 
         return {
             bind: bind,
+            trigger: trigger,
+            disable: function() { globalDisable = true; },
+            enable: function() { globalDisable = false; },
             enableContext: enableContext,
             disableContext: disableContext
         };

@@ -139,7 +139,7 @@ var angular = angular || null;
         $scope.$watch('versionNumber', $scope.versionNumberChanged);
     }]);
 
-    module.controller('WorkingSubtitlesController', ["$scope", "DomWindow", "$filter", "VideoPlayer", function($scope, DomWindow, $filter, VideoPlayer) {
+    module.controller('WorkingSubtitlesController', ["$scope", "DomWindow", "$filter", "VideoPlayer", "Keys", function($scope, DomWindow, $filter, VideoPlayer, Keys) {
         /**
          * Handles the subtitles the user is working on.
          */
@@ -260,18 +260,44 @@ var angular = angular || null;
             $scope.$root.$emit('work-done');
         }
 
-        $scope.onEditKeydown = function(evt) {
-            var subtitle = $scope.currentEdit.subtitle;
+        $scope.bottomState = function() {
+            if($scope.currentEdit.inProgress()) {
+                return 'edit-help'
+            } else if($scope.timelineShown) {
+                return 'add-button'
+            } else {
+                return 'type-shortcuts-help'
+            }
+        }
 
-            var isAltPressed = function(evt) {
-                return (evt.altKey || evt.metaKey);
-            };
-
-            if (evt.keyCode === 13 && evt.ctrlKey) {
+        Keys.bind('default', {
+            'enter': function() {
+                var subtitleList = $scope.workingSubtitles.subtitleList;
+                $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
+            },
+            'alt i': function() {
+                // Alt+i, insert subtitle above
+                if($scope.currentEdit.inProgress()) {
+                    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
+                            $scope.currentEdit.subtitle);
+                }
+            },
+            'alt shift i': function() {
+                // Insert subtitle below
+                if($scope.currentEdit.inProgress()) {
+                    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
+                            $scope.workingSubtitles.subtitleList.nextSubtitle($scope.currentEdit.subtitle));
+                }
+            }
+        });
+        Keys.bind('edit', {
+            'ctrl enter': function() {
                 // Ctrl-enter splits the subtitles
                 $scope.splitCurrentSubtitle();
-            } else if (evt.keyCode === 13 && !evt.shiftKey) {
-                // Enter without shift finishes editing
+            },
+            'enter': function() {
+                // Unmodified Enter finishes editing
+                var subtitle = $scope.currentEdit.subtitle;
                 var nextSubtitle = subtitleList.nextSubtitle(subtitle);
                 $scope.currentEdit.finish(subtitleList);
                 if(nextSubtitle === null) {
@@ -283,26 +309,34 @@ var angular = angular || null;
                     $scope.selectSubtitle(nextSubtitle);
                     $scope.currentEdit.start(nextSubtitle);
                 }
-                evt.preventDefault();
-                evt.stopPropagation();
-            } else if (evt.keyCode === 27) {
+            },
+            'escape': function() {
                 // Escape cancels editing
                 $scope.currentEdit.finish(subtitleList);
                 $scope.$root.$emit('work-done');
-                evt.preventDefault();
-                evt.stopPropagation();
             }
-        }
-        
-        $scope.bottomState = function() {
-            if($scope.currentEdit.inProgress()) {
-                return 'edit-help'
-            } else if($scope.timelineShown) {
-                return 'add-button'
-            } else {
-                return 'type-shortcuts-help'
+        });
+
+        Keys.bind('no-edit', {
+            'del': function() {
+                if($scope.selectedSubtitle) {
+                    var subtitleList = $scope.workingSubtitles.subtitleList;
+
+                    if($scope.currentEdit.inProgress()){
+                        $scope.currentEdit.finish(subtitleList);
+                    }
+                    // find a new subtitle to select after selectedSubtitle is removed
+                    var replacement = subtitleList.nextSubtitle($scope.selectedSubtitle);
+                    if(!replacement) {
+                        replacement = subtitleList.prevSubtitle($scope.selectedSubtitle);
+                    }
+                    subtitleList.removeSubtitle($scope.selectedSubtitle);
+
+                    $scope.selectSubtitle(replacement);
+                    $scope.$root.$emit('work-done');
+                }
             }
-        }
+        });
     }]);
 
     module.controller('ReferenceSubtitlesController', ['$scope', function($scope) {
@@ -324,7 +358,7 @@ var angular = angular || null;
             backupSubtitles = _.clone(subtitles);
             $scope.dialogManager.close();
         };
- 
+
         $scope.reset = function() {
             $scope.currentSubtitles = _.clone(backupSubtitles);
             $scope.dialogManager.close();

@@ -121,53 +121,6 @@ describe('NormalWorkflowController', function() {
     }));
 });
 
-describe('when the enter key creates a new subtitle', function() {
-    var keyCodeForEnter = 13;
-    var subtitleList;
-    var $scope;
-
-    beforeEach(module('amara.SubtitleEditor.subtitles.controllers'));
-    beforeEach(module('amara.SubtitleEditor.subtitles.models'));
-    beforeEach(module('amara.SubtitleEditor.mocks'));
-
-    beforeEach(inject(function($rootScope, $controller, CurrentEditManager, SubtitleList) {
-        $scope = $rootScope;
-        subtitleList = new SubtitleList();
-        subtitleList.loadEmptySubs('en');
-        $scope.workingSubtitles = {
-            subtitleList: subtitleList,
-        }
-        $scope.selectSubtitle = jasmine.createSpy('selectSubtitles');
-        $scope.timelineShown = false;
-        $scope.currentEdit = new CurrentEditManager();
-        $scope.getSubtitleRepeatItem = function() {
-            return null;
-        }
-        subtitleList.insertSubtitleBefore(null);
-        // FIXME: we should mock window, but that's tricky to do.  Especially
-        // since we wrap it in jquery.
-        $controller('WorkingSubtitlesController', {
-            $scope: $scope,
-        });
-        spyOn(subtitleList, 'insertSubtitleBefore').and.callThrough();
-        spyOn(subtitleList, 'insertSubtitleAtEnd').and.callThrough();
-    }));
-
-    it('creates a new subtitle when the timeline is hidden',
-            inject(function(MockEvents) {
-        $scope.currentEdit.start(subtitleList.subtitles[0]);
-        var evt = MockEvents.keydown(keyCodeForEnter);
-        $scope.onEditKeydown(evt);
-        expect(subtitleList.insertSubtitleAtEnd).toHaveBeenCalled();
-        expect(evt.preventDefault).toHaveBeenCalled();
-
-        subtitleList.insertSubtitleAtEnd.calls.reset();
-        $scope.timelineShown = true;
-        $scope.onEditKeydown(MockEvents.keydown(keyCodeForEnter));
-        expect(subtitleList.insertSubtitleAtEnd).not.toHaveBeenCalled();
-    }));
-});
-
 describe('The WorkflowController', function() {
     // Create a mock NormalWorkflowController and ReviewWorkflowController.
     //
