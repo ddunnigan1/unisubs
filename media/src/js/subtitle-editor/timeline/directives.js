@@ -179,8 +179,13 @@ var angular = angular || null;
             calcSnappings: function() {},
             calcSubtitlesInvolved: function() {
                 this.draggingSubtitle = this.subtitleDiv.data('subtitle');
-                this.nextSubtitle = this.subtitleList.nextSubtitle(this.draggingSubtitle);
-                this.prevSubtitle = this.subtitleList.prevSubtitle(this.draggingSubtitle);
+                if(this.draggingSubtitle.isDraft) {
+                    this.realDraggingSubtitle = this.draggingSubtitle.storedSubtitle;
+                } else {
+                    this.realDraggingSubtitle = this.draggingSubtitle;
+                }
+                this.nextSubtitle = this.subtitleList.nextSubtitle(this.realDraggingSubtitle);
+                this.prevSubtitle = this.subtitleList.prevSubtitle(this.realDraggingSubtitle);
                 if(this.nextSubtitle && !this.nextSubtitle.isSynced()) {
                     this.nextSubtitle = null;
                 }
@@ -195,17 +200,11 @@ var angular = angular || null;
                 this.initialPrevEndTime = this.prevSubtitle ? this.prevSubtitle.endTime : null;
             },
             updateSubtitleTimes: function(changes) {
-                // Some of the changed subtitles might be drafts, if so, make sure we update the actual subtitle
-                _.each(changes, function(change) {
-                    if(change.subtitle.isDraft) {
-                        change.subtitle = change.subtitle.storedSubtitle;
-                    }
-                });
                 this.subtitleList.updateSubtitleTimes(changes, this.changeGroup);
                 this.$scope.$root.$emit("work-done");
             },
             selectSubtitle: function() {
-                this.$scope.selectSubtitle(this.draggingSubtitle);
+                this.$scope.selectSubtitle(this.realDraggingSubtitle);
             }
         });
 
@@ -237,7 +236,7 @@ var angular = angular || null;
                 var deltaMS = this.clampDeltaMS(deltaMS);
                 var changes = [
                     {
-                        subtitle: this.draggingSubtitle,
+                        subtitle: this.realDraggingSubtitle,
                         startTime: this.initialStartTime + deltaMS,
                         endTime: this.initialEndTime + deltaMS,
                     }
@@ -277,7 +276,7 @@ var angular = angular || null;
                 var newStartTime = this.initialStartTime + deltaMS;
                 var changes = [
                     {
-                        subtitle: this.draggingSubtitle,
+                        subtitle: this.realDraggingSubtitle,
                         startTime: newStartTime,
                         endTime: this.draggingSubtitle.endTime,
                     }
@@ -315,7 +314,7 @@ var angular = angular || null;
                 var newEndTime = this.initialEndTime + deltaMS;
                 var changes = [
                     {
-                        subtitle: this.draggingSubtitle,
+                        subtitle: this.realDraggingSubtitle,
                         startTime: this.draggingSubtitle.startTime,
                         endTime: newEndTime
                     }
@@ -350,7 +349,7 @@ var angular = angular || null;
                 var newEndTime = this.initialEndTime + deltaMS;
                 var changes = [
                     {
-                        subtitle: this.draggingSubtitle,
+                        subtitle: this.realDraggingSubtitle,
                         startTime: this.draggingSubtitle.startTime,
                         endTime: newEndTime
                     },
@@ -364,11 +363,11 @@ var angular = angular || null;
                 this.updateSubtitleTimes(changes);
             },
             onEnd: function() {
-                this.$scope.selectSubtitle(this.draggingSubtitle);
+                this.$scope.selectSubtitle(this.realDraggingSubtitle);
                 this.handles.removeClass('adjusting');
             },
             selectSubtitle: function() {
-                this.$scope.selectSubtitle(this.draggingSubtitle, this.nextSubtitle);
+                this.$scope.selectSubtitle(this.realDraggingSubtitle, this.nextSubtitle);
             }
         });
 
