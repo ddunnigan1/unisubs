@@ -699,11 +699,10 @@ var angular = angular || null;
             }
 
             function placeSubtitle(startTime, endTime, div) {
-                var x = durationToPixels(startTime - bufferTimespan.startTime,
+                var left = durationToPixels(startTime - bufferTimespan.startTime,
                         scope.scale);
-                var width = durationToPixels(endTime - startTime,
-                        scope.scale);
-                div.css({left: x, width: width});
+                var right = durationToPixels(endTime - bufferTimespan.startTime, scope.scale);
+                div.css({left: left, width: right-left});
             }
 
             function updateUnsyncedSubtitle() {
