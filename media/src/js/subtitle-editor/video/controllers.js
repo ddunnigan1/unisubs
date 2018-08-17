@@ -66,15 +66,21 @@
             event.stopPropagation();
         };
 
-        $scope.$watch('timeline.shownSubtitle.markdown', function() {
+        function updateDisplayedSubtitle() {
             var subtitle = $scope.timeline.shownSubtitle;
+            if(subtitle && !subtitle.startTimeSynced()) {
+                subtitle = null;
+            }
             $scope.displayedSubtitle = subtitle;
             if(subtitle) {
                 $scope.displayedSubtitleMarkup = $sce.trustAsHtml(subtitle.content());
             } else {
                 $scope.displayedSubtitleMarkup = '';
             }
-        });
+        }
+
+        $scope.$watch('timeline.shownSubtitle.markdown', updateDisplayedSubtitle);
+        $scope.$watch('timeline.shownSubtitle.startTime', updateDisplayedSubtitle);
 
         // use evalAsync so that the video player gets loaded after we've
         // rendered all of the subtitles.
