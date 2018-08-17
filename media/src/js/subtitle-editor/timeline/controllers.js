@@ -26,8 +26,6 @@
         $scope.scale = 1.0;
         // Video time info.
         $scope.currentTime = $scope.duration = null;
-        // Subtitle at currentTime, or null.
-        $scope.subtitle = null;
         $scope.showUpcomingUnsyncedSubtitle = false;
         /* Subtitles that we will sync when the user hits the up/down arrows.
          *
@@ -129,10 +127,29 @@
             updateTime();
             updateUpcomingSubtitleSticker();
             $scope.redrawCanvas();
+            updateShownSubtitle();
             $scope.redrawSubtitles(redrawSubtitleOptions);
         }
 
+        function updateShownSubtitle() {
+            // First check if the current subtitle is still shown, this is
+            // the most common case, and it's fast
+            if($scope.timeline.shownSubtitle !== null &&
+                $scope.timeline.shownSubtitle.isAt($scope.currentTime)) {
+                return;
+            }
+
+            var shownSubtitle = $scope.workingSubtitles.subtitleList.subtitleAt(
+                $scope.currentTime);
+            if(shownSubtitle === null && $scope.unsyncedSubtitle !== null &&
+                    $scope.unsyncedSubtitle.startTime <= $scope.currentTime) {
+                shownSubtitle = $scope.unsyncedSubtitle.storedSubtitle;
+            }
+            $scope.timeline.shownSubtitle = shownSubtitle;
+        }
+
         function syncShownSubtitle() {
+            updateShownSubtitle();
             if($scope.timeline.shownSubtitle !== $scope.selectedSubtitle && $scope.workflow.stage != 'typing') {
                 $scope.selectSubtitle($scope.timeline.shownSubtitle);
             }
@@ -151,7 +168,10 @@
                 syncShownSubtitle();
             }
         });
-        $scope.$root.$on('video-time-update', syncShownSubtitle);
+        $scope.$root.$on('video-time-update', function() {
+            updateTimeline();
+            syncShownSubtitle()
+        });
         $scope.$root.$on("work-done", function() {
             updateTimeline({forcePlace: true});
         });
