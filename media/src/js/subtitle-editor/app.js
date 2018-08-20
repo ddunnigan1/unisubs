@@ -80,10 +80,7 @@ var angular = angular || null;
      * TODO: explain other signals emitted at the root level
      */
 
-    module.controller("AppController", ['$scope', '$sce', '$controller', 
-                      '$window', 'EditorData', 'VideoPlayer', 'Workflow',
-                      function($scope, $sce, $controller, $window, EditorData,
-                          VideoPlayer, Workflow) {
+    module.controller("AppController", ['$scope', '$sce', '$controller', '$window', 'EditorData', 'VideoPlayer', 'Workflow', 'PreferencesService', function($scope, $sce, $controller, $window, EditorData, VideoPlayer, Workflow, PreferencesService) {
         $controller('AppControllerSubtitles', {$scope: $scope});
         $controller('AppControllerLocking', {$scope: $scope});
         $controller('AppControllerEvents', {$scope: $scope});
@@ -103,9 +100,6 @@ var angular = angular || null;
         $scope.uploading = false;
         $scope.uploadError = false;
         $scope.exiting = false;
-        $scope.hideNextTime = function() {
-            $scope.showHideNextTime = false;
-        };
         $scope.translating = function() {
             return ($scope.referenceSubtitles.language && $scope.workingSubtitles.language.code !=  $scope.referenceSubtitles.language.code);
         };
@@ -178,6 +172,10 @@ var angular = angular || null;
            $scope.tutorialShown = (typeof shown === "undefined") ? (!$scope.tutorialShown) : shown;
            if($scope.tutorialShown) {
                $scope.timelineShown = (!$scope.isTyping() && !$scope.isTranslatingTyping());
+           } else if ($scope.hideTutorialNextTime) {
+               PreferencesService.tutorialShown();
+               $scope.hideTutorialNextTime = false;
+               $scope.showHideNextTime = false;
            }
         };
         $scope.onTutorialOverlayClick = function($event) {

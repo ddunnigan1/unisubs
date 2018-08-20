@@ -46,14 +46,6 @@
         $scope.$root.$on("video-volume-update", function(evt, volume) {
             $scope.videoState.volume = volume;
         });
-        function hideTutorial() {
-            $scope.toggleTutorial(false);
-            if ($scope.hideTutorialNextTime) {
-                PreferencesService.tutorialShown();
-                $scope.hideTutorialNextTime = false;
-                $scope.hideNextTime();
-            }
-        }
         $scope.playPauseClicked = function(event) {
             VideoPlayer.togglePlay();
             event.preventDefault();
