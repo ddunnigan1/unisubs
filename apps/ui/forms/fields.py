@@ -195,6 +195,9 @@ class LanguageField(LanguageFieldMixin, forms.ChoiceField):
 class MultipleLanguageField(LanguageFieldMixin, forms.MultipleChoiceField):
     widget = widgets.AmaraLanguageSelectMultiple
 
+class DependentCheckboxField(forms.ChoiceField):
+    widget = widgets.DependentCheckboxes
+
 class SearchField(forms.CharField):
     widget = widgets.SearchBar
 
@@ -207,8 +210,16 @@ class SearchField(forms.CharField):
 class UploadOrPasteField(forms.Field):
     widget = widgets.UploadOrPasteWidget
 
+class AmaraImageField(forms.ImageField):
+    widget = widgets.AmaraImageInput
+
+    def __init__(self, preview_size=None, **kwargs):
+        self.preview_size = preview_size
+        super(AmaraImageField, self).__init__(**kwargs)
+        self.widget.preview_size = preview_size
+
 __all__ = [
     'AmaraChoiceField', 'AmaraMultipleChoiceField', 'LanguageField',
     'MultipleLanguageField', 'SearchField', 'HelpTextList',
-    'UploadOrPasteField',
+    'UploadOrPasteField', 'DependentCheckboxField', 'AmaraImageField',
 ]

@@ -18,13 +18,19 @@
 
 from itertools import chain
 
+from django.core.files import File
 from django.forms import widgets
 from django.forms.util import flatatt
 from django.template.loader import render_to_string
+from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_unicode, force_text
-from django.utils.html import conditional_escape
+from django.utils.html import (conditional_escape, format_html,
+                               format_html_join)
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+
+from utils import datauri
+from utils.amazon.fields import S3ImageFieldFile
 
 class AmaraLanguageSelectMixin(object):
     def render(self, name, value, attrs=None, choices=()):
@@ -149,7 +155,67 @@ class AmaraClearableFileInput(widgets.ClearableFileInput):
 
         return mark_safe(render_to_string(self.template_name, dictionary=context))
 
+class DependentCheckboxes(widgets.Widget):
+    def render(self, name, value, attrs=None, choices=()):
+        choices = list(chain(self.choices, choices))
+
+        checked = self.calc_checked(choices, value)
+        choices_html = format_html_join(
+            '\n',
+            '<input type="checkbox" id="{0}-{3}" name="{0}" value="{1}" '
+            '{4}><label for="{0}-{3}"> '
+            '<span class="checkbox-icon"></span> {2}</label>',
+            [
+                (name, choice_value, choice_label, i,
+                 ' checked' if choice_value in checked else '')
+                for i, (choice_value, choice_label) in enumerate(choices)
+            ])
+        return format_html('<div class="dependentCheckboxes">{}</div>',
+                           choices_html)
+
+    def calc_checked(self, choices, value):
+        # calculate which checkboxes should be checked
+        checked = set()
+        saw_checked = False
+        for (choice_value, choice_label) in reversed(choices):
+            if choice_value == value:
+                saw_checked = True
+            if saw_checked:
+                checked.add(choice_value)
+        return checked
+
+    def value_from_datadict(self, data, files, name):
+        if not isinstance(data, MultiValueDict):
+            return data.get(name)
+        selected_values = set(data.getlist(name))
+        # find the first selected choice, going from right to left
+        for value, label in reversed(self.choices):
+            if value in selected_values:
+                return value
+        return None
+
+class AmaraImageInput(widgets.FileInput):
+    def __init__(self):
+        super(AmaraImageInput, self).__init__()
+        # default size, overwritten by AmaraImageField
+        self.preview_size = (100, 100)
+
+    def render(self, name, value, attrs=None):
+        if isinstance(value, S3ImageFieldFile):
+            thumb_url = value.thumb_url(*self.preview_size)
+        elif isinstance(value, File):
+            thumb_url = datauri.from_django_file(value)
+        else:
+            thumb_url = None
+        return mark_safe(render_to_string('future/forms/widgets/image-input.html', {
+            'thumb_url': thumb_url,
+            'name': name,
+            'preview_width': self.preview_size[0],
+            'preview_height': self.preview_size[1],
+        }))
+
 __all__ = [
     'AmaraRadioSelect', 'SearchBar', 'AmaraFileInput',
     'AmaraClearableFileInput', 'UploadOrPasteWidget',
+    'DependentCheckboxes', 'AmaraImageInput',
 ]

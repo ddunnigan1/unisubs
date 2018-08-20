@@ -39,6 +39,8 @@
   - fieldsets
   - fieldErrors
   - fileUpload
+  - id: image-upload
+    title: Image Uploads
   - compoundField
   - buttonField
   - switch

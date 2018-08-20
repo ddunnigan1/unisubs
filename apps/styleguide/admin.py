@@ -1,6 +1,6 @@
 # Amara, universalsubtitles.org
 #
-# Copyright (C) 2018 Participatory Culture Foundation
+# Copyright (C) 2016 Participatory Culture Foundation
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -16,23 +16,10 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.db import models
+from __future__ import absolute_import
 
-from auth.models import CustomUser as User
-from utils.amazon import S3EnabledImageField
+from django.contrib import admin
 
-class StyleguideData(models.Model):
-    """
-    Data we store for the styleguide
+from styleguide.models import StyleguideData
 
-    Each user gets one of these and we use it to store data needed to test out
-    the styleguide.
-    """
-    user = models.OneToOneField(User)
-    thumbnail = S3EnabledImageField(
-        blank=True,
-        upload_to='styleguide/thumbnail/',
-        thumb_sizes=(
-            (169, 100),
-        )
-    )
+admin.site.register(StyleguideData)

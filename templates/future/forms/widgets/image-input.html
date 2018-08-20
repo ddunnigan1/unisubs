@@ -1,0 +1,14 @@
+{% load i18n %}
+<div class="imageInput">
+  <div class="imageInput-previewContainer" style="width: {{ preview_width }}px; height: {{ preview_height }}px;">
+    <img class="imageInput-thumbnail"{% if thumb_url %} src={{ thumb_url }}{% endif %}>
+  </div>
+
+  <div class="buttonField">
+    <input type="text" class="imageInput-text">
+    <div class="imageInput-buttonContainer buttonField-button">
+      <button class="button plum imageInput-button">{% trans "Browse" %}</button>
+      <input type="file" name="{{ name }}" class="imageInput-fileInput">
+    </div>
+  </div>
+</div>

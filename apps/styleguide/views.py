@@ -30,6 +30,7 @@ from styleguide.styleguide import StyleGuide
 # section
 forms_by_section = {
     'dependent-checkboxes': forms.DependentCheckboxes,
+    'image-upload': forms.ImageUpload,
 }
 
 _cached_styleguide = None
@@ -59,8 +60,13 @@ def section(request, section_id):
 def get_form_for_section(request, section_id):
     FormClass = forms_by_section.get(section_id)
     if FormClass:
-        data=request.POST if request.method == 'POST' else None
-        return FormClass(data=data)
+        if request.method == 'POST':
+            form = FormClass(request, data=request.POST, files=request.FILES)
+            if form.is_valid():
+                form.save()
+            return form
+        else:
+            return FormClass(request)
     else:
         return None
 

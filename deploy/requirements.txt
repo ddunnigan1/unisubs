@@ -2,6 +2,7 @@ html5lib==1.0.1
 Django==1.7.11
 easy-thumbnails==1.4
 Pillow==5.1.0
+python-magic==0.4.15
 Babel==2.1.1
 vendor/django-registration.tar.gz
 vendor/python-openid-2.2.5.tar.gz

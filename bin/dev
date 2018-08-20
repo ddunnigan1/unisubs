@@ -181,7 +181,6 @@ class DBReset(Command):
     def run(self):
         run_manage(['drop_all_tables'])
         run_manage(['migrate'])
-        run_manage(['setup_indexes'])
         run_manage(['create_anonymous_user'])
 
 class DBDump(Command):

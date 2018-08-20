@@ -16,23 +16,21 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.db import models
+"""
+datauri -- Create a data URI from a file
+"""
 
-from auth.models import CustomUser as User
-from utils.amazon import S3EnabledImageField
+import base64
+import magic
 
-class StyleguideData(models.Model):
-    """
-    Data we store for the styleguide
-
-    Each user gets one of these and we use it to store data needed to test out
-    the styleguide.
-    """
-    user = models.OneToOneField(User)
-    thumbnail = S3EnabledImageField(
-        blank=True,
-        upload_to='styleguide/thumbnail/',
-        thumb_sizes=(
-            (169, 100),
-        )
-    )
+def from_django_file(f):
+    parts = ['data:']
+    f.seek(0)
+    content = f.read()
+    content_type = magic.from_buffer(content, mime=True)
+    if content_type:
+        parts.append(content_type)
+    parts.append(';base64,')
+    for chunk in f.chunks():
+        parts.append(base64.b64encode(chunk))
+    return ''.join(parts)

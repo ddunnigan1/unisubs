@@ -4,11 +4,9 @@
 <h2>{{ section.title }}</h2>
 
 <p>
-{% if form.is_valid %}
-Submitted role: {{ form.cleaned_data.role  }}
-{% else %}
-Submit the form below to test form processing
-{% endif %}
+Use these to display a series of checkboxes, where each one implies the one
+before.  A common case is permissions, where if you give a permission to one
+role, then you always want to give it to the "higher" roles.
 </p>
 
 <form method="POST">
@@ -19,4 +17,9 @@ Submit the form below to test form processing
   </div>
 </form>
 
+<p>
+{% if form.is_valid %}
+Submitted role: {{ form.cleaned_data.role  }}
+{% endif %}
+</p>
 {% endblock %}
