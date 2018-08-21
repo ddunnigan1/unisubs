@@ -47,11 +47,13 @@
                 <span>{% trans "Follow" %}</span>
                 <form action="{% url "api:language-follow" video.video_id subtitle_language.language_code %}" class="ajaxForm updateOnChange" method="post">
                   {% csrf_token %}
-                  <label class="switch switchFollow">
-                    <input name="follow" type="checkbox" {% if subtitle_language|is_follower:user %}checked{% endif %}>
-                    <div class="slider round">
-                      <span class="switchText on">{% trans "ON" %}</span>
-                      <span class="switchText off">{% trans "OFF" %}</span>
+                  <label class="switch inline switchFollow">
+                    <input class="switch-input" name="follow" type="checkbox" {% if subtitle_language|is_follower:user %}checked{% endif %}>
+                    <div class="switch-container inline">
+                      <div class="switch-slider inline">
+                        <span class="switch-onText inline">{% trans "ON" %}</span>
+                        <span class="switch-offText inline">{% trans "OFF" %}</span>
+                      </div>
                     </div>
                   </label>
                 </form>

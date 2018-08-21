@@ -29,8 +29,9 @@ from styleguide.styleguide import StyleGuide
 # add your form class here if you need to test form processing on a styleguide
 # section
 forms_by_section = {
-    'dependent-checkboxes': forms.DependentCheckboxes,
+    'multi-field': forms.MultiFieldForm,
     'image-upload': forms.ImageUpload,
+    'switches': forms.SwitchForm,
 }
 
 _cached_styleguide = None

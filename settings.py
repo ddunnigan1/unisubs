@@ -298,6 +298,8 @@ LOCALE_INDEPENDENT_PATHS = [
     re.compile('^/jstest/'),
     re.compile('^/externalsites/youtube-callback'),
     re.compile('^/auth/set-hidden-message-id/'),
+    re.compile('^/auth/twitter_login_done'),
+    re.compile('^/auth/twitter_login_done_confirm'),
     re.compile('^/crossdomain.xml'),
     re.compile('^/embedder-widget-iframe/'),
     re.compile('^/__debug__/'),

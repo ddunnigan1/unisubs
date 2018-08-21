@@ -712,7 +712,7 @@ def application_form(request, team):
             return redirect(team)
     else:
         form = forms.ApplicationForm(application)
-    return render(request, "new-teams/application.html", {
+    return render(request, "future/teams/applications/join.html", {
         'team': team,
         'form': form,
     })

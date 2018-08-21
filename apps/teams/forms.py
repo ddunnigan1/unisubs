@@ -773,7 +773,7 @@ class GuidelinesMessagesForm(forms.Form):
     messages_invite = MessageTextField(
         label=_('When a member is invited to join the team'))
     messages_application = MessageTextField(
-        label=_('When a member applies to join the team'), max_length=15000)
+        label=_('Custom message to display at the top of the application form'), max_length=15000)
     messages_joins = MessageTextField(
         label=_('When a member joins the team'))
     messages_manager = MessageTextField(
@@ -1970,17 +1970,17 @@ class EditMembershipForm(forms.Form):
 
 class ApplicationForm(forms.Form):
     about_you = forms.CharField(widget=forms.Textarea, label="")
-    language1 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True))
-    language2 = forms.ChoiceField(
+    language1 = LanguageField(
+        choices=get_language_choices(), required=True)
+    language2 = LanguageField(
         choices=get_language_choices(with_empty=True), required=False)
-    language3 = forms.ChoiceField(
+    language3 = LanguageField(
         choices=get_language_choices(with_empty=True), required=False)
-    language4 = forms.ChoiceField(
+    language4 = LanguageField(
         choices=get_language_choices(with_empty=True), required=False)
-    language5 = forms.ChoiceField(
+    language5 = LanguageField(
         choices=get_language_choices(with_empty=True), required=False)
-    language6 = forms.ChoiceField(
+    language6 = LanguageField(
         choices=get_language_choices(with_empty=True), required=False)
 
     def __init__(self, application, *args, **kwargs):
@@ -2022,24 +2022,32 @@ class ApplicationForm(forms.Form):
                         "messages/email/application-sent-email.html", context)
         send_new_messages_notifications.delay(ids)
 
-    def clean(self):
-        try:
-            self.application.check_can_submit()
-        except ApplicationInvalidException, e:
-            raise forms.ValidationError(e.message)
-        return self.cleaned_data
-
-    def save(self):
-        try:
-            self.application.note = self.cleaned_data['about_you']
-            self.application.save()
-        except IntegrityError as e:
-            raise forms.ValidationError(e.__cause__, code='duplicate')
+    def _get_language_list(self):
         languages = []
         for i in xrange(1, 7):
             value = self.cleaned_data['language{}'.format(i)]
             if value:
                 languages.append({"language": value, "priority": i})
+
+        if not languages:
+            raise forms.ValidationError(_("Please select at least one language"), code='no-language')
+        return languages
+
+    def clean(self):
+        try:
+            self.application.check_can_submit()
+        except ApplicationInvalidException, e:
+            raise forms.ValidationError(e.message)
+        self._get_language_list()
+        return self.cleaned_data
+
+    def save(self):
+        try:
+            self.application.note = self.cleaned_data['about_you']
+        except IntegrityError as e:
+            raise forms.ValidationError(e.__cause__, code='duplicate')
+        languages = self._get_language_list()
+        self.application.save()
         self.application.user.set_languages(languages)
         self.notify()
 

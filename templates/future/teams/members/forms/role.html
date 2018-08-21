@@ -14,12 +14,12 @@
         {% csrf_token %}
         {% include "future/forms/non-field-errors.html" %}
         {% if form.include_all %}
-        {{ form.include_all|render_field }}
+        {% render_field form.include_all %}
         {% endif %}
-        {{ form.role|render_field }}
+        {% render_field form.role %}
         <div class="projectsAndLanguagesSelectors" {% if not show_proj_lang_selectors %}hidden{% endif %}>
-          {{ form.projects|render_field_reverse_required }}
-          {{ form.languages|render_field_reverse_required }}
+          {% render_field form.projects reverse_required=True %}
+          {% render_field form.languages reverse_required=True %}
         </div>
       </div>
       <div class="modal-footer">

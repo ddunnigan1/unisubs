@@ -9,6 +9,8 @@ vendor/python-openid-2.2.5.tar.gz
 vendor/python-yadis-1.1.0.tar.gz
 vendor/BeautifulSoup-3.2.0.tar.gz
 pycrypto==2.6.1
+requests_oauthlib==1.0.0
+# TODO: remove these oauth libraries
 oauth==1.0.1
 oauth2==1.5.211
 djangorestframework==3.2.0
@@ -34,7 +36,7 @@ vendor/Unidecode-0.04.9.tar.gz
 vendor/django-templatetag-sugar.tar.gz
 # this should be commented until we are sure we want to deploy this to prod
 #vendor/oboe-0.4.1.0.tar.gz
-requests[security]==2.9.0
+requests[security]==2.19.1
 rauth==0.4.12
 bleach==2.1.3
 markdown==2.6.5

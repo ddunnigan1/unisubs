@@ -34,16 +34,19 @@
   - forms
   - fields
   - checkboxes
-  - id: dependent-checkboxes
-    title: Dependent Checkboxes
+  - id: switches
+    title: Switches
+  - id: multi-field
+    title: multiField
   - fieldsets
+  - id: settings-fieldsets
+    title: Settings page forms
   - fieldErrors
   - fileUpload
   - id: image-upload
     title: Image Uploads
   - compoundField
   - buttonField
-  - switch
   - searchbar
   - selects
 
