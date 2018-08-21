@@ -178,21 +178,18 @@
 
         Keys.bind('no-edit', {
             'down': function() {
-                if($scope.workflow.stage == 'syncing') {
-                    if(unsyncedShown()) {
-                        SubtitleSyncManager.syncUnsyncedStartTime();
-                    }
-                } else {
-                    SubtitleSyncManager.adjustClosestTiming();
+                if(unsyncedShown()) {
+                    SubtitleSyncManager.syncUnsyncedStartTime();
                 }
+            },
+            's': function() {
+                SubtitleSyncManager.adjustClosestTiming();
             },
             'up': function() {
-                if($scope.workflow.stage == 'syncing') {
-                    if(unsyncedShown()) {
-                        SubtitleSyncManager.syncUnsyncedEndTime();
-                    }
+                if(unsyncedShown()) {
+                    SubtitleSyncManager.syncUnsyncedEndTime();
                 }
-            },
+            }
         });
     }]);
 
