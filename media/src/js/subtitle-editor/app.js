@@ -179,7 +179,7 @@ var angular = angular || null;
            }
         };
         $scope.onTutorialOverlayClick = function($event) {
-            if(event.currentTarget === event.target) {
+            if($event.currentTarget === $event.target) {
                 // If the user clicked on the overlay background, rather than any UI element, close the tutorial
                 $scope.toggleTutorial(false);
             }
