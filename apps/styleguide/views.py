@@ -17,11 +17,12 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 from __future__ import absolute_import
+import json
 
-from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpResponse
-import json
+from django.shortcuts import render
+from django.utils.translation import gettext as _
 
 from styleguide import forms
 from styleguide.styleguide import StyleGuide
@@ -43,6 +44,9 @@ def get_styleguide():
 
 def home(request):
     return render(request, 'styleguide/home.html', {
+        'section': {
+            'title': _('Styleguide home'),
+        },
         'styleguide': get_styleguide(),
         'active_section': None,
     })

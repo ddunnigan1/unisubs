@@ -155,7 +155,7 @@ class AmaraClearableFileInput(widgets.ClearableFileInput):
 
         return mark_safe(render_to_string(self.template_name, dictionary=context))
 
-class AmaraImageInput(widgets.FileInput):
+class AmaraImageInput(widgets.ClearableFileInput):
     def __init__(self):
         super(AmaraImageInput, self).__init__()
         # default size, overwritten by AmaraImageField
@@ -171,6 +171,7 @@ class AmaraImageInput(widgets.FileInput):
         return mark_safe(render_to_string('future/forms/widgets/image-input.html', {
             'thumb_url': thumb_url,
             'name': name,
+            'clear_name': self.clear_checkbox_name(name),
             'preview_width': self.preview_size[0],
             'preview_height': self.preview_size[1],
         }))

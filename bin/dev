@@ -349,11 +349,15 @@ class Gulp(Command):
     """Run gulp for the amara-assets repo."""
 
     def add_arguments(self, parser):
+        parser.add_argument('--compress', action='store_true')
         parser.add_argument('gulp_args', nargs=argparse.REMAINDER)
 
     def run(self):
+        env = {}
+        if not self.args.compress:
+            env['SKIP_UGLIFY'] = '1'
         run_node(['node', 'node_modules/gulp/bin/gulp.js'] +
-                 list(self.args.gulp_args))
+                 list(self.args.gulp_args), env=env)
 
 class Switch(Command):
     """
@@ -553,7 +557,7 @@ def run_manage(args, check=True, **kwargs):
 # If you update this, make sure to also change the value in
 # codeship-services.yml
 NODE_IMAGE = 'node:9.0.0'
-def run_node(command):
+def run_node(command, env=None):
     """
     Run the docker node container with the amara-assets repo
     """
@@ -562,6 +566,9 @@ def run_node(command):
         '-v', '{}:/mnt'.format(unisubs_root()),
         '-w', '/mnt/amara-assets',
     ]
+    if env:
+        for key, value in env.items():
+            cmdline.append('-e{}={}'.format(key, value))
     cmdline.append(NODE_IMAGE)
     cmdline.extend(command)
     returncode = subprocess.call(cmdline)

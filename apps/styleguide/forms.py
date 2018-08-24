@@ -71,10 +71,10 @@ class MultiFieldForm(StyleguideForm):
 
     subtitles_public = forms.BooleanField(
         label='Completed', required=False, initial=True,
-        widget=SwitchInput('Private', 'Public'))
+        widget=SwitchInput('Public', 'Private'))
     drafts_public = forms.BooleanField(
         label='Drafts', required=False,
-        widget=SwitchInput('Private', 'Public'))
+        widget=SwitchInput('Public', 'Private'))
 
     translate_time_limit = forms.CharField(label='Translate', initial=2,
                                            widget=forms.NumberInput)
@@ -90,8 +90,8 @@ class MultiFieldForm(StyleguideForm):
 
 class ImageUpload(StyleguideForm):
     thumbnail = AmaraImageField(label='Image', preview_size=(169, 100),
-                                help_text=('upload an image to test'))
-
+                                help_text=('upload an image to test'),
+                                required=False)
     def setup_form(self):
         styleguide_data = self.get_styleguide_data()
         if styleguide_data.thumbnail:
@@ -101,5 +101,8 @@ class ImageUpload(StyleguideForm):
 
     def save(self):
         styleguide_data = self.get_styleguide_data()
-        styleguide_data.thumbnail = self.cleaned_data['thumbnail']
+        if self.cleaned_data['thumbnail'] == False:
+            styleguide_data.thumbnail = None
+        else:
+            styleguide_data.thumbnail = self.cleaned_data['thumbnail']
         styleguide_data.save()

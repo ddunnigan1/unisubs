@@ -63,6 +63,8 @@ services:
 
   asset-builder:
     image: node:9.0.0
+    environment:
+      SKIP_UGLIFY: "1"
     volumes:
       - .:/mnt
     working_dir: /mnt/amara-assets

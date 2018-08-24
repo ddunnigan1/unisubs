@@ -12,6 +12,7 @@ from django.db.models.fields.files import FieldFile
 from easy_thumbnails.processors import scale_and_crop
 from PIL import Image
 
+
 THUMB_SIZES = getattr(settings, 'THUMBNAILS_SIZE', ())
 
 class S3ImageFieldFile(FieldFile):
@@ -23,7 +24,10 @@ class S3ImageFieldFile(FieldFile):
         name = self._get_thumbnail_name(size)
 
         if not settings.USE_AMAZON_S3 and not self.storage.exists(name):
-            self._create_thumbnail(self._open_image(), size)
+            try:
+                self._create_thumbnail(self._open_image(), size)
+            except IOError:
+                pass
         return self.storage.url(name)
 
     def _open_image(self):

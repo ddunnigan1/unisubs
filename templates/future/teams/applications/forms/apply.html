@@ -1,6 +1,5 @@
 {% load i18n %}
 <form action="" method="POST" class="team-application">
-  <div class="row bg-cream">
   <div class="col-sm-9 col-sm-offset-1">
   {% csrf_token %}
   {% include "future/forms/non-field-errors.html" %}
@@ -9,8 +8,6 @@
     {% include "future/forms/field-toptext.html" with field=form.about_you %}
   </div>
   </div>
-  </div>
-  <div class="row bg-snow">
   <div class="col-sm-9 col-sm-offset-1">
   <div class="form-group">
     <label for="">{% trans "Languages" %}</label>
@@ -29,7 +26,6 @@
   <div class="form-actions">
     <button class="button borderless">Cancel</button>
     <button type="submit" class="button cta">Submit</button>
-  </div>
   </div>
   </div>
 </form>

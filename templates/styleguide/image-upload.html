@@ -1,7 +1,6 @@
 {% extends "styleguide/base.html" %}
 {% load forms %}
 {% block "content" %}
-<h2>{{ section.title }}</h2>
 
 <form method="POST" enctype="multipart/form-data">
   {% csrf_token %}

@@ -1,7 +1,7 @@
 {% load forms assets %}
 <div class="multiField columns-{{ fields_and_labels|length }}{% if checkbox_mode %} checkboxes{% endif %}{% if dependent %} dependent{% endif %}">
   {% for field, label in fields_and_labels %}
-  {% if label %}
+  {% if not checkbox_mode %}
   <label class="multiField-label" for="{{ field.auto_id }}">{{ label}}</label>
   {% endif %}
   <div class="multiField-input{% if forloop.last %} last{% endif %}{% if checkbox_mode %} checkbox{% endif %}{% if ordered or dependent %} noborder{% endif %}">
@@ -20,4 +20,5 @@
   </div>
   <div class="multiField-rowEnd"></div>
   {% endfor %}
+  {%  if dependent %}<div class="multiField-inputExtender"></div>{% endif %}
 </div>

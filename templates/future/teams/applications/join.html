@@ -2,15 +2,21 @@
 {% load i18n forms %}
 
 {% block content %}
-<section>
+<main class="pageContent">
+<section class="pageSection">
   <div class="container">
     <div class="col-xs-12">
       <div class="content">
 
-        <div class="row bg-snow">
+        <div class="row bg-cream">
           <div class="col-sm-9 col-sm-offset-1">
-            <header class="bg-snow">
+            <header class="pageSection">
               <h1>{% trans "Apply to" %} {{ team }}</h1>
+              <p class="helpBlock">
+                {% blocktrans %}
+                Please fill out 'About You' and 'Languages' sections below and click 'Submit' to apply."
+                {% endblocktrans %}
+              </p>
               </br>
               <div class="application-form-message">
                 {% if team.application_message %}
@@ -33,9 +39,14 @@
             </header>
           </div>
         </div>
-        {% include "future/teams/applications/forms/apply.html" %}
+        <div class="row bg-snow">
+          <section class="pageSection">
+            {% include "future/teams/applications/forms/apply.html" %}
+          </section>
+        </div>
       </div>
     </div>
   </div>
 </section>
+</main>
 {% endblock %}
