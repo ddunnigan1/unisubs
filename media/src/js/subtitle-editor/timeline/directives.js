@@ -854,9 +854,6 @@ var angular = angular || null;
             scope.$watch('selectedSubtitle', function(selectedSubtitle, oldSelectedSubtitle) {
                 updateSubtitle(oldSelectedSubtitle);
                 updateSubtitle(selectedSubtitle);
-                if(selectedSubtitle && selectedSubtitle.isSynced() && !visibleTimespan.isSubtitleVisible(selectedSubtitle)) {
-                    VideoPlayer.seek(selectedSubtitle.startTime);
-                }
             });
 
             function showContextMenu(evt) {
