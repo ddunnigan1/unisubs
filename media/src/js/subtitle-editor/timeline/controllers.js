@@ -150,7 +150,7 @@
 
         function syncShownSubtitle() {
             updateShownSubtitle();
-            if($scope.timeline.shownSubtitle !== $scope.selectedSubtitle && $scope.workflow.stage != 'typing') {
+            if($scope.timeline.shownSubtitle !== $scope.selectedSubtitle && !$scope.currentEdit.inProgress()) {
                 $scope.selectSubtitle($scope.timeline.shownSubtitle);
             }
         }

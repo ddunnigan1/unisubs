@@ -153,6 +153,13 @@ var angular = angular || null;
             }
 
         });
+        subtitleList.addChangeCallback(function(changes) {
+            _.each(changes, function(change) {
+                if(change.type == 'remove' && change.subtitle == $scope.selectedSubtitle) {
+                    $scope.selectSubtitle(null);
+                }
+            });
+        });
 
         // For the working subtitles, we want to highlight the selected subtitle
         $scope.highlightedSubtitle = $scope.selectedSubtitle;
@@ -262,11 +269,11 @@ var angular = angular || null;
 
         $scope.bottomState = function() {
             if($scope.currentEdit.inProgress()) {
-                return 'edit-help'
-            } else if($scope.timelineShown) {
-                return 'add-button'
+                return 'edit-help';
+            } else if($scope.workflow.stage == 'typing') {
+                return 'type-shortcuts-help';
             } else {
-                return 'type-shortcuts-help'
+                return 'add-button';
             }
         }
 
@@ -301,7 +308,7 @@ var angular = angular || null;
                 var nextSubtitle = subtitleList.nextSubtitle(subtitle);
                 $scope.currentEdit.finish(subtitleList);
                 if(nextSubtitle === null) {
-                    if(!$scope.timelineShown) {
+                    if($scope.workflow.stage == 'typing') {
                         $scope.currentEdit.appendAndStart(subtitleList);
                         $scope.selectSubtitle($scope.currentEdit.subtitle);
                     }
