@@ -49,6 +49,7 @@ from . import views as old_views
 from . import forms
 from . import permissions
 from . import signals
+from . import stats
 from . import tasks
 from .behaviors import get_main_project
 from .bulk_actions import add_videos_from_csv
@@ -1324,3 +1325,10 @@ def ajax_video_search(request, team):
     }
 
     return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
+def debug_stats(request, team):
+    return render(request, "future/teams/debug-stats.html", {
+        'team': team,
+        'stats': stats.get_stats(team),
+    })

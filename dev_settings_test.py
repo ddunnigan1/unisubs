@@ -30,16 +30,11 @@ DATABASES = {
     }
 }
 
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-    }
-}
+CACHES['default']['OPTIONS']['REDIS_CLIENT_CLASS'] = "mockredis.client.mock_strict_redis_client"
 CACHE_PREFIX = "testcache"
 CACHE_TIMEOUT = 60
 
-CELERY_ALWAYS_EAGER = True
+RUN_JOBS_EAGERLY = True
 
 GOOGLE_CLIENT_ID = 'test-youtube-id'
 GOOGLE_CLIENT_SECRET = 'test-youtube-secret'

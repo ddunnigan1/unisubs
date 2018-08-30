@@ -18,7 +18,6 @@
 
 from __future__ import absolute_import
 
-from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib import messages
 from django.http import Http404
@@ -27,52 +26,54 @@ from django.utils.translation import to_locale, ugettext as _
 
 from ui import tasks
 from ui.ajax import AJAXResponseRenderer
+from utils.taskqueue import Job
 from utils.text import fmt
 from utils.translation import get_language_choices
 
 TASK_UPDATE_INTERVAL = 0.5
 
-def task_progress(request, task_id):
+def task_progress(request, job_id):
     if not request.is_ajax():
         raise Http404
-    task = AsyncResult(task_id)
+    job = Job.fetch(job_id, queue='high')
+    job_meta = job.get_meta() if job else {}
+    status = job_meta.get('form_status')
     response_renderer = AJAXResponseRenderer(request)
-    if task.status == 'PROGRESS':
-        progress = float(task.result['current']) / task.result['total']
+    if status == 'PROGRESS':
+        progress = float(job_meta['current']) / job_meta['total']
         response_renderer.show_modal_progress(progress, fmt(
             _("Processing: %(current)s / %(total)s"),
-            current=task.result['current'],
-            total=task.result['total']))
+            current=job_meta['current'],
+            total=job_meta['total']))
         response_renderer.perform_request(TASK_UPDATE_INTERVAL,
-                                          "ui:task-progress", task.id)
-    elif task.status == 'SUCCESS':
+                                          "ui:task-progress", job.id)
+    elif status == 'SUCCESS':
         response_renderer.show_modal_progress(1.0, _("Complete"))
-        add_task_messages(request, task)
+        add_job_messages(request, job_meta)
         response_renderer.reload_page()
-    elif task.status == 'FAILURE':
-        add_task_messages(request, task)
+    elif status == 'FAILURE':
+        add_job_messages(request, job_meta)
         response_renderer.reload_page()
     else:
         response_renderer.show_modal_progress(0.0, _("Processing"))
         response_renderer.perform_request(TASK_UPDATE_INTERVAL,
-                                          "ui:task-progress", task_id)
+                                          "ui:task-progress", job_id)
     return response_renderer.render()
 
-def add_task_messages(request, task):
-    if isinstance(task.result, dict):
-        for message in task.result.get('messages', []):
-            messages.success(request, message)
-        for message in task.result.get('error_messages', []):
-            messages.error(request, message)
+def add_job_messages(request, job_meta):
+    for message in job_meta.get('messages', []):
+        messages.success(request, message)
+    for message in job_meta.get('error_messages', []):
+        messages.error(request, message)
 
 def render_management_form_submit(request, form):
     response_renderer = AJAXResponseRenderer(request)
     if form.should_process_in_task():
-        task = tasks.process_management_form.delay(
+        job = tasks.process_management_form.delay(
             type(form), form.get_pickle_state())
         response_renderer.show_modal_progress(0.0, _("Processing"))
         response_renderer.perform_request(TASK_UPDATE_INTERVAL,
-                                          "ui:task-progress", task.id)
+                                          "ui:task-progress", job.id)
     else:
         response_renderer = AJAXResponseRenderer(request)
         form.submit()

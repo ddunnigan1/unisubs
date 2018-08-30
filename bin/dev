@@ -247,11 +247,12 @@ class Up(Command):
         if self.args.guitests:
             cwd = 'guitests'
             cmdline = ['docker-compose', '-f', 'docker-compose.yml', '-f',
-                       'docker-compose.expose-ports.yml', 'up', 'app', 'worker', 'feed-worker']
+                       'docker-compose.expose-ports.yml', 'up', 'app',
+                       'worker']
         else:
             cwd = None
-            cmdline = ['docker-compose', 'up', 'app', 'worker', 'feed-worker',
-                       'asset-builder']
+            cmdline = ['docker-compose', 'up', 'app', 'worker',
+                       'asset-builder', 'scheduler']
         subprocess.run(cmdline, env=env, cwd=cwd)
 
 class PrepDeploy(Command):

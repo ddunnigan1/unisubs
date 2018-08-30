@@ -6,8 +6,6 @@ sphinx_rtd_theme
 -e git+https://github.com/pculture/babelsubs.git#egg=babelsubs
 amqp==1.0.13
 billiard==2.7.3.34
-celery==3.0.25
-django-celery==3.0.23
 pycrypto==2.6.1
 pycrypto==2.6.1
 djangorestframework==3.2.0

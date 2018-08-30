@@ -18,7 +18,6 @@
 
 import datetime
 import json
-from unittest2 import skip
 
 from babelsubs import ParserList, GeneratorList
 from django.core.exceptions import ValidationError

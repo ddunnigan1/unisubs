@@ -40,8 +40,8 @@ import contextlib
 import functools
 import itertools
 
-from celery.task import Task
 import mock
+import dateutil.parser
 
 from subtitles.workflows import SaveDraft
 import externalsites.google
@@ -81,8 +81,15 @@ class MockNow(mock.Mock):
         return self.current
 
     def set(self, *args, **kwargs):
-        """Set the now() value to a specific time."""
-        self.current = datetime(*args, **kwargs)
+        """Set the now() value to a specific time.
+
+        Pass in either the arguments for datetime() or an iso8601 string
+        """
+
+        if(len(args) == 1 and isinstance(args[0], basestring)):
+            self.current = dateutil.parser.parse(args[0])
+        else:
+            self.current = datetime(*args, **kwargs)
 
     def __call__(self):
         self.last_returned = rv = self.current
@@ -189,12 +196,10 @@ class MonkeyPatcher(object):
     def run_original(self, mock_obj):
         rv = [mock_obj.original_func(*args, **kwargs)
                 for args, kwargs in mock_obj.call_args_list]
-        if isinstance(mock_obj.original_func, Task):
-            # for celery tasks, also run the delay() and apply() methods
+        if hasattr(mock_obj.original_func, 'delay'):
+            # for rq jobs, also run the delay() method
             rv.extend(mock_obj.original_func.delay(*args, **kwargs)
                       for args, kwargs in mock_obj.delay.call_args_list)
-            rv.extend(mock_obj.original_func.apply(*args, **kwargs)
-                      for args, kwargs in mock_obj.apply.call_args_list)
 
         return rv
 

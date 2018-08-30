@@ -16,7 +16,13 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+import pytz
+
 from datetime import datetime
+
+from django.conf import settings
+
+local_tz = pytz.timezone(settings.TIME_ZONE)
 
 def now():
     """Get the current datetime.
@@ -25,6 +31,9 @@ def now():
     for mocking it up in unittests.
     """
     return datetime.now()
+
+def utcnow():
+    return now().replace(tzinfo=local_tz).astimezone(pytz.utc)
 
 def this_month_start():
     return month_start(now())

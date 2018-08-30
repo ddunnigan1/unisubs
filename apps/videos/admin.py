@@ -19,8 +19,6 @@
 from django.contrib import admin
 from django.core.urlresolvers import reverse
 from django import forms
-from djcelery.admin import TaskMonitor
-from djcelery.models import TaskState
 
 from videos.models import (
     Video, SubtitleLanguage, SubtitleVersion, VideoFeed, VideoMetadata,
@@ -101,52 +99,6 @@ admin.site.register(VideoMetadata, VideoMetadataAdmin)
 admin.site.register(VideoFeed, VideoFeedAdmin)
 admin.site.register(VideoTypeUrlPattern, VideoTypeUrlPatternAdmin)
 
-class TaskStateForm(forms.ModelForm):
-    traceback_display = forms.CharField(required=False, label=u'Traceback')
-
-    class Meta:
-        model = TaskState
-        fields = (
-            "state",
-            "task_id",
-            "name",
-            "args",
-            "kwargs",
-            "eta",
-            "runtime",
-            "worker",
-            "tstamp",
-            "result",
-            "traceback_display",
-            "expires"
-        )
-        fieldsets = (
-            (None, {
-                "fields": ("state", "task_id", "name", "args", "kwargs",
-                           "eta", "runtime", "worker", "tstamp"),
-                "classes": ("extrapretty", ),
-            }),
-            ("Details", {
-                "classes": ("collapse", "extrapretty"),
-                "fields": ("result", "traceback_display", "expires"),
-            })
-        )
-
-        readonly_fields = ("state", "task_id", "name", "args", "kwargs",
-                           "eta", "runtime", "worker", "result", "traceback_display",
-                           "expires", "tstamp")
-
-
-class FixedTaskMonitor(TaskMonitor):
-    form = TaskStateForm
-
-    def traceback_display(self, obj):
-        return '<pre>%s</pre>' % obj.traceback
-
-    traceback_display.allow_tags = True
-    traceback_display.short_description = 'Traceback'
-
-
 class ActionAdmin(admin.ModelAdmin):
     list_display = ('video', 'new_language', 'user', 'team', 'action_type',
         'created')
@@ -154,6 +106,4 @@ class ActionAdmin(admin.ModelAdmin):
     class Meta:
         model = Action
 
-admin.site.unregister(TaskState)
-admin.site.register(TaskState, FixedTaskMonitor)
 admin.site.register(Action, ActionAdmin)

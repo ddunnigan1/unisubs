@@ -109,6 +109,7 @@ urlpatterns += patterns('teams.new_views',
     url(r'^(?P<slug>[-\w]+)/settings/workflows/$', 'settings_workflows', name='settings_workflows'),
     url(r'^(?P<slug>[-\w]+)/video-durations/$', 'video_durations',
         name='video-durations'),
+    url(r'^(?P<slug>[-\w]+)/debug-stats/$', 'debug_stats', name='debug-stats'),
 )
 
 # settings views that are handled by other apps

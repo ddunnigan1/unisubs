@@ -971,17 +971,6 @@ def subscribe_to_updates(request):
     urllib2.urlopen(req)
     return HttpResponse('ok', 'text/plain')
 
-def test_celery(request):
-    from videos.tasks import add
-    add.delay(1, 2)
-    return HttpResponse('Hello, from Amazon SQS backend for Celery!')
-
-@staff_member_required
-def test_celery_exception(request):
-    from videos.tasks import raise_exception
-    raise_exception.delay('Exception in Celery', should_be_logged='Hello, man!')
-    return HttpResponse('Hello, from Amazon SQS backend for Celery! Look for exception.')
-
 @never_in_prod
 @staff_member_required
 def video_staff_delete(request, video_id):

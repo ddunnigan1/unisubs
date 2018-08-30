@@ -84,7 +84,7 @@ CacheGroup we will do a couple things:
 - On subsequent runs, we will try to use get_many() to fetch all cache
   values at once.
 
-This speeds things up by reducing the number of round trips to memcached.
+This speeds things up by reducing the number of round trips to the cache.
 
 Behind the scenes
 ^^^^^^^^^^^^^^^^^

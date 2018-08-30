@@ -870,7 +870,7 @@ class EmailConfirmationManager(models.Manager):
                                       settings.HOSTNAME)
         }
         subject = u'Please confirm your email address for Amara'
-        send_templated_email_async(user, subject, "messages/email/email-confirmation.html", context)
+        send_templated_email_async.delay(user, subject, "messages/email/email-confirmation.html", context)
         return self.create(
             user=user,
             sent=datetime.now(),

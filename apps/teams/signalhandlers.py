@@ -20,6 +20,8 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
 from auth.models import CustomUser as User
+from subtitles.signals import subtitles_published
+from teams import stats
 from teams.models import TeamVideo, TeamMember, MembershipNarrowing
 from teams.signals import api_teamvideo_new
 from videos.signals import feed_imported
@@ -42,3 +44,11 @@ def on_membership_narrowing_change(sender, instance, **kwargs):
         User.cache.invalidate_by_pk(instance.member.user_id)
     except TeamMember.DoesNotExist:
         pass
+
+@receiver(subtitles_published)
+def on_subtitles_published(sender, **kwargs):
+    tv = sender.video.get_team_video()
+    if tv:
+        stats.increment(tv.team, 'subtitles-published')
+        stats.increment(
+            tv.team, 'subtitles-published-{}'.format(sender.language_code))

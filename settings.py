@@ -195,8 +195,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.webdesign',
     # third party apps
-    'djcelery',
     'rest_framework',
+    'django_rq',
     # third party apps forked on our repo
     'localeurl',
     'openid_consumer',
@@ -205,7 +205,6 @@ INSTALLED_APPS = (
     'activity',
     'amara',
     'amaradotorg',
-    'amaracelery',
     'api',
     'caching',
     'codefield',
@@ -237,20 +236,19 @@ STARTUP_MODULES = [
     'externalsites.signalhandlers',
 ]
 
-# Celery settings
-
-# import djcelery
-# djcelery.setup_loader()
-
-# For running worker use: python manage.py celeryd -E --concurrency=10 -n worker1.localhost
-# Run event cather for monitoring workers: python manage.py celerycam --frequency=5.0
-# This allow know are workers online or not: python manage.py celerybeat
-
-CELERY_IGNORE_RESULT = True
-CELERY_SEND_EVENTS = False
-CELERY_SEND_TASK_ERROR_EMAILS = True
-CELERYD_HIJACK_ROOT_LOGGER = False
-BROKER_POOL_LIMIT = 10
+# Queue settings
+RQ_QUEUES = {
+    'default': {
+        'USE_REDIS_CACHE': 'default',
+    },
+    'high': {
+        'USE_REDIS_CACHE': 'default',
+    },
+    'low': {
+        'USE_REDIS_CACHE': 'default',
+    }
+}
+RUN_JOBS_EAGERLY = False
 
 # feedworker management command setup
 FEEDWORKER_PASS_DURATION=3600
@@ -409,7 +407,19 @@ THUMBNAILS_SIZE = (
 
 EMAIL_BCC_LIST = []
 
-CACHE_BACKEND = 'locmem://'
+CACHES = {
+    'default': {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://{}:{}/{}".format(
+            os.environ.get('REDIS_HOST', 'redis'),
+            os.environ.get('REDIS_PORT', 6379),
+            0),
+        "OPTIONS": {
+            "PARSER_CLASS": "redis.connection.HiredisParser",
+        },
+    }
+}
+
 
 #for unisubs.example.com
 RECAPTCHA_PUBLIC = '6LdoScUSAAAAANmmrD7ALuV6Gqncu0iJk7ks7jZ0'
@@ -746,7 +756,7 @@ def log_handler_info():
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'root': {
         'level': 'INFO',
         'handlers': ['main'],
@@ -764,8 +774,8 @@ LOGGING = {
         'main': log_handler_info(),
     },
     'loggers': {
-        'celery': {
-            'level': 'WARNING',
+        "rq.worker": {
+            "level": "INFO"
         },
         'requests.packages.urllib3.connectionpool': {
             'level': 'WARNING',

@@ -50,6 +50,7 @@ from teams.permissions_const import (
     TEAM_PERMISSIONS, PROJECT_PERMISSIONS, ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER,
     ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
+from teams import stats
 from teams import tasks
 from teams import workflows
 from teams.exceptions import ApplicationInvalidException
@@ -76,7 +77,6 @@ from subtitles import pipeline
 from functools import partial
 
 logger = logging.getLogger(__name__)
-celery_logger = logging.getLogger('celery.task')
 
 BILLING_CUTOFF = getattr(settings, 'BILLING_CUTOFF', None)
 
@@ -992,7 +992,7 @@ class Team(models.Model):
     def get_writable_langs(self):
         """Return a list of language code strings that are writable for this team.
 
-        This value may come from memcache.
+        This value may come from the cache.
 
         """
         return TeamLanguagePreference.objects.get_writable(self)
@@ -1000,7 +1000,7 @@ class Team(models.Model):
     def get_readable_langs(self):
         """Return a list of language code strings that are readable for this team.
 
-        This value may come from memcache.
+        This value may come from the cache.
 
         """
         return TeamLanguagePreference.objects.get_readable(self)
@@ -1309,6 +1309,9 @@ class TeamVideo(models.Model):
                                                old_team=__old_team,
                                                video=self.video)
 
+        if not within_team:
+            stats.increment(self.team, 'videos-added')
+
     def is_checked_out(self, ignore_user=None):
         '''Return whether this video is checked out in a task.
 
@@ -1604,8 +1607,11 @@ class TeamMember(models.Model):
         return u'%s' % self.user
 
     def save(self, *args, **kwargs):
+        creating = self.pk is None
         super(TeamMember, self).save(*args, **kwargs)
         Team.cache.invalidate_by_pk(self.team_id)
+        if creating:
+            stats.increment(self.team, 'members-added')
 
     def delete(self):
         super(TeamMember, self).delete()
@@ -3205,7 +3211,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_readable(self, team):
         """Return the set of language codes that are readable for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_readable_langs
@@ -3214,7 +3220,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_writable(self, team):
         """Return the set of language codes that are writeable for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_writable_langs
@@ -3223,7 +3229,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_blacklisted(self, team):
         """Return the set of blacklisted language codes.
 
-        Note: we don't use memcache like the other functions, mostly because I
+        Note: we don't use the cache like the other functions, mostly because I
         want to avoid touching that code (BDK).
         """
         qs = self.for_team(team).filter(preferred=False, allow_reads=False,
@@ -3233,7 +3239,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_preferred(self, team):
         """Return the set of language codes that are preferred for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_preferred_langs
@@ -3775,22 +3781,22 @@ class BillingRecordManager(models.Manager):
         """
         from teams.models import BillingRecord
 
-        celery_logger.debug('insert billing record')
+        logger.debug('insert billing record')
 
         language = version.subtitle_language
         video = language.video
         tv = video.get_team_video()
 
         if not tv:
-            celery_logger.debug('not a team video')
+            logger.debug('not a team video')
             return
 
         if tv.team.deleted:
-            celery_logger.debug('Cannot create billing record for deleted team')
+            logger.debug('Cannot create billing record for deleted team')
             return
 
         if not language.is_complete_and_synced(public=False):
-            celery_logger.debug('language not complete')
+            logger.debug('language not complete')
             return
 
 
@@ -3799,7 +3805,7 @@ class BillingRecordManager(models.Manager):
             previous_record = BillingRecord.objects.get(video=video,
                             new_subtitle_language=language)
             # make sure we update it
-            celery_logger.debug('a billing record for this language exists')
+            logger.debug('a billing record for this language exists')
             previous_record.is_original = \
                 video.primary_audio_language_code == language.language_code
             previous_record.save()
@@ -3812,7 +3818,7 @@ class BillingRecordManager(models.Manager):
                 subtitle_language=language,
                 created__lt=BILLING_CUTOFF).exclude(
                 pk=version.pk).exists():
-            celery_logger.debug('an older version exists')
+            logger.debug('an older version exists')
             return
 
         is_original = language.is_primary_audio_language()

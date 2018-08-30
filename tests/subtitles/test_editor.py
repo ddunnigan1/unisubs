@@ -19,7 +19,6 @@ from __future__ import absolute_import
 
 import datetime
 import json
-from unittest2 import skip
 
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import  reverse

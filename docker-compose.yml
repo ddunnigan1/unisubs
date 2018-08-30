@@ -15,29 +15,12 @@ services:
       - "8000:8000"
     depends_on:
       - db
-      - queue
-      - cache
+      - redis
       - asset-builder
 
   worker:
     image: amara-app
     command: worker
-    environment:
-      CELERY_OPTS: -B
-      CELERY_QUEUES: default,priority
-      DJANGO_SETTINGS_MODULE: dev_settings
-      LANG: en_US.UTF-8
-      JSON_LOGGING:
-    volumes:
-      - .:/opt/apps/amara:z
-    links:
-      - db
-      - queue
-      - cache
-
-  feed-worker:
-    image: amara-app
-    command: feed_worker
     environment:
       DJANGO_SETTINGS_MODULE: dev_settings
       LANG: en_US.UTF-8
@@ -46,8 +29,20 @@ services:
       - .:/opt/apps/amara:z
     depends_on:
       - db
-      - queue
-      - cache
+      - redis
+
+  scheduler:
+    image: amara-app
+    command: scheduler
+    environment:
+      DJANGO_SETTINGS_MODULE: dev_settings
+      LANG: en_US.UTF-8
+      JSON_LOGGING:
+    volumes:
+      - .:/opt/apps/amara:z
+    depends_on:
+      - db
+      - redis
 
   db:
     image: mysql:5.7
@@ -61,6 +56,9 @@ services:
     ports:
       - "3306"
 
+  redis:
+    image: redis:4.0.10
+
   asset-builder:
     image: node:9.0.0
     environment:
@@ -69,17 +67,6 @@ services:
       - .:/mnt
     working_dir: /mnt/amara-assets
     command: ['node', 'node_modules/gulp/bin/gulp.js']
-
-  queue:
-    image: rabbitmq
-    ports:
-      - "5672"
-      - "15672"
-
-  cache:
-    image: memcached
-    ports:
-      - "11211"
 
   varnish:
     image: amara/amara-cache

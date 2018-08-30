@@ -205,7 +205,6 @@ class TestChangedSignals(TestCase):
         assert_equal(handler3.call_count, 0)
 
 class TestModelsSaving(TestCase):
-    # TODO: These tests may be more at home in the celery_tasks test file...
     def test_video_languages_count(self):
         # TODO: Merge this into the metadata tests file?
         video = get_video()

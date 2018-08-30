@@ -1,6 +1,4 @@
-# Amara, universalsubtitles.org
-#
-# Copyright (C) 2013 Participatory Culture Foundation
+# Copyright (C) 2018 Participatory Culture Foundation
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -15,3 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
+
+from optparse import make_option
+
+from django.core.management.base import BaseCommand
+import django_rq
+
+class Command(BaseCommand):
+    help = u'List upcoming scheduled tasks'
+    def handle(self, **options):
+        scheduler = django_rq.get_scheduler('default')
+        print 'scheduled tasks:'
+        for job, dt in scheduler.get_jobs(with_times=True):
+            print '{}: {}'.format(dt.isoformat(), job.func)

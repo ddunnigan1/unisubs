@@ -20,7 +20,7 @@ from django.conf.urls import patterns, url
 
 urlpatterns = patterns(
     'ui.views',
-    url(r'^task-progress/(?P<task_id>[0-9a-f-]+)/$', 'task_progress',
+    url(r'^task-progress/(?P<job_id>[0-9a-f-]+)/$', 'task_progress',
         name='task-progress'),
     url(r'^language-select/$', 'language_select', name='language-select'),
 )

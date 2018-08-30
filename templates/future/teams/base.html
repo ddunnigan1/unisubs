@@ -6,5 +6,6 @@
   <li><a href="{% url "admin:teams_team_change" team.pk %}">{% trans 'Edit team' %}</a></li>
   {% endif %}
   <li><a href="{% url "teams:video-durations" team.slug %}">Video Durations</a></li>
+  <li><a href="{% url "teams:debug-stats" team.slug %}">{% trans 'Stats' %}</a></li>
 </ul>
 {% endblock %}

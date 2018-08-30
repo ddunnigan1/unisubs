@@ -10,16 +10,16 @@ elif [ "$ACTION" = "build_media" ]; then
 elif [ "$ACTION" = "migrate" ]; then
     echo "Running migrations..."
     exec /usr/local/bin/run_migrations
-elif [ "$ACTION" = "master_worker" ]; then
-    echo "Running master worker..."
-    exec /usr/local/bin/master-worker
-elif [ "$ACTION" = "feed_worker" ]; then
-    echo "Running feed worker..."
-    source /usr/local/bin/config_env
-    exec manage feedworker
 elif [ "$ACTION" = "worker" ]; then
     echo "Running worker..."
-    exec /usr/local/bin/worker
+    if [ ! -z "$NEW_RELIC_LICENSE_KEY" ] ; then
+        pip install -U newrelic
+        PRE="newrelic-admin run-program "
+    fi
+    exec manage rqworker high default low
+elif [ "$ACTION" = "scheduler" ]; then
+    echo "Running scheduler..."
+    exec manage scheduler
 elif [ "$ACTION" = "update_translations" ]; then
     echo "Updating translations..."
     exec /usr/local/bin/update_translations $2

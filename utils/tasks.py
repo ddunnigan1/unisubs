@@ -18,12 +18,12 @@
 
 import logging
 
-from celery.task import task
 from utils import send_templated_email
+from utils.taskqueue import job
 
 logger = logging.getLogger(__name__)
 
-@task
+@job
 def send_templated_email_async(to, subject, body_template, body_dict,
                                from_email=None, ct="html", fail_silently=False,
                                check_user_preference=True):
@@ -31,6 +31,6 @@ def send_templated_email_async(to, subject, body_template, body_dict,
         to,subject, body_template, body_dict, from_email=None, ct="html",
         fail_silently=False, check_user_preference=check_user_preference)
 
-@task
+@job
 def test():
-    print('in test task')
+    logger.info('in test task')
