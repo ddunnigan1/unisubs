@@ -579,7 +579,6 @@ def can_view_activity(team, user):
 
 def can_invite(team, user):
     """Return whether the given user can send an invite for the given team."""
-
     role = get_role_for_target(user, team)
 
     role_required = {
@@ -591,6 +590,10 @@ def can_invite(team, user):
     }[team.membership_policy]
 
     return role in _perms_equal_or_greater(role_required)
+
+def can_send_email_invite(team, user):
+    role = get_role_for_target(user, team)
+    return role in _perms_equal_or_greater(ROLE_ADMIN)
 
 def can_add_members(team, user):
     """Return whether the given user can add members to the given team."""

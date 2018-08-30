@@ -130,6 +130,12 @@ class CustomUserManager(UserManager):
         else:
             return self.none()
 
+    '''
+    Gets all users except for the amara-bot
+    '''
+    def real_users(self):
+        return self.all().exclude(username=settings.ANONYMOUS_DEFAULT_USERNAME)
+
 def get_amara_anonymous_user():
     user, created = CustomUser.objects.get_or_create(
         pk=settings.ANONYMOUS_USER_ID,
@@ -243,6 +249,19 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
             return self.username
         else:
             return ugettext('Retired user')
+
+    @property
+    def username_with_fullname(self):
+        if self.is_active:
+            return self.username + ("" if unicode(self) == self.username 
+                                       else " ({})".format(unicode(self)))
+        else:
+            return ugettext('Retired user')
+
+    # Returns a dictionary in the select2 data format
+    def get_select2_format(self):
+        return { 'id' : self.username,
+                 'text': self.username_with_fullname }
 
     def sent_message(self):
         """

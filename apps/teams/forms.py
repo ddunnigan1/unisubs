@@ -24,10 +24,10 @@ import re
 
 from django import forms
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError as django_core_ValidationError
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
-from django.core.validators import EMPTY_VALUES
+from django.core.validators import EMPTY_VALUES, validate_email
 from django.db.models import Q
 from django.db import transaction, IntegrityError
 from django.forms.formsets import formset_factory
@@ -54,7 +54,7 @@ from teams.models import (
 )
 from teams import behaviors, permissions, tasks
 from teams.exceptions import ApplicationInvalidException
-from teams.fields import TeamMemberInput, TeamMemberRoleSelect, MultipleProjectField
+from teams.fields import TeamMemberInput, TeamMemberRoleSelect, MultipleProjectField, MultipleUsernameInviteField
 from teams.permissions import (
     roles_user_can_invite, can_delete_task, can_add_video, can_perform_task,
     can_assign_task, can_remove_video, can_change_video_titles,
@@ -979,16 +979,48 @@ class LanguagesForm(forms.Form):
         return self.cleaned_data
 
 class AddMembersForm(forms.Form):
-    role = forms.ChoiceField(choices=TeamMember.ROLES[::-1],
+    role = AmaraChoiceField(choices=TeamMember.ROLES[::-1],
                              initial='contributor',
                              label=_("Assign a role"))
-    members = forms.CharField(required=False,
-                              widget=forms.Textarea(attrs={'rows': 10}),
+
+    # old style team members field
+    members = forms.CharField(widget=forms.Textarea(attrs={'rows': 10}),
                               label=_("Users to add to team"))
-    def __init__(self, team, user, *args, **kwargs):
-        super(AddMembersForm, self).__init__(*args, **kwargs)
+
+    # new style team members field
+    members_new = MultipleUsernameInviteField(label=_('Usernames'),
+                                  help_text=_('Amara username of the existing user you want to add. '
+                                              'You can add multiple users. '
+                                              'Pasting a comma-separated or a line-by-line list of usernames and pressing the "Enter" key also works!'))
+
+    def __init__(self, team, user, data=None, *args, **kwargs):
+        super(AddMembersForm, self).__init__(data=data, *args, **kwargs)
+        if data:
+            # get the current username selections from invalidated POST data
+            form_data_members = data.getlist('members_new')
+            if form_data_members:
+                self.fields['members_new'].set_initial_selections(form_data_members)
         self.team = team
-        self.user = user
+        self.user = user        
+
+        if self.team.is_old_style():
+            del self.fields['members_new']
+        else:
+            del self.fields['members']
+            self.fields['members_new'].set_ajax_autocomplete_url(
+                reverse('teams:ajax-inviteable-users-search', kwargs={'slug':team.slug}))
+            self.fields['members_new'].set_ajax_multiple_username_url(
+                reverse('teams:ajax-inviteable-users-multiple-search', kwargs={'slug':team.slug}))
+
+    def clean(self):
+        cleaned_data = super(AddMembersForm, self).clean()
+
+        # validation of multiple username autocomplete field
+        if not self.team.is_old_style() and not cleaned_data['members_new']:
+            self.add_error('members_new', _('At least one username must be provided!'))
+
+        return cleaned_data
+
     def save(self):
         summary = {
             "added": 0,
@@ -996,7 +1028,13 @@ class AddMembersForm(forms.Form):
             "already": [],
             }
         member_role = self.cleaned_data['role']
-        for username in set(self.cleaned_data['members'].split()):
+
+        if self.team.is_old_style():
+            usernames = set(self.cleaned_data['members'].split())
+        else:
+            usernames = self.cleaned_data['members_new']
+
+        for username in usernames:
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
@@ -1012,66 +1050,144 @@ class AddMembersForm(forms.Form):
                     summary["already"].append(username)
         return summary
 
+
+# The form is kinda in a weird state since it tries to work both for old style
+# and new style teams
 class InviteForm(forms.Form):
+    # For old style team invite page, the auto-complete actually works 
     username = UserAutocompleteField(required=False, error_messages={
         'invalid': _(u'User has a pending invite or is already a member of this team')
         },
         help_text="Amara username of the user you want to invite")
-    email = forms.EmailField(required=False, max_length=254,
-                            widget=forms.TextInput(),
-                            help_text=_("You can also invite a team member via email--both a username and an email works too!") )
+
+    # For new style teams that allow sending invites to multiple users at a time
+    usernames = MultipleUsernameInviteField(label=_('Username'),
+                                  required=False,
+                                  help_text=_('Amara username of the existing user you want to invite. '
+                                              'You can invite multiple users. '
+                                              'Pasting a comma-separated or a line-by-line list of usernames and pressing the "Enter" key also works!'))
+    email = forms.CharField(required=False,
+                            widget=forms.Textarea(attrs={'rows': 3}),
+                            help_text=_('Email address of the new member you want to invite. '
+                                        'You can invite multiple users by entering one email address per line.') )
     message = forms.CharField(required=False,
                               widget=forms.Textarea(attrs={'rows': 4}),
                               label=_("Message to user"))
-    role = forms.ChoiceField(choices=TeamMember.ROLES[1:][::-1],
+    role = AmaraChoiceField(choices=TeamMember.ROLES[1:][::-1],
                              initial='contributor',
                              label=_("Assign a role"))
 
-    def __init__(self, team, user, *args, **kwargs):
-        super(InviteForm, self).__init__(*args, **kwargs)
+    def __init__(self, team, user, data=None, *args, **kwargs):
+        super(InviteForm, self).__init__(data=data, *args, **kwargs)
+        if data:
+            # getting the current modal tab from invalidated POST data
+            self.modal_tab = data.get('modalTab', None)
+
+            # getting the current username selections from invalidated POST data
+            form_data_usernames = data.getlist('usernames')
+            if form_data_usernames:
+                self.fields['usernames'].set_initial_selections(form_data_usernames)
+
         self.team = team
-        self.user = user
+        self.user = user # the invite author
+        self.users = [] # the users to be invited
+        self.emails = []
+        self.usernames = []
+        
         self.fields['role'].choices = [(r, ROLE_NAMES[r])
                                        for r in roles_user_can_invite(team, user)]
-        self.fields['username'].queryset = team.invitable_users()
-        self.fields['username'].set_autocomplete_url(
-            reverse('teams:autocomplete-invite-user', args=(team.slug,))
-        )
+        
+        if self.team.is_old_style():
+            del self.fields['usernames']
+            self.fields['username'].queryset = team.invitable_users()
+            self.fields['username'].set_autocomplete_url(
+                reverse('teams:autocomplete-invite-user', args=(team.slug,))
+            )
+        else:
+            del self.fields['username']
+            self.fields['usernames'].set_ajax_autocomplete_url(
+                reverse('teams:ajax-inviteable-users-search', kwargs={'slug':team.slug})
+                )
+            self.fields['usernames'].set_ajax_multiple_username_url(
+                reverse('teams:ajax-inviteable-users-multiple-search', kwargs={'slug':team.slug})
+                )
+
+    def validate_emails(self):
+        for email in self.emails:
+            try:
+                validate_email(email)
+            except django_core_ValidationError:
+                self.add_error('email', _(u"{} is an invalid email address.".format(email)))
+
+            invitee = self.team.users.filter(email=email).first()
+            if invitee:
+                self.add_error('email', _(u"The email address {} belongs to {} who is already a part of the team!".format(email, invitee)))
+
+    def validate_usernames(self):
+        for username in self.usernames:
+            try:
+                user = User.objects.get(username=username)
+                if self.team.is_member(user):
+                    self.add_error('usernames', _(u'The user {} already belongs to this team!').format(username))
+                elif Invite.objects.filter(user=user, team=self.team, approved=None).exists():
+                    self.add_error('usernames', _(u'The user {} already has an invite for this team!').format(username))
+                else:
+                    self.users.append(user)
+            except User.DoesNotExist:
+                self.add_error('usernames', _(u'The user {} does not exist.').format(username))
+
+    def clean_username(self):
+        username = self.data['username']
+        if username:
+            try:
+                user = User.objects.get(username=username)
+                if self.team.is_member(user):
+                    self.add_error('username', _(u'The user {} already belongs to this team!').format(username))
+                elif Invite.objects.filter(user=user, team=self.team, approved=None).exists():
+                    self.add_error('username', _(u'The user {} already has an invite for this team!').format(username))
+                else:
+                    return username
+            except User.DoesNotExist:
+                self.add_error('usernames', _(u'The user {} does not exist.').format(username))
 
     def clean(self):
         cleaned_data = super(InviteForm, self).clean()
-        email = cleaned_data.get('email')
-        username = cleaned_data.get('username')
 
-        if not (email or username):
-            raise forms.ValidationError(_(u"A valid username or email address must be provided"))            
+        if (self.team.is_old_style() and
+            not (self['email'].errors or self['username'].errors) and
+            not (cleaned_data.get('email') or cleaned_data.get('username'))):
+            raise forms.ValidationError(_(u"A valid username or email address must be provided"))
 
-        return cleaned_data
+        emails = cleaned_data.get('email')
+        usernames = cleaned_data.get('usernames')
 
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        
-        invitees = self.team.users.filter(email=email)
-        if invitees.exists():
-            if invitees.count() == 1:
-                raise forms.ValidationError(
-                    _(u"This email address belongs to {} "
-                       "who is already a part of the team!".format(invitees.first())))
-            else:
-                raise forms.ValidationError(
-                    _(u"This email address belongs to multiple user accounts, "
-                       "one of which is {} who is already a part of the team!".format(invitees.first())))           
+        if self.modal_tab == 'username' and not usernames:
+            self.add_error('usernames', _(u'At least one username must be provided!'))
+        if self.modal_tab == 'email' and not emails:
+            self.add_error('email', _(u'At least one email must be provided!'))
 
-        return email
-        
+        if emails:
+            self.emails = emails.split()
+            self.emails = set(self.emails)
+            self.validate_emails()
+            
+        if usernames:
+            self.usernames = usernames
+            self.usernames = set(self.usernames)
+            self.validate_usernames()
+
+        return cleaned_data        
 
     def save(self):
-        if self.cleaned_data['email']:
-            self.process_emails()
-        if self.cleaned_data['username']:
-            return self.create_invite(self.cleaned_data['username'])
+        for email in self.emails:
+            self.process_email_invite(email)
+        for user in self.users:
+            self.create_invite(user)
 
-    def create_invite(self, user):
+        if self.team.is_old_style() and self.cleaned_data['username']:
+            return self.create_invite(User.objects.get(username=self.cleaned_data['username']))
+
+    def create_invite(self, user):        
         invite = Invite.objects.create(
             team=self.team, user=user, 
             author=self.user, role=self.cleaned_data['role'],
@@ -1085,8 +1201,8 @@ class InviteForm(forms.Form):
         from messages import tasks as notifier        
         notifier.team_invitation_sent.delay(invite_pk)
 
-    def process_emails(self):
-        invitees = User.objects.filter(email=self.cleaned_data['email'])
+    def process_email_invite(self, email):
+        invitees = User.objects.filter(email=email)
         for invitee in invitees:
             self.create_invite(invitee)
             '''
@@ -1096,7 +1212,7 @@ class InviteForm(forms.Form):
             '''
 
         if invitees.count() == 0:
-            email_invite = EmailInvite.create_invite(email=self.cleaned_data['email'], 
+            email_invite = EmailInvite.create_invite(email=email, 
                 author=self.user, team=self.team, role=self.cleaned_data['role'])
             email_invite.send_mail(self.cleaned_data['message'])
 

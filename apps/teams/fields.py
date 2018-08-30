@@ -20,11 +20,10 @@ from django import forms
 from django.core.validators import EMPTY_VALUES
 from django.utils.translation import ugettext_lazy as _
 
-from teams.models import Project
-
+from auth.models import CustomUser as User
+from teams.models import Project, Invite
 from utils.text import fmt
-
-from ui.forms import AmaraChoiceField, AmaraMultipleChoiceField, widgets
+from ui.forms import AmaraChoiceField, AmaraMultipleChoiceField, widgets, MultipleAutoCompleteField
 
 class ProjectFieldMixin(object):
     def __init__(self, *args, **kwargs):
@@ -133,3 +132,27 @@ class TeamMemberInput(forms.CharField):
             raise forms.ValidationError(fmt(
                 _(u'%(username)s is not a member of the team'),
                 username=value))
+
+'''
+Don't forget to call this class's set_ajax_autocomplete_url(url)
+and set_ajax_multiple_username_url(url) methods
+
+See teams.forms:InviteForm for an example usage of this class
+set_ajax_autocomplete_url() and set_ajax_multiple_username_url()
+are called in InviteForm's __init__ method
+'''
+class MultipleUsernameInviteField(MultipleAutoCompleteField):
+    '''
+    Override MultipleAutoCompleteField's validation since it's not useful
+    Instead do validation at the form using this field (e.g. teams.forms.InviteForm)
+    '''
+    def clean(self, values):
+        return values
+
+    def set_initial_selections(self, usernames):
+        qs = User.objects.filter(username__in=usernames)
+        data = [ user.get_select2_format() for user in qs ]
+        self._set_initial_selections(data)
+
+    def set_ajax_multiple_username_url(self, url):
+        self.set_select_data('ajax-username-multiple', url)

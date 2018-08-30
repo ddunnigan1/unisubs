@@ -38,7 +38,7 @@ from teams.permissions import (
     can_create_task_translate, can_join_team, can_edit_video, can_approve,
     roles_user_can_invite, can_add_video_somewhere, can_assign_tasks,
     can_create_and_edit_translations, save_role, can_remove_video,
-    can_delete_team, can_delete_video, can_post_edit_subtitles, can_manage_subtitles
+    can_delete_team, can_delete_video, can_post_edit_subtitles, can_manage_subtitles, can_send_email_invite
 )
 
 
@@ -481,6 +481,15 @@ class TestRules(BaseTestPermission):
                     self.assertTrue(can_invite(team, user))
 
             self.assertFalse(can_invite(team, outsider))
+
+    def test_can_send_email_invite(self):
+        for r in [ROLE_ADMIN, ROLE_OWNER]:
+            with self.role(r):
+                self.assertTrue(can_send_email_invite(self.team, self.user))
+
+        for r in [ROLE_CONTRIBUTOR, ROLE_MANAGER]:
+            with self.role(r):
+                self.assertFalse(can_send_email_invite(self.team, self.user))
 
     def test_can_change_video_settings(self):
         user, outsider = self.user, self.outsider

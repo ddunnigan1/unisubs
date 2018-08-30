@@ -1,15 +1,21 @@
 {% load i18n i18n_tags forms %}
 <nav class="selectList-actions">
   <span class="pull-right">
-    {% if show_invite_link %}
-    <a href="{% url 'teams:invite' slug=team.slug %}" title="Invite member">Invite member</a>
-    {% endif %}
-    {% if show_add_link %}
-    <a href="{% url 'teams:add-members' slug=team.slug %}" title="Add members">Add members</a>
-    {% endif %}
     {% if show_application_link %}
     <a href="{% url 'teams:applications' slug=team.slug %}" title="Review applications">Review applications</a>
     {% endif %}
+    {% if show_invite_link or user.is_staff %}
+      <a data-href="invite" class="ajaxLink" title="Invite members">
+        {% if user.is_staff and not show_invite_link %}
+          {% trans 'Add members' %}
+        {% elif user.is_staff %}
+          {% trans 'Add/Invite members' %}
+        {% else %}
+          {% trans 'Invite members' %}
+        {% endif %}
+      </a>
+    {% endif %}
+
   </span>
   {% if is_team_admin %}
   <div class="checkbox">

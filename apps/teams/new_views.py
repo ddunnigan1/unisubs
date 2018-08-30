@@ -535,35 +535,88 @@ def member_profile(request, team, username):
 @team_view
 def add_members(request, team):
     summary = None
+    errors = []
+    successes = []
     if not permissions.can_add_members(team, request.user):
         return HttpResponseForbidden(_(u'You cannot invite people to this team.'))
-    if request.POST:
+    if request.method == "POST":
         form = forms.AddMembersForm(team, request.user, request.POST)
         if form.is_valid():
             summary = form.save()
+            if not team.is_old_style():
+                if summary['added']:
+                    msg = ungettext(u'{} member added to the team!',
+                                    u'{} members added to the team!',
+                                    summary['added'])
+                    successes.append(msg.format(summary['added']))
+                if summary['unknown']:
+                    msg = ungettext(u'The following user does not exist: {}',
+                                    u'The following users do not exist: {}',
+                                    len(summary['unknown']))
+                    errors.append(msg.format(", ".join(summary['unknown'])))
+                if summary['already']:
+                    msg = ungettext(u'The following is already a member: {}',
+                                    u'The following are already members: {}',
+                                    len(summary['already']))
+                    errors.append(msg.format(", ".join(summary['already'])))
 
-    form = forms.AddMembersForm(team, request.user)
+                # if every username was succesfully added, close the modal and refresh
+                # the member directory
+                if (summary['added'] and
+                    not summary['unknown'] and
+                    not summary['already']):
+                    success_msg = ungettext(u'{} member added to the team!',
+                                            u'{} members added to the team!',
+                                            summary['added'])
+                    messages.success(request, success_msg.format(summary['added']))
+                    response_renderer = AJAXResponseRenderer(request)
+                    response_renderer.reload_page()
+                    return response_renderer.render()
+    else:
+        form = forms.AddMembersForm(team, request.user)
 
     if team.is_old_style():
         template_name = 'teams/add_members.html'
-    else:
-        template_name = 'new-teams/add_members.html'
 
-    return render(request, template_name,  {
-        'team': team,
-        'form': form,
-        'summary': summary,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Members'), 'teams:members', team.slug),
-            BreadCrumb(_('Invite')),
-        ],
-    })
+        return render(request, template_name,  {
+            'team': team,
+            'form': form,
+            'summary': summary,
+            'breadcrumbs': [
+                BreadCrumb(team, 'teams:dashboard', team.slug),
+                BreadCrumb(_('Members'), 'teams:members', team.slug),
+                BreadCrumb(_('Invite')),
+            ],
+        })
+    else:
+        template_name = 'future/teams/members/forms/invite_modal.html'
+
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.show_modal(template_name, 
+            { 'team': team, 
+              'form': forms.InviteForm(team, request.user), 
+              'form_add_member': form,
+              'username_tab_non_field_errors': None,
+              'email_tab_non_field_errors': None,
+              'add_tab_non_field_errors': errors,
+              'add_tab_non_field_successes': successes, 
+              'team_nav': 'member_directory',
+              'show_username_invite_link': permissions.can_invite(team, request.user),
+              'show_add_link': permissions.can_add_members(team, request.user),
+              'show_email_invite_link': permissions.can_send_email_invite(team, request.user),
+              'modal_tab': 'add',
+            })
+        return response_renderer.render()    
 
 @team_view
 def invite(request, team):
-    if not permissions.can_invite(team, request.user):
+    if not permissions.can_invite(team, request.user) and not permissions.can_add_members(team, request.user):
         return HttpResponseForbidden(_(u'You cannot invite people to this team.'))
+
+    form_add_member = None
+    if permissions.can_add_members(team, request.user):
+        form_add_member = forms.AddMembersForm(team, request.user)
+
     if request.POST:
         form = forms.InviteForm(team, request.user, request.POST)
         if form.is_valid():
@@ -572,37 +625,73 @@ def invite(request, team):
             # sending invites twice for the same user, and that borks
             # the naive signal for only created invitations
             form.save()
-            success_msg = []
-            if form.cleaned_data['username']:
-                success_msg.append(u'{} has been invited to the team.'.format(form.cleaned_data['username']))
-            if form.cleaned_data['email']:
-                success_msg.append(u'{} has been sent an email invite.'.format(form.cleaned_data['email']))
-            messages.success(request, _("<br/>".join(success_msg)))
-            return HttpResponseRedirect(reverse('teams:members',
-                                                args=[team.slug]))
+
+            if form.emails:
+                emails =  "".join(["{}<br>".format(e) for e in form.emails])
+                messages.success(request, _(u'An invite has been sent to the following:<br>{}').format(emails))
+            if form.usernames:
+                usernames =  "".join(["{}<br>".format(e) for e in form.usernames])
+                messages.success(request, _(u'An invite has been sent to the following:<br>{}').format(usernames))
+            if team.is_old_style() and form.cleaned_data['username']:
+                messages.success(request, _(u'An invite has been sent to {}').format(form.cleaned_data['username']))
+
+            if team.is_old_style():
+                return HttpResponseRedirect(reverse('teams:members',
+                                                    args=[team.slug]))
+            else:
+                response_renderer = AJAXResponseRenderer(request)
+                response_renderer.reload_page()
+                return response_renderer.render()
     else:
         form = forms.InviteForm(team, request.user)
 
     if team.is_old_style():
         template_name = 'teams/invite_members.html'
-    else:
-        template_name = 'new-teams/invite.html'
-        # template_name = 'future/teams/members/invite.html'
-        '''
-        The future UI invite member page still need works
-        1. Make autocomplete work with the new field
-        2. The text-box does not render properly
-        '''
 
-    return render(request, template_name,  {
-        'team': team,
-        'form': form,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Members'), 'teams:members', team.slug),
-            BreadCrumb(_('Invite')),
-        ],
-    })
+        return render(request, template_name,  {
+            'team': team,
+            'form': form,
+            'breadcrumbs': [
+                BreadCrumb(team, 'teams:dashboard', team.slug),
+                BreadCrumb(_('Members'), 'teams:members', team.slug),
+                BreadCrumb(_('Invite')),
+            ],
+            'team_nav': 'member_directory',
+        })
+    else:
+        template_name = 'future/teams/members/forms/invite_modal.html'
+
+        # show the Add members form by default for staff
+        if request.user.is_staff and not request.POST.get('modalTab', None):
+            modal_tab = 'add'
+        else:
+            modal_tab = request.POST.get('modalTab', 'username')
+
+        # for separating the errors being rendered in the modal tabs
+        username_tab_non_field_errors = None
+        email_tab_non_field_errors = None
+        if form.non_field_errors:
+            if modal_tab == 'username':
+                username_tab_non_field_errors = form.non_field_errors
+            elif modal_tab == 'email':
+                email_tab_non_field_errors = form.non_field_errors
+
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.show_modal(template_name, 
+            { 'team': team, 
+              'form': form, 
+              'form_add_member': form_add_member,
+              'username_tab_non_field_errors': username_tab_non_field_errors,
+              'email_tab_non_field_errors': email_tab_non_field_errors,
+              'add_tab_non_field_errors': None,
+              'add_tab_non_field_successes': None,
+              'team_nav': 'member_directory',
+              'show_username_invite_link': permissions.can_invite(team, request.user),
+              'show_add_link': permissions.can_add_members(team, request.user),
+              'show_email_invite_link': permissions.can_send_email_invite(team, request.user),
+              'modal_tab': modal_tab,
+            })
+        return response_renderer.render()
 
 def email_invite(request, signed_pk):
     try:
@@ -1299,6 +1388,40 @@ def ajax_member_search(request, team):
             for user in qs[:8]
         ]
     }
+
+    return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
+def ajax_inviteable_users_search(request, team):
+    query = request.GET.get('q', '')
+    qs = team.search_invitable_users(query)
+    data = { 'results': [ user.get_select2_format() for user in qs[:8] ] }
+    return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
+def ajax_inviteable_users_multiple_search(request, team):
+    usernames = request.GET.getlist('usernames[]', [])
+    unknown = []
+    invited_already = []
+    member_already = []
+    invitable = []
+
+    for username in usernames:
+        try:
+            user = User.objects.get(username=username)
+            if team.is_member(user):
+                member_already.append(username)
+            elif Invite.objects.filter(user=user, team=team, approved=None).exists():
+                invited_already.append(username)
+            else:
+                invitable.append(user.get_select2_format())
+        except User.DoesNotExist:
+            unknown.append(username)
+
+    data = { 'unknown': unknown,
+             'invited_already': invited_already,
+             'member_already': member_already,
+             'invitable': invitable }
 
     return HttpResponse(json.dumps(data), 'application/json')
 
