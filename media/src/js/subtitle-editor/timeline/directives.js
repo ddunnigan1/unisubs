@@ -499,6 +499,7 @@ var angular = angular || null;
                 'shift right': function() { dragWithKeyboard(10); },
                 'escape': function() { stopKeyboardDrag(); }
             });
+            $scope.$on('cancel-timeline-nudge', stopKeyboardDrag);
         }
 
         return {

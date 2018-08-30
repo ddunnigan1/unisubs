@@ -160,6 +160,7 @@
             $scope.timeline.duration = $scope.duration;
             updateTimeline();
             if(VideoPlayer.isPlaying()) {
+                $scope.$emit('cancel-timeline-nudge');
                 startTimer();
             } else {
                 cancelTimer();
