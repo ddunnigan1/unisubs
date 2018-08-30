@@ -43,24 +43,32 @@ var angular = angular || null;
             }
             return stageIndex;
         },
+        nextStage: function() {
+            return this.stageOrder[this.stageIndex(this.stage) + 1];
+        },
         stageCSSClass: function(stage) {
             return this.stage == stage ? 'active' : 'inactive';
         },
-        canCompleteStage: function(stage) {
-            if(stage == 'typing') {
+        canChangeTo: function(stage) {
+            if(stage == 'syncing') {
                 return (this.subtitleList.length() > 0 &&
                         !this.subtitleList.needsAnyTranscribed());
-            } else if(stage == 'syncing') {
+            } else if(stage == 'review') {
                 return this.subtitleList.isComplete();
             } else {
-                return false;
+                return true;
             }
         },
-        completeStage: function(stage) {
-            var stageIndex = this.stageOrder.indexOf(stage);
-            this.stage = this.stageOrder[stageIndex+1];
+        canCompleteStage: function(stage) {
+            return this.canChangeTo(this.nextStage());
         },
-    }
+        completeStage: function(stage) {
+            this.stage = this.nextStage();
+        },
+        changeTo: function(stage) {
+            this.stage = stage;
+        }
+    };
     module.value('Workflow', Workflow);
 
     module.controller('NormalWorkflowController', ["$scope", "$sce", "EditorData", "VideoPlayer", function($scope, $sce, EditorData, VideoPlayer) {
@@ -120,6 +128,18 @@ var angular = angular || null;
             $scope.dialogManager.open('metadata');
         }
 
+        $scope.stageLinkClass = function(stage) {
+            if($scope.workflow.canChangeTo(stage)) {
+                return 'workflowStageLink active';
+            } else {
+                return 'workflowStageLink';
+            }
+        }
+        $scope.changeStage = function(stage) {
+            if($scope.workflow.canChangeTo(stage)) {
+                return $scope.workflow.changeTo(stage);
+            }
+        }
     }]);
 
 })(this);

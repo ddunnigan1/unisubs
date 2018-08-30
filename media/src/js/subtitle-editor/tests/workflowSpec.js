@@ -25,27 +25,27 @@ describe('The Workflow class', function() {
         expect(workflow.stage).toBe('review');
     }));
 
-    it('can complete the typing stage once there is a subtitle with content', function() {
-        expect(workflow.canCompleteStage('typing')).toBeFalsy();
+    it('can move to the syncing stage once there is a subtitle with content', function() {
+        expect(workflow.canChangeTo('syncing')).toBeFalsy();
         var sub = subtitleList.insertSubtitleBefore(null);
-        expect(workflow.canCompleteStage('typing')).toBeFalsy();
+        expect(workflow.canChangeTo('syncing')).toBeFalsy();
 
         subtitleList.updateSubtitleContent(sub, 'content');
-        expect(workflow.canCompleteStage('typing')).toBeTruthy();
+        expect(workflow.canChangeTo('syncing')).toBeTruthy();
     });
 
-    it('can complete the syncing stage once subs are complete and synced', function() {
+    it('can move to the review stage once subs are complete and synced', function() {
         workflow.stage = 'syncing';
-        expect(workflow.canCompleteStage('syncing')).toBeFalsy();
+        expect(workflow.canChangeTo('review')).toBeFalsy();
 
         var sub = subtitleList.insertSubtitleBefore(null);
-        expect(workflow.canCompleteStage('syncing')).toBeFalsy();
+        expect(workflow.canChangeTo('review')).toBeFalsy();
 
         subtitleList.updateSubtitleContent(sub, 'content');
-        expect(workflow.canCompleteStage('syncing')).toBeFalsy();
+        expect(workflow.canChangeTo('review')).toBeFalsy();
 
         subtitleList.updateSubtitleTime(sub, 500, 1000);
-        expect(workflow.canCompleteStage('syncing')).toBeTruthy();
+        expect(workflow.canChangeTo('review')).toBeTruthy();
     });
 
     it('moves to the syncing stage after typing', function() {

@@ -2213,3 +2213,13 @@ input[disabled] {
 .min-lines-2 {
     min-height: ($line-height-text * 3) * 1em;
 }
+
+.workflowStageLink {
+  text-decoration: none;
+  color: inherit;
+  cursor: default;
+
+  &.active {
+    cursor: pointer;
+  }
+}
