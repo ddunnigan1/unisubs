@@ -20,23 +20,30 @@
 
     var module = angular.module('amara.SubtitleEditor.help', []);
 
-    module.controller('HelpController', ['$scope', '$sce', function($scope, $sce, SubtitleStorage) {
-        /**
-         * Responsible for handling the various states of the help panel.
-         * @param $scope
-         * @param SubtitleStorage
-         * @constructor
-         */
-
+    module.controller('HelpController', ['$scope', '$sce', function($scope, $sce) {
         $scope.commands = [
             { key: 'tab', description: $sce.trustAsHtml('starts and stops video playback') },
             { key: 'enter', description: $sce.trustAsHtml('moves to the next line and <br /> adds a new line (when the timeline is closed)') },
             { key: 'shift + enter', description: $sce.trustAsHtml('adds a line break in the subtitle line') }
-                   ];
+        ];
 
         $scope.showAdvancedModal = function() {
             throw "Not implemented";
         };
 
+    }]);
+
+    module.controller('KeyboardControlsController', ['$scope', function($scope) {
+        $scope.keyboardControlsMode = function() {
+            if($scope.$root.nudging) {
+                return 'nudging';
+            } else {
+                return $scope.workflow.stage;
+            }
+        }
+        $scope.hideUpDownArrows = function() {
+            console.log($scope.workingSubtitles.subtitleList.isComplete());
+            return $scope.workingSubtitles.subtitleList.isComplete();
+        }
     }]);
 }).call(this);

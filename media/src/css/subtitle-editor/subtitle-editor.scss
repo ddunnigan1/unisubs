@@ -933,6 +933,9 @@ div.help-panel {
         &.teal-key {
             background: $teal;
         }
+        &.nopadding {
+          padding: 0;
+        }
         display: table;
         width: 100%;
         @include border-radius(3px);
