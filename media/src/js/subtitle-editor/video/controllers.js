@@ -85,7 +85,7 @@
             'shift tab': function() {
                 VideoPlayer.seek(VideoPlayer.currentTime() - 2000);
             },
-            'shift ctrl ,': function() {
+            'shift ctrl comma': function() {
                 VideoPlayer.seek(VideoPlayer.currentTime() - 4000);
             },
             'shift ctrl .': function() {

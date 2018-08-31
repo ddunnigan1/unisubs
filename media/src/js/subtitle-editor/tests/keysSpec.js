@@ -62,6 +62,18 @@ describe("The Keys service", function() {
         expect(callback).toHaveBeenCalled();
     });
 
+    it("binds multiple keys to a single callback", function() {
+        Keys.bind('default', {
+            'a | b': callback,
+        });
+        triggerKey(A_KEYCODE);
+        expect(callback).toHaveBeenCalled();
+
+        callback.calls.reset();
+        triggerKey(B_KEYCODE);
+        expect(callback).toHaveBeenCalled();
+    });
+
     it("handles special keys", function() {
         Keys.bind('default', {
             'enter': callback,

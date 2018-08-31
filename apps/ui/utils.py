@@ -177,6 +177,9 @@ class ContextMenu(object):
 class MenuSeparator(object):
     """Display a line to separate items in a ContextMenu."""
 
+def request_from_mac(request):
+    return 'macintosh' in request.META.get('HTTP_USER_AGENT', '').lower()
+
 __all__ = [
     'Link', 'AjaxLink', 'CTA', 'Tab', 'SectionWithCount', 'ContextMenu',
     'MenuSeparator',

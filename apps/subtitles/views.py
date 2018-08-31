@@ -48,6 +48,7 @@ from subtitles.templatetags.new_subtitles_tags import visibility
 from subtitles.forms import SubtitlesUploadForm
 from teams.models import Task
 from teams.permissions import can_perform_task
+from ui.utils import request_from_mac
 from utils.text import fmt
 from videos.models import Video
 from videos.types import video_type_registrar
@@ -406,6 +407,7 @@ class SubtitleEditorBase(View):
                 initial={'language_code':
                          self.editing_language.language_code},
                 allow_all_languages=True),
+            'mac_shortcuts': request_from_mac(request),
         }
         self.handle_task(context, editor_data)
         context['editor_data'] = json.dumps(editor_data, indent=4)

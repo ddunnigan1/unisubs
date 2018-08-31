@@ -123,174 +123,155 @@
     </footer>
 </aside>
 <aside modal-dialog="more-controls" allow-close class="modal" role="dialog" id="more-controls-modal" tabindex="-1" aria-labeledby="more-controls-heading" dir="[[ workingSubtitles.language.dir ]]">
+  {% with mod=mac_shortcuts|yesno:"Cmd,Ctrl" alt=mac_shortcuts|yesno:"Option,Alt" %}
     <h3 id="more-controls-heading">{% trans "Keyboard Shortcuts" %}</h3>
     <div class="modal-content">
+      <table>
+        <thead>
+          <tr>
+            <th>{% trans "Action" %}</th>
+            <th>{% trans "Shortcut" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{% trans "Play / Pause video" %}</td>
+            <td>Tab</td>
+          </tr>
+          <tr>
+            <td>{% trans "Skip back 2 seconds" %}</td>
+            <td>Shift + Tab</td>
+          </tr>
+          <tr>
+            <td>{% trans "Skip back 4 seconds" %}</td>
+            <td>{{ mod }} + Shift + ,</td>
+          </tr>
+          <tr>
+            <td>{% trans "Skip forward 4 seconds" %}</td>
+            <td>{{ mod }} + Shift + .</td>
+          </tr>
+          <tr>
+            <td>{% trans "Navigate to the next subtitle or insert one at the end" %}</td>
+            <td>Enter</td>
+          </tr>
+          <tr>
+            <td>{% trans "Insert line break" %}</td>
+            <td>Shift + Enter</td>
+          </tr>
+          <tr>
+            <td>{% trans "Exit edit mode of current subtitle" %}</td>
+            <td>ESC</td>
+          </tr>
+          <tr>
+            <td>{% trans "Split subtitle at cursor" %}</td>
+            <td>{{ mod }} + Enter</td>
+          </tr>
+          <tr>
+            <td>{% trans "Insert subtitle (above)" %}</td>
+            <td>{{ alt }} + I</td>
+          </tr>
+          <tr>
+            <td>{% trans "Insert subtitle (below)" %}</td>
+            <td>{{ alt }} + Shift + I</td>
+          </tr>
+          <tr>
+            <td>{% trans "Delete current subtitle" %}</td>
+            <td>Del, {{ alt }} + Del</td>
+          </tr>
+          <tr>
+            <td>{% trans "Navigate to the previous subtitle" %}</td>
+            <td>{{ alt }} + Up</td>
+          </tr>
+          <tr>
+            <td>{% trans "Navigate to the next subtitle" %}</td>
+            <td>{{ alt }} + Down</td>
+          </tr>
+          <tr>
+            <td>{% trans "Undo last action" %}</td>
+            <td>{{ mod }} + Z</td>
+          </tr>
+          <tr>
+            <td>{% trans "Redo last action" %}</td>
+            <td>{{ mod }} + Y, {{ mod }} + Shift + Z</td>
+          </tr>
+        </tbody>
+      </table>
+      <a class="expand-link" href="" ng-click="showBrowserShortcuts = true" ng-init="showBrowserShortcuts=false" ng-show="!showBrowserShortcuts">{% trans "Show Browser Shortcuts" %} &#x25B6;</a>
+      <a class="expand-link" href="" ng-click="showBrowserShortcuts = false" ng-show="showBrowserShortcuts">{% trans "Hide Browser Shortcuts" %} &#x25BC;</a>
+      <div ng-show="showBrowserShortcuts" id="browser-shortcuts">
+        <h3> {% trans "Browser Defaults that should work" %}</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>{% trans "Action" %}</th>
-                    <th>{% trans "Windows / Linux" %}</th>
-                    <th>{% trans "OS X" %}</th>
-                </tr>
-            </thead>
-            <tbody>
+          <thead>
             <tr>
-                <td> {% trans "Play / Pause video" %}</td>
-                <td> {% trans "Tab" %}</td>
-                <td> {% trans "Tab" %}</td>
+              <th> {% trans "Action" %}</th>
+              <th> {% trans "Windows / Linux" %}</th>
+              <th> {% trans "OS X" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td> {% trans "Jump to the next whole word" %}</td>
+              <td>Ctrl + Right</td>
+              <td>Option + Right</td>
             </tr>
             <tr>
-                <td> {% trans "Skip back 2 seconds" %}</td>
-                <td> {% trans "Shift + Tab" %}</td>
-                <td> {% trans "Shift + Tab" %}</td>
+              <td> {% trans "Jump to the previous whole word" %}</td>
+              <td>Ctrl + Left</td>
+              <td>Option + Left</td>
             </tr>
             <tr>
-                <td> {% trans "Skip back 4 seconds" %}</td>
-                <td> {% trans "Ctrl + Shift + ," %}</td>
-                <td> {% trans "CMD + Shift + ," %}</td>
+              <td> {% trans "Jump to the start of the subtitle" %}</td>
+              <td>Fn + Right</td>
+              <td>Ctrl + Right</td>
             </tr>
             <tr>
-                <td> {% trans "Skip forward 4 seconds" %}</td>
-                <td> {% trans "Ctrl + Shift + ." %}</td>
-                <td> {% trans "CMD + Shift + ." %}</td>
+              <td> {% trans "Jump to the end of the subtitle" %}</td>
+              <td>Fn + Left</td>
+              <td>Ctrl + Left</td>
             </tr>
             <tr>
-                <td> {% trans "Navigate to the next subtitle or insert one at the end" %}</td>
-                <td> {% trans "ENTER" %}</td>
-                <td> {% trans "ENTER" %}</td>
+              <td> {% trans "Delete last complete word" %}</td>
+              <td>Ctrl + Backspace</td>
+              <td>Ctrl + Backspace</td>
             </tr>
-            <tr>
-                <td> {% trans "Insert line break" %}</td>
-                <td> {% trans "Shift + ENTER" %}</td>
-                <td> {% trans "Shift + ENTER" %}</td>
-            </tr>
-            <tr>
-                <td> {% trans "Exit edit mode of current subtitle" %}</td>
-                <td> {% trans "ESC" %}</td>
-                <td> {% trans "ESC" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Split subtitle at cursor" %}</td>
-              <td> {% trans "Ctrl + ENTER" %}</td>
-              <td> {% trans "CMD + ENTER" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Insert subtitle (above)" %}</td>
-              <td> {% trans "Alt + i" %}</td>
-              <td> {% trans "CMD + i" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Insert subtitle (below)" %}</td>
-              <td> {% trans "Alt + Shift + i" %}</td>
-              <td> {% trans "CMD + Shift + i" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Delete current subtitle" %}</td>
-              <td> {% trans "Alt + Delete (or Backspace)" %}</td>
-              <td> {% trans "Option + Delete (or Backspace)" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Navigate to the previous subtitle" %}</td>
-              <td> {% trans "Alt + UP Arrow" %}</td>
-              <td> {% trans "Option + UP Arrow" %}</td>
-            </tr>
-            <tr>
-              <td> {% trans "Navigate to the next subtitle" %}</td>
-              <td> {% trans "Alt + DOWN Arrow" %}</td>
-              <td> {% trans "Option + DOWN Arrow" %}</td>
-            </tr>
-            <tr>
-                <td> {% trans "Undo last action" %}</td>
-                <td> {% trans "CTRL + z" %}</td>
-                <td> {% trans "CMD + z" %}</td>
-            </tr>
-            <tr>
-                <td> {% trans "Redo last action" %}</td>
-                <td> {% trans "CTRL + y" %}</td>
-                <td> {% trans "CMD + Shift + z" %}</td>
-            </tr>
-            </tbody>
+          </tbody>
         </table>
-        <a class="expand-link" href="" ng-click="showBrowserShortcuts = true" ng-init="showBrowserShortcuts=false" ng-show="!showBrowserShortcuts">{% trans "Show Browser Shortcuts" %} &#x25B6;</a>
-        <a class="expand-link" href="" ng-click="showBrowserShortcuts = false" ng-show="showBrowserShortcuts">{% trans "Hide Browser Shortcuts" %} &#x25BC;</a>
-        <div ng-show="showBrowserShortcuts" id="browser-shortcuts">
-            <h3> {% trans "Browser Defaults that should work" %}</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th> {% trans "Action" %}</th>
-                        <th> {% trans "Windows / Linux" %}</th>
-                        <th> {% trans "OS X" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td> {% trans "Jump to the next whole word" %}</td>
-                    <td> {% trans "CTRL + RIGHT Arrow" %}</td>
-                    <td> {% trans "Option + RIGHT Arrow" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Jump to the previous whole word" %}</td>
-                    <td> {% trans "CTRL + LEFT Arrow" %}</td>
-                    <td> {% trans "Option + LEFT Arrow" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Jump to the start of the subtitle" %}</td>
-                    <td> {% trans "Fn + RIGHT Arrow" %}</td>
-                    <td> {% trans "CMD + RIGHT Arrow" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Jump to the end of the subtitle" %}</td>
-                    <td> {% trans "Fn + LEFT Arrow" %}</td>
-                    <td> {% trans "CMD + LEFT Arrow" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Delete last complete word" %}</td>
-                    <td> {% trans "CTRL + Backspace" %}</td>
-                    <td> {% trans "CMD + Backspace" %}</td>
-                </tr>
-                </tbody>
-            </table>
-            <h3> {% trans "Proposed Shortcuts (not yet implemented)" %}</h3>
-            <p>See the <a target="_blank" href="http://support.amara.org/categories/6573/forums/74605/topics/78937">Keyboard shortcuts forum page</a> to offer your opinion.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th> {% trans "Action" %}</th>
-                        <th> {% trans "Windows / Linux" %}</th>
-                        <th> {% trans "OS X" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td> {% trans "Save a version" %}</td>
-                    <td> {% trans "CTRL + s" %}</td>
-                    <td> {% trans "CMD + s" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Italics formatting" %}</td>
-                    <td> {% trans "CTRL + i" %}</td>
-                    <td> {% trans "CMD + i" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Bold formatting" %}</td>
-                    <td> {% trans "CTRL + b" %}</td>
-                    <td> {% trans "CMD + b" %}</td>
-                </tr>
-                <tr>
-                    <td> {% trans "Timeline toggle" %}</td>
-                    <td> {% trans "CTRL + t" %}</td>
-                    <td> {% trans "CMD + t" %}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <h3> {% trans "Proposed Shortcuts (not yet implemented)" %}</h3>
+        <p>See the <a target="_blank" href="http://support.amara.org/categories/6573/forums/74605/topics/78937">Keyboard shortcuts forum page</a> to offer your opinion.</p>
+        <table>
+          <thead>
+            <tr>
+              <th> {% trans "Action" %}</th>
+              <th>{% trans "Shortcut" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{% trans "Save a version" %}</td>
+              <td>{{ mod }} + S</td>
+            </tr>
+            <tr>
+              <td> {% trans "Italics formatting" %}</td>
+              <td>{{ mod }} + I</td>
+            </tr>
+            <tr>
+              <td> {% trans "Bold formatting" %}</td>
+              <td>{{ mod }} + B</td>
+            </tr>
+            <tr>
+              <td> {% trans "Timeline toggle" %}</td>
+              <td>{{ mod }} + T</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <footer class="buttons">
-        <button ng-click="dialogManager.onCloseClick($event)">
-            {% trans "Close" %}
-        </button>
+      <button ng-click="dialogManager.onCloseClick($event)">
+        {% trans "Close" %}
+      </button>
     </footer>
+    {% endwith %}
 </aside>
 <aside modal-dialog="metadata" allow-close id="set-title-modal" class="modal" tabindex="-1" role="dialog" aria-labeledby="set-title-heading" ng-controller="SubtitleMetadataController" dir="[[ workingSubtitles.language.dir ]]">
     <form>

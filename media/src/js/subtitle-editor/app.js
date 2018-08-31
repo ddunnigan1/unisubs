@@ -538,7 +538,7 @@ var angular = angular || null;
                     $scope.$root.$emit('work-done');
                 }
             },
-            'ctrl y': function() {
+            'ctrl y | ctrl shift z': function() {
                 // Ctrl-Y -- redo
                 if($scope.workingSubtitles.subtitleList.canRedo()) {
                     $scope.workingSubtitles.subtitleList.redo();

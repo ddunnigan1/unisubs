@@ -282,18 +282,33 @@ var angular = angular || null;
                 var subtitleList = $scope.workingSubtitles.subtitleList;
                 $scope.selectSubtitle(subtitleList.nextSubtitle($scope.selectedSubtitle));
             },
+            'alt up': function() {
+                // Alt+up, select next subtitle
+                if($scope.selectedSubtitle) {
+                    $scope.selectSubtitle($scope.workingSubtitles.subtitleList.prevSubtitle($scope.selectedSubtitle));
+                } else {
+                    $scope.selectSubtitle($scope.workingSubtitles.subtitleList.lastSubtitle());
+                }
+            },
+            'alt down': function() {
+                // Alt+down, select prev subtitle
+                if($scope.selectedSubtitle) {
+                    $scope.selectSubtitle($scope.workingSubtitles.subtitleList.nextSubtitle($scope.selectedSubtitle));
+                } else {
+                    $scope.selectSubtitle($scope.workingSubtitles.subtitleList.firstSubtitle());
+                }
+            },
             'alt i': function() {
                 // Alt+i, insert subtitle above
-                if($scope.currentEdit.inProgress()) {
-                    $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
-                            $scope.currentEdit.subtitle);
+                if($scope.selectedSubtitle) {
+                    $scope.workingSubtitles.subtitleList.insertSubtitleBefore($scope.selectedSubtitle);
                 }
             },
             'alt shift i': function() {
                 // Insert subtitle below
-                if($scope.currentEdit.inProgress()) {
+                if($scope.selectedSubtitle) {
                     $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
-                            $scope.workingSubtitles.subtitleList.nextSubtitle($scope.currentEdit.subtitle));
+                            $scope.workingSubtitles.subtitleList.nextSubtitle($scope.selectedSubtitle));
                 }
             }
         });

@@ -197,8 +197,11 @@ var angular = angular || null;
 
         function normalizeBindings(bindings) {
             var normalized = {};
-            _.each(bindings, function(callback, keyString) {
-                normalized[parseKeyString(keyString)] = callback;
+            _.each(bindings, function(callback, fullKeyString) {
+                _.each(fullKeyString.split('|'), function(keyString) {
+                    keyString = keyString.trim();
+                    normalized[parseKeyString(keyString)] = callback;
+                });
             });
             return normalized;
         }
