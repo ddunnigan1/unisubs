@@ -339,26 +339,30 @@ var angular = angular || null;
             }
         });
 
-        Keys.bind('no-edit', {
-            'del': function() {
-                if($scope.selectedSubtitle) {
-                    var subtitleList = $scope.workingSubtitles.subtitleList;
-
-                    if($scope.currentEdit.inProgress()){
-                        $scope.currentEdit.finish(subtitleList);
-                    }
-                    // find a new subtitle to select after selectedSubtitle is removed
-                    var replacement = subtitleList.nextSubtitle($scope.selectedSubtitle);
-                    if(!replacement) {
-                        replacement = subtitleList.prevSubtitle($scope.selectedSubtitle);
-                    }
-                    subtitleList.removeSubtitle($scope.selectedSubtitle);
-
-                    $scope.selectSubtitle(replacement);
-                    $scope.$root.$emit('work-done');
-                }
-            }
+        Keys.bind('default', {
+            'alt del': deleteCurrentSubtitle
         });
+        Keys.bind('no-edit', {
+            'del': deleteCurrentSubtitle
+        });
+        function deleteCurrentSubtitle() {
+            if($scope.selectedSubtitle) {
+                var subtitleList = $scope.workingSubtitles.subtitleList;
+
+                if($scope.currentEdit.inProgress()){
+                    $scope.currentEdit.finish(subtitleList);
+                }
+                // find a new subtitle to select after selectedSubtitle is removed
+                var replacement = subtitleList.nextSubtitle($scope.selectedSubtitle);
+                if(!replacement) {
+                    replacement = subtitleList.prevSubtitle($scope.selectedSubtitle);
+                }
+                subtitleList.removeSubtitle($scope.selectedSubtitle);
+
+                $scope.selectSubtitle(replacement);
+                $scope.$root.$emit('work-done');
+            }
+        }
     }]);
 
     module.controller('ReferenceSubtitlesController', ['$scope', function($scope) {
