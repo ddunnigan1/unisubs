@@ -189,9 +189,6 @@ var angular = angular || null;
             }
 
             $scope.$watch('displayedSubtitle.region', recalcSubtitlePosition);
-            $scope.workingSubtitles.subtitleList.addChangeCallback(function(change) {
-                recalcSubtitlePosition();
-            });
         }
         return function link($scope, elem, attrs) {
             var overlays = elem.find('.subtitle-overlay');
@@ -253,6 +250,7 @@ var angular = angular || null;
                 if(sub) {
                     var region = calcRegionForDrop($(this));
                     $scope.workingSubtitles.subtitleList.updateSubtitleRegion(sub, region);
+                    $scope.$root.$digest();
                     $scope.$root.$emit('work-done');
                 }
                 evt.preventDefault();
