@@ -2,7 +2,7 @@
 <ol ng-switch-when="normal">
     <li ng-class="workflow.stageCSSClass('typing')">
         <h3 ng-show="!translating()"><a href="#" ng-click="changeStage('typing')" ng-class="stageLinkClass('typing')"> {% trans "Type what you hear" %}</a></h3>
-        <h3 ng-show="translating()">{% trans "Translate" %}</h3>
+        <h3 ng-show="translating()"><a href="#" ng-click="changeStage('typing')" ng-class="stageLinkClass('typing')">{% trans "Translate" %}</a></h3>
         <p ng-show="!translating()">{% trans "Is all the content subtitled?" %}</p>
         <p ng-show="translating()">{% trans "Is all the content translated?" %}</p>
 	{% include "editor/workflow-errors-typing.html" %}
