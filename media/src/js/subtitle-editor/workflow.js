@@ -43,14 +43,19 @@ var angular = angular || null;
             }
             return stageIndex;
         },
+        currentStageIndex: function() {
+            return this.stageIndex(this.stage);
+        },
         nextStage: function() {
-            return this.stageOrder[this.stageIndex(this.stage) + 1];
+            return this.stageOrder[this.currentStageIndex() + 1];
         },
         stageCSSClass: function(stage) {
             return this.stage == stage ? 'active' : 'inactive';
         },
         canChangeTo: function(stage) {
-            if(stage == 'syncing') {
+            if(this.stageIndex(stage) < this.currentStageIndex()) {
+                return true;
+            } else if(stage == 'syncing') {
                 return (this.subtitleList.length() > 0 &&
                         !this.subtitleList.needsAnyTranscribed());
             } else if(stage == 'review') {
@@ -60,7 +65,8 @@ var angular = angular || null;
             }
         },
         canCompleteStage: function(stage) {
-            return this.canChangeTo(this.nextStage());
+            var nextStage = this.nextStage();
+            return nextStage && this.canChangeTo(nextStage);
         },
         completeStage: function(stage) {
             this.stage = this.nextStage();

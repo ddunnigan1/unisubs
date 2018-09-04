@@ -906,16 +906,15 @@ div.help-panel {
         width: 20%;
     }
     div.key-row {
-        display: table-row;
-        table-layout: fixed;
-        div.instruction-item-small { 
-          display: table-cell;
-          width: 0.05%;
-        }
-        div.instruction-item { 
-          display: table-cell;
-          width: 2%;
-          margin: 0px 10px;
+        display: flex;
+        margin-right: -5px;
+
+        > div.instruction-item {
+          margin: 0 5px 0 0;
+          flex-grow: 1;
+          width: auto;
+          display: block;
+          flex-basis: 0;
         }
     }
     div.instruction-item {
@@ -2225,7 +2224,7 @@ input[disabled] {
   &.active {
     cursor: pointer;
     &:hover {
-      color: $blue;
+      color: $lighter-blue;
     }
   }
 }

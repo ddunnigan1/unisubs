@@ -183,7 +183,7 @@
                     SubtitleSyncManager.syncUnsyncedStartTime();
                 }
             },
-            's': function() {
+            'alt s': function() {
                 SubtitleSyncManager.adjustClosestTiming();
             },
             'up': function() {

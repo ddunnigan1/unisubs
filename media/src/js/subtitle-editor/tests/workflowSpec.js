@@ -73,6 +73,18 @@ describe('The Workflow class', function() {
         expect(workflow.stageCSSClass('syncing')).toEqual('inactive');
         expect(workflow.stageCSSClass('review')).toEqual('active');
     });
+
+    it('can always move back to previous stagest', function() {
+        var sub = subtitleList.insertSubtitleBefore(null);
+        subtitleList.updateSubtitleContent(sub, 'content');
+        subtitleList.updateSubtitleTime(sub, 500, 1000);
+        workflow.changeTo('review');
+
+        // Since we're in the review stage, we should always allow the user to
+        // move back to the syncing stage, even if there are empty subtitles
+        subtitleList.updateSubtitleContent(sub, '');
+        expect(workflow.canChangeTo('syncing')).toBeTruthy();
+    });
 });
 
 describe('NormalWorkflowController', function() {

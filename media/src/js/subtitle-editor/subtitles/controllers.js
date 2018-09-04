@@ -302,6 +302,7 @@ var angular = angular || null;
                 // Alt+i, insert subtitle above
                 if($scope.selectedSubtitle) {
                     $scope.workingSubtitles.subtitleList.insertSubtitleBefore($scope.selectedSubtitle);
+                    $scope.$root.$emit('work-done');
                 }
             },
             'alt shift i': function() {
@@ -309,6 +310,7 @@ var angular = angular || null;
                 if($scope.selectedSubtitle) {
                     $scope.workingSubtitles.subtitleList.insertSubtitleBefore(
                             $scope.workingSubtitles.subtitleList.nextSubtitle($scope.selectedSubtitle));
+                    $scope.$root.$emit('work-done');
                 }
             }
         });

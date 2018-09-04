@@ -200,42 +200,69 @@
       <a class="expand-link" href="" ng-click="showBrowserShortcuts = false" ng-show="showBrowserShortcuts">{% trans "Hide Browser Shortcuts" %} &#x25BC;</a>
       <div ng-show="showBrowserShortcuts" id="browser-shortcuts">
         <h3> {% trans "Browser Defaults that should work" %}</h3>
+        {% if mac_shortcuts %}
         <table>
           <thead>
             <tr>
               <th> {% trans "Action" %}</th>
-              <th> {% trans "Windows / Linux" %}</th>
-              <th> {% trans "OS X" %}</th>
+              <th> {% trans "Shortcut" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td> {% trans "Jump to the next whole word" %}</td>
+              <td>Option + Right</td>
+            </tr>
+            <tr>
+              <td> {% trans "Jump to the previous whole word" %}</td>
+              <td>Option + Left</td>
+            </tr>
+            <tr>
+              <td> {% trans "Jump to the start of the subtitle" %}</td>
+              <td>Ctrl + Right</td>
+            </tr>
+            <tr>
+              <td> {% trans "Jump to the end of the subtitle" %}</td>
+              <td>Ctrl + Left</td>
+            </tr>
+            <tr>
+              <td> {% trans "Delete last complete word" %}</td>
+              <td>Ctrl + Backspace</td>
+            </tr>
+          </tbody>
+        </table>
+        {% else %}
+        <table>
+          <thead>
+            <tr>
+              <th> {% trans "Action" %}</th>
+              <th> {% trans "Shortcut" %}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td> {% trans "Jump to the next whole word" %}</td>
               <td>Ctrl + Right</td>
-              <td>Option + Right</td>
             </tr>
             <tr>
               <td> {% trans "Jump to the previous whole word" %}</td>
               <td>Ctrl + Left</td>
-              <td>Option + Left</td>
             </tr>
             <tr>
               <td> {% trans "Jump to the start of the subtitle" %}</td>
               <td>Fn + Right</td>
-              <td>Ctrl + Right</td>
             </tr>
             <tr>
               <td> {% trans "Jump to the end of the subtitle" %}</td>
               <td>Fn + Left</td>
-              <td>Ctrl + Left</td>
             </tr>
             <tr>
               <td> {% trans "Delete last complete word" %}</td>
               <td>Ctrl + Backspace</td>
-              <td>Ctrl + Backspace</td>
             </tr>
           </tbody>
         </table>
+        {% endif %}
         <h3> {% trans "Proposed Shortcuts (not yet implemented)" %}</h3>
         <p>See the <a target="_blank" href="http://support.amara.org/categories/6573/forums/74605/topics/78937">Keyboard shortcuts forum page</a> to offer your opinion.</p>
         <table>

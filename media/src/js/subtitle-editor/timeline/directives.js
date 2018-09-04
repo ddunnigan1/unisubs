@@ -474,14 +474,12 @@ var angular = angular || null;
                 // Stop the "drag" on any click.  Use addEventListener because
                 // we want to get the event in the capture phase, before other
                 // code has a chance to handle the event
-                console.log('add');
                 window.addEventListener('mousedown', keyboardDragMouseDown, true);
                 $scope.$root.nudging = true;
                 $scope.$root.$digest();
             }
 
             function keyboardDragMouseDown(evt) {
-                console.log('mousedown');
                 if($(evt.target).closest('.instruction-item.clickable').length == 0) {
                     stopKeyboardDrag();
                     $scope.$root.$digest();
@@ -494,13 +492,12 @@ var angular = angular || null;
                     keyboardDragHandler = null;
                 }
                 Keys.disableContext('timeline-nudge');
-                console.log('remove');
                 window.removeEventListener('mousedown', keyboardDragMouseDown, true);
                 $scope.$root.nudging = false;
             }
 
             function dragWithKeyboard(deltaMS) {
-                keyboardDeltaMS += deltaMS;
+                keyboardDeltaMS = keyboardDragHandler.clampDeltaMS(keyboardDeltaMS + deltaMS);
                 keyboardDragHandler.onDrag(keyboardDeltaMS);
             }
 

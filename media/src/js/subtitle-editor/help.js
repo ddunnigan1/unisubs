@@ -41,9 +41,14 @@
                 return $scope.workflow.stage;
             }
         }
-        $scope.hideUpDownArrows = function() {
-            console.log($scope.workingSubtitles.subtitleList.isComplete());
-            return $scope.workingSubtitles.subtitleList.isComplete();
+        $scope.upDownMode = function() {
+            if($scope.workingSubtitles.subtitleList.isComplete()) {
+                return 'all-synced';
+            } else if($scope.currentEdit.inProgress()) {
+                return 'editing';
+            } else {
+                return 'default';
+            }
         }
     }]);
 }).call(this);
