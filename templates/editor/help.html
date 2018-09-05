@@ -47,11 +47,11 @@
                     <div class="shortcut-desc">{% trans "End subtitle" %}</div>
                 </div>
             </div>
-            <div ng-switch-when="editing" class="instruction-item blue-key clickable" ng-click="triggerKey('ctrl s')">
+            <div ng-switch-when="editing" class="instruction-item blue-key clickable" ng-click="triggerKey('esc')">
                 <div class="key-pattern">Esc</div>
                 <div class="shortcut-desc">{% trans "Stop edit to enable syncing keys" %}</div>
             </div>
-            <div ng-switch-when="all-synced" class="instruction-item blue-key clickable" ng-click="triggerKey('ctrl s')">
+            <div ng-switch-when="all-synced" class="instruction-item blue-key clickable" ng-click="triggerKey('alt s')">
                 <div class="key-pattern">alt</div>
                 <div class="key-pattern small">+</div>
                 <div class="key-pattern small">s</div>
@@ -70,8 +70,8 @@
           <div class="key-pattern">Tab</div>
           <div class="shortcut-desc">{% trans "Skip back" %}</div>
         </div>
-        <div class="instruction-item blue-key clickable" ng-click="triggerKey('ctrl s')">
-          <div class="key-pattern">Ctrl</div>
+        <div class="instruction-item blue-key clickable" ng-click="triggerKey('alt s')">
+          <div class="key-pattern">Alt</div>
           <div class="key-pattern small">+</div>
           <div class="key-pattern small">s</div>
           <div class="shortcut-desc">{% trans "Sync start/end time to current time" %}</div>
