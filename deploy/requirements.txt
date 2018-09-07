@@ -56,7 +56,7 @@ django-simple-captcha==0.5.1
 django-ipware==1.1.2
 uwsgi==2.0.14
 raven==6.1.0
-newrelic
+newrelic==4.2.0.100
 subprocess32
 # RQ
 rq==0.12.0

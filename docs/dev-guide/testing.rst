@@ -34,6 +34,12 @@ name, method/function name, pytest marks, etc).
 
     $ dev test -k [pattern]
 
+Drop into the python debugger on errors (Very useful for debugging hard to understand failures)
+
+::
+
+    $ dev test --pdb
+
 GUI Tests
 ---------
 

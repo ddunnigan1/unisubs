@@ -67,7 +67,7 @@
           {% csrf_token %}
           {% include "future/forms/non-field-success-context-successes.html" with successes=add_tab_non_field_successes %}
           {% include "future/forms/non-field-errors-context-errors.html" with errors=add_tab_non_field_errors %}
-          {{ form_add_member.members_new|render_field }}
+          {{ form_add_member.members|render_field }}
           {{ form_add_member.role|render_field }}                    
           <input type="hidden" value="add" name="modalTab"/>
           <div class="text-right">
