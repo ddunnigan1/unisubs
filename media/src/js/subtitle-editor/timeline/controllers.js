@@ -177,14 +177,16 @@
             updateTimeline({forcePlace: true});
         });
 
+        Keys.bind('default', {
+            'alt s': function() {
+                SubtitleSyncManager.adjustClosestTiming();
+            }
+        });
         Keys.bind('no-edit', {
             'down': function() {
                 if(unsyncedShown()) {
                     SubtitleSyncManager.syncUnsyncedStartTime();
                 }
-            },
-            'alt s': function() {
-                SubtitleSyncManager.adjustClosestTiming();
             },
             'up': function() {
                 if(unsyncedShown()) {
