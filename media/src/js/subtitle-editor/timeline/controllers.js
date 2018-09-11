@@ -176,6 +176,11 @@
         $scope.$root.$on("work-done", function() {
             updateTimeline({forcePlace: true});
         });
+        $scope.workingSubtitles.subtitleList.addChangeCallback(function(changes, changeGroup) {
+            if(!(changeGroup && changeGroup.startsWith('timeline-nudge'))) {
+                $scope.$emit('cancel-timeline-nudge');
+            }
+        });
 
         Keys.bind('default', {
             'alt s': function() {

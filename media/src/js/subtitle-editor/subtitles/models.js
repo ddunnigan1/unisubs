@@ -421,7 +421,7 @@ var angular = angular || null;
 
             this.redoStack = [];
             this.rollbackStack = [];
-            this._invokeChangeCallbacks();
+            this._invokeChangeCallbacks(changeGroup);
         }
 
         SubtitleList.prototype.lastChangeGroup = function() {
@@ -1021,11 +1021,11 @@ var angular = angular || null;
             this.pendingChanges.push(changeObj);
         }
 
-        SubtitleList.prototype._invokeChangeCallbacks = function() {
+        SubtitleList.prototype._invokeChangeCallbacks = function(changeGroup) {
             var changes = this.pendingChanges;
             this.pendingChanges = [];
             for(var i=0; i < this.changeCallbacks.length; i++) {
-                this.changeCallbacks[i](changes);
+                this.changeCallbacks[i](changes, changeGroup);
             }
         }
 

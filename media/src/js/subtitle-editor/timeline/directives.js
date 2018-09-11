@@ -108,15 +108,16 @@ var angular = angular || null;
         var changeGroupCounter = 1;
 
         // Base class for drag handlers
-        function DragHandler($scope, subtitleDiv, clickTime) {
+        function DragHandler($scope, subtitleDiv, clickTime, changeGroupPrefix) {
             this.$scope = $scope;
             this.subtitleDiv = subtitleDiv;
             this.clickTime = clickTime;
             this.subtitleList = this.$scope.workingSubtitles.subtitleList;
-            this.changeGroup = 'timeline-drag-' + changeGroupCounter++;
+            this.changeGroup = changeGroupPrefix + changeGroupCounter++;
             this.minDeltaMS = -Number.MAX_SAFE_INTEGER;
             this.maxDeltaMS = Number.MAX_SAFE_INTEGER;
             this.snappings = []; // deltaMS values that we gravitate to when adjusting things with the mouse
+            console.log(this.changeGroup);
         }
 
         DragHandler.prototype = {
@@ -135,8 +136,8 @@ var angular = angular || null;
         // video
         //
         //
-        function DragHandlerTimeline($scope, subtitleDiv, clickTime) {
-            DragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function DragHandlerTimeline($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            DragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             this.minDeltaMS = -this.$scope.currentTime;
             this.maxDeltaMS = this.$scope.duration - this.$scope.currentTime;
             this.lastDeltaMS = 0;
@@ -165,8 +166,8 @@ var angular = angular || null;
         });
 
         // Base class for dragging subtitles
-        function SubtitleDragHandler($scope, subtitleDiv, clickTime) {
-            DragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function SubtitleDragHandler($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            DragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             this.calcSubtitlesInvolved();
             this.calcInitialTimings();
             this.calcDragDoundaries();
@@ -209,8 +210,8 @@ var angular = angular || null;
         });
 
         // Handle dragging the subtitle from the middle -- this moves the subtitle in the timeline
-        function SubtitleDragHandlerMiddle($scope, subtitleDiv, clickTime) {
-            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function SubtitleDragHandlerMiddle($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             this.timeout = $timeout(function() { subtitleDiv.addClass('moving'); }, 100);
         }
 
@@ -254,8 +255,8 @@ var angular = angular || null;
         // Handle dragging the subtitle by the left handle -- this adjusts the start time
         //
         // If the user drags it far enough back to hit the previous subtitle, then it also adjusts that subtitle's end time
-        function SubtitleDragHandlerLeft($scope, subtitleDiv, clickTime) {
-            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function SubtitleDragHandlerLeft($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             $('.handle.left', subtitleDiv).addClass('adjusting');
         }
 
@@ -292,8 +293,8 @@ var angular = angular || null;
         // Handle dragging the subtitle by the right handle -- this adjusts the end time
         //
         // If the user drags it far enough forward to hit the next subtitle, then it also adjusts that subtitle's start time
-        function SubtitleDragHandlerRight($scope, subtitleDiv, clickTime) {
-            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function SubtitleDragHandlerRight($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             $('.handle.right', this.subtitleDiv).addClass('adjusting');
         }
 
@@ -393,12 +394,13 @@ var angular = angular || null;
                 var target = $(evt.target);
                 var subtitleDiv = target.closest('.subtitle', subtitlesContainer);
                 var clickTime = calcClickTime(evt);
+                var changeGroupPrefix = options.changeGroupPrefix || 'timeline-drag';
 
                 if(subtitleDiv.length == 0) {
                     if(options.allowTimelineDrag === false) {
                         return null;
                     }
-                    return new DragHandlerTimeline($scope, null, clickTime);
+                    return new DragHandlerTimeline($scope, null, clickTime, changeGroupPrefix);
                 }
                 if(target.hasClass('handle')) {
                     if(target.hasClass('dual')) {
@@ -406,14 +408,14 @@ var angular = angular || null;
                             // Ensure that subtitleDiv is for first subtitle
                             subtitleDiv = subtitleDiv.prev();
                         }
-                        return new SubtitleDragHandlerDual($scope, subtitleDiv);
+                        return new SubtitleDragHandlerDual($scope, subtitleDiv, clickTime, changeGroupPrefix);
                     } else if(target.hasClass('right')) {
-                        return new SubtitleDragHandlerRight($scope, subtitleDiv);
+                        return new SubtitleDragHandlerRight($scope, subtitleDiv, clickTime, changeGroupPrefix);
                     } else if(target.hasClass('left')) {
-                        return new SubtitleDragHandlerLeft($scope, subtitleDiv);
+                        return new SubtitleDragHandlerLeft($scope, subtitleDiv, clickTime, changeGroupPrefix);
                     }
                 }
-                return new SubtitleDragHandlerMiddle($scope, subtitleDiv);
+                return new SubtitleDragHandlerMiddle($scope, subtitleDiv, clickTime, changeGroupPrefix);
             }
 
             function calcClickTime(evt) {
@@ -465,7 +467,10 @@ var angular = angular || null;
 
 
             function startKeyboardDrag(evt) {
-                keyboardDragHandler = createDragHandler(evt, { allowTimelineDrag: false});
+                keyboardDragHandler = createDragHandler(evt, {
+                    allowTimelineDrag: false,
+                    changeGroupPrefix: 'timeline-nudge-'
+                });
                 if(keyboardDragHandler === null) {
                     return;
                 }
