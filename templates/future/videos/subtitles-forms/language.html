@@ -1,17 +1,15 @@
-{% load forms i18n query_string %}
-<div class="modal-dialog modal-md">
+{% load forms i18n query_string modal %}
+{% startmodal "change-language-dialog" _("Changing subtitle language") %}
+<form action="{% query_string form=language %}" method="POST">
+  <h4 class="modal-header">{{ video.title_display }}</h4>
+  <h4 class="modal-subheader">{% blocktrans with language=subtitle_language.get_language_code_display %}Subtitle language: {{ language }}{% endblocktrans %}</h4>
+  {% csrf_token %}
   <div class="modal-content">
-    <header class="dialogHeader">
-      <h4 class="dialogTitle">{% trans "Changing subtitle language" %}</h4>
-      <h4 class="dialogSubTitle">{{ video.title_display }} - {{ subtitle_language.get_language_code_display }}</h4>
-    </header>
-    <form action="{% query_string form=language %}" method="POST">
-      {% csrf_token %}
-      {{  form.new_language|render_field  }}
-      <div class="text-right">
-        <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
-        <button class="button cta" type="submit">{% trans "Change subtitle language" %}</button>
-      </div>
-    </form>
+    {{  form.new_language|render_field  }}
   </div>
-</div>
+  <div class="modal-footer">
+    <button class="button borderless modal-close">{% trans "Cancel" %}</a>
+    <button class="button cta" type="submit">{% trans "Change subtitle language" %}</button>
+  </div>
+</form>
+{% endmodal %}

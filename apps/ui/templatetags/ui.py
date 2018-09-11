@@ -19,6 +19,9 @@
 from __future__ import absolute_import
 
 from django import template
+from django.core.urlresolvers import reverse
+from django.forms.utils import flatatt
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 import ui.siteheader
@@ -50,3 +53,28 @@ def header_links(context):
             parts.append(u'<li>{}</li>'.format(tab))
     parts.append(u'</ul>')
     return u'\n'.join(parts)
+
+@register.simple_tag(takes_context=True)
+def checkbox(context, **kwargs):
+    """
+    Use this to create a checkbox not attached to any form
+
+    A good example of this is the checkboxes in listView
+    """
+    if '_checkbox_counter' not in context:
+        context['_checkbox_counter'] = 1
+    else:
+        context['_checkbox_counter'] += 1
+    id_ = 'auto-checkbox-{}'.format(context['_checkbox_counter'])
+    attrs = {
+        'id': id_,
+        'type': 'checkbox',
+    }
+    attrs.update({
+        key.replace('_', '-'): name
+        for key, name in kwargs.items()
+    })
+    return format_html(
+        '<div class="checkbox"><input{}>'
+        '<label for="{}"><span class="checkbox-icon"></span></label></div>',
+        flatatt(attrs), id_)

@@ -43,6 +43,7 @@ from django.utils.encoding import iri_to_uri, force_unicode
 from django.core.cache import cache
 
 import widget
+from activity.models import ActivityRecord
 from auth.models import UserLanguage, CustomUser as User
 from videos.templatetags.paginator import paginate
 from messages import tasks as notifier
@@ -54,9 +55,10 @@ from teams.forms import (
     MoveTeamVideoForm, TaskUploadForm, make_billing_report_form,
     TaskCreateSubtitlesForm, TeamMultiVideoCreateSubtitlesForm,
     OldMoveVideosForm, AddVideoToTeamForm, GuidelinesLangMessagesForm,
-    ProjectField,
+    ProjectField, ActivityFiltersForm,
 )
-from teams.oldforms import DeleteLanguageForm, AddTeamVideoForm
+from teams.oldforms import (DeleteLanguageForm, AddTeamVideoForm,
+                            OldActivityFiltersForm)
 from teams.models import (
     Team, TeamMember, Invite, Application, TeamVideo, Task, Project, Workflow,
     Setting, TeamLanguagePreference, InviteExpiredException, BillingReport,
@@ -81,6 +83,7 @@ from utils import render_to, render_to_json, DEFAULT_PROTOCOL
 from utils.decorators import staff_member_required
 from utils.forms import flatten_errorlists
 from utils.objectlist import object_list
+from utils.pagination import AmaraPaginator
 from utils.panslugify import pan_slugify
 from utils.searching import get_terms
 from utils.text import fmt
@@ -115,6 +118,7 @@ ACTIONS_ON_PAGE = getattr(settings, 'ACTIONS_ON_PAGE', 20)
 DEV = getattr(settings, 'DEV', False)
 DEV_OR_STAGING = DEV or getattr(settings, 'STAGING', False)
 BILLING_CUTOFF = getattr(settings, 'BILLING_CUTOFF', None)
+ACTIONS_PER_PAGE = 20
 
 def get_team_for_view(slug, user):
     if isinstance(slug, Team):
@@ -2471,3 +2475,29 @@ def video_feed(request, team, feed_id):
     }
     context.update(pagination_info)
     return context
+
+def activity(request, team):
+    filters_form = OldActivityFiltersForm(team, request.GET)
+    paginator = AmaraPaginator(filters_form.get_queryset(), ACTIONS_PER_PAGE)
+    page = paginator.get_page(request)
+
+    action_choices = ActivityRecord.type_choices()
+
+
+    context = {
+        'paginator': paginator,
+        'page': page,
+        'filters_form': filters_form,
+        'filtered': filters_form.is_bound,
+        'team': team,
+        'tab': 'activity',
+        'user': request.user,
+    }
+    if page.has_next():
+        next_page_query = request.GET.copy()
+        next_page_query['page'] = page.next_page_number()
+        context['next_page_query'] = next_page_query.urlencode()
+    # tells the template to use get_old_message instead
+    context['use_old_messages'] = True
+
+    return render(request, 'teams/activity.html', context)

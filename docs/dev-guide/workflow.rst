@@ -137,13 +137,14 @@ current status of work on the issue.  We use the following pipelines:
 
   - ``Icebox`` -- Issues that have been deprioritized, or are inside an Epic to be scheduled later
   - ``Discovery`` -- Issues that need to be triaged further and/or prioritized
-  - ``Waiting for Design`` -- Issues that need design decisions, mockups, or css before back-end implementation
-  - ``To Do`` -- Scheduled issues that a developer hasn't started yet
+  - ``Backlog`` -- Prioritized issues waiting to be assigned for a sprint
+  - ``To Do`` -- Issues assigned to a developer and a specific sprint (usually the current one), that a developer hasn't started yet
   - ``In Progress`` -- Issues that a developer is currently working on
   - ``Testing`` -- Issue that a developer believes to be handled and needs
     testing to verify the fix
-  - ``Waiting for Deploy`` -- Issue that has been fixed in the staging branch
-    and we need to deploy the change to production
+  - ``Needs PR`` -- Issue that has been verified by tester, waiting for developer to make PR
+  - ``Needs Review`` -- Issues with pull requests made that need to be reviewed by another developer
+  - ``Dev`` -- issues that have been merged to the dev.amara.org branch 
 
 Here's the workflow for a typical issue:
 
@@ -151,9 +152,7 @@ Here's the workflow for a typical issue:
 
     - Someone creates a github issue that captures the bug/feature and puts it
       in the ``Discovery`` pipeline
-    - The issue is prioritized and scheduled into a sprint
-    - Developer reviews issue Friday before the sprint begins, adds story points
-      to the issue
+    - The issue is prioritized in the ``Backlog`` pipeline
 
   - **Initial development**
 
@@ -166,14 +165,14 @@ Here's the workflow for a typical issue:
       these branches.
     - Once development on the issue is complete, developer moves the issue
       to the ``Testing`` pipeline and adds any relevant notes for testing to
-      the issue.
+      the issue. The developer also makes sure the requirements are updated on the issue description, and leaves any additional notes there that should be considered for Changelog entries on the blog.
 
   - **Testing**
 
     - Tester tests the changes.
     - If there are problems, tester notes them on the issue and moves it back to ``In progress``.
     - Developer fixes the problems, adds a note to the issue, moves it back to ``Testing``, and we start testing again
-    - Finally, tester approves the changes, then hands it back to developer to do a pull request
+    - Finally, tester approves the changes, and moves issue to "Needs PR" pipeline for developer to make a pull request
 
   - **Review**
 
@@ -190,8 +189,7 @@ Here's the workflow for a typical issue:
       to the ``Waiting for deploy`` pipeline
 
   - **Deploy**
-    - At some point we will deploy the code.
-    - Usually this happens on a monday.
-    - We first deploy staging, do a check to see if things are okay, then deploy production
-    - Once production is deployed, tester closes all issues in ``Waiting for deploy``
+    - We try to deploy new code every week. Usually this happens on a Wednesday.
+    - We first deploy dev, tester does a check to see if things are okay, then deploy to staging and then production
+    - Once production is deployed, tester closes all issues in ``Dev``
 

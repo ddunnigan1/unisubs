@@ -396,7 +396,7 @@ def video_add_url_form(request, video):
         create_url_form.save()
         response_renderer.clear_form('#add-url-form form')
         response_renderer.replace(*urls_tab_replacement_data(request, video))
-        response_renderer.hide_modal('#add-url-dialog')
+        response_renderer.hide_modal()
     else:
         response_renderer.replace(
             '#add-url-form', "future/videos/forms/create-url.html", {
@@ -419,7 +419,7 @@ def video_delete_url_form(request, video):
     response_renderer = AJAXResponseRenderer(request)
     if success:
         response_renderer.replace(*urls_tab_replacement_data(request, video))
-        response_renderer.hide_modal('#delete-url-dialog')
+        response_renderer.hide_modal()
     return response_renderer.render()
 
 def video_make_url_primary_form(request, video):
@@ -436,7 +436,7 @@ def video_make_url_primary_form(request, video):
     response_renderer = AJAXResponseRenderer(request)
     if success:
         response_renderer.replace(*urls_tab_replacement_data(request, video))
-        response_renderer.hide_modal('#make-url-primary-dialog')
+        response_renderer.hide_modal()
     return response_renderer.render()
 
 def urls_tab_replacement_data(request, video):

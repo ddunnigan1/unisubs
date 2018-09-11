@@ -86,3 +86,13 @@ class AmaraPaginatorFuture(Paginator):
         next_url = self.make_page_link(page.number+1, query) if page.number < self.num_pages else ''
         prev_url = self.make_page_link(page.number-1, query) if page.number > 1 else ''
         return (next_url, prev_url)
+
+    def get_context(self, request):
+        page = self.get_page(request)
+        next_page, prev_page = self.make_next_previous_page_links(page, request)
+        return {
+            'paginator': self,
+            'page': page,
+            'next': next_page,
+            'prev': prev_page,
+        }

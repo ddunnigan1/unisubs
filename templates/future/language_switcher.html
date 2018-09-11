@@ -1,23 +1,17 @@
-{% load i18n %}
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="dialogHeader">
-        <h4 class="dialogTitle">{% trans "Select your language" %}</h4>
-      </div>
-      <form class="languageSwitcher">
-        <div class="form-group searchbar searchbarFilter" data-target="languageChoice">
-          <label class="sr-only">{% trans "Search languages" %}</label>
-          <input id="languageSearchBar" class="languageSwitcher_searchBar" type="text" placeholder="{% trans "Search languages"%}">
-        </div>
-        <ul class="languageSwitcher_list col3 filteredList">
-          {% for url, code, name in languages %}
-          <li><a class="languageSwitcher-item no-underline" href="{{url}}" data-language-code="{{ code }}">{{name}}</a></li>
-          {% endfor %}
-        </ul>
-        <p>
-            <div class="pull-right"><button class="button cta-reverse" data-dismiss="modal">{% trans "Cancel" %}</button></div>
-            <a href="https://www.transifex.com/universalsubtitles/universalsubtitles/">{% trans "Help translate Amara into your language." %}</a>
-        </p>
-      </form>
+{% load i18n modal %}
+{% startmodal "language-switcher-dialog" _("Select your language") %}
+<div class="modal-content">
+  <form class="languageSwitcher">
+    <div class="form-group searchbar searchbarFilter" data-target="languageChoice">
+      <label class="sr-only">{% trans "Search languages" %}</label>
+      <input id="languageSearchBar" class="languageSwitcher_searchBar" type="text" placeholder="{% trans "Search languages"%}">
     </div>
-  </div>
+    <ul class="languageSwitcher_list filteredList">
+      {% for url, code, name in languages %}
+      <li><a class="languageSwitcher-item no-underline" href="{{url}}" data-language-code="{{ code }}">{{name}}</a></li>
+      {% endfor %}
+    </ul>
+  </form>
+  <a class="text-small" href="https://www.transifex.com/universalsubtitles/universalsubtitles/">{% trans "Help translate Amara into your language." %}</a>
+</div>
+{% endmodal %}

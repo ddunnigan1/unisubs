@@ -1,17 +1,15 @@
-{% load i18n ui query_string %}
+{% load i18n ui %}
+{% if page %}
 <table class="table lined align-middle">
-  <tbody>
-    {% for record in activity %}
-    {% with url=record.get_url %}
+  {% for record in page %}
     <tr>
       <td>{% include "future/users/icon-link.html" with user=record.user %}</td>
       <td>{{ record.get_message|safe }}</td>
       <td class="text-gray">{{ record.created|datetime }}</td>
     </tr>
-    {% endwith %}
     {% endfor %}
-  </tbody>
 </table>
-{% if show_all %}
-<a class="ajaxLink button loadingIcon" data-href="{% query_string show-all=1 %}" role="button">{% trans "Show all" %}</a>
+{% include "future/paginator.html" %}
+{% else %}
+<div class="zero-state">{% trans "No activity" %}</div>
 {% endif %}

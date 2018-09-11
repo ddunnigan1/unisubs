@@ -23,10 +23,12 @@ from django.core.validators import EMPTY_VALUES
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 
+from activity.models import ActivityRecord
 from teams.behaviors import get_main_project
 from teams.models import (
     Team, TeamVideo, Project, Workflow, 
 )
+from utils.translation import get_language_choices
 from videos.forms import VideoURLField
 from videos.models import Video
 from ui.forms import LanguageField as NewLanguageField
@@ -200,3 +202,69 @@ class AddTeamVideoForm(forms.ModelForm):
         # TeamVideo was already created in clean()
         return self.saved_team_video
 
+class OldActivityFiltersForm(forms.Form):
+    SORT_CHOICES = [
+        ('-created', _('date, newest')),
+        ('created', _('date, oldest')),
+    ]
+    type = forms.ChoiceField(
+        label=_('Activity Type'), required=False,
+        choices=[])
+    video_language = forms.ChoiceField(
+        label=_('Video Language'), required=False,
+        choices=[])
+    subtitle_language = forms.ChoiceField(
+        label=_('Subtitle Language'), required=False,
+        choices=[])
+    sort = forms.ChoiceField(
+        label=_('Sorted by'), required=True,
+        choices=SORT_CHOICES)
+
+    def __init__(self, team, get_data):
+        super(OldActivityFiltersForm, self).__init__(
+                  data=self.calc_data(get_data))
+        self.team = team
+        self.fields['type'].choices = self.calc_activity_choices()
+        language_choices = [
+            ('', ('Any language')),
+        ]
+        language_choices.extend(get_language_choices(flat=True))
+        self.fields['video_language'].choices = language_choices
+        self.fields['subtitle_language'].choices = language_choices
+
+    def calc_activity_choices(self):
+        choices = [
+            ('', _('Any type')),
+        ]
+        choice_map = dict(ActivityRecord.active_type_choices())
+        choices.extend(
+            (value, choice_map[value])
+            for value in self.team.new_workflow.activity_type_filter_options()
+        )
+        return choices
+
+    def calc_data(self, get_data):
+        field_names = set(['type', 'video_language', 'subtitle_language',
+                           'sort'])
+        data = {
+            key: value
+            for (key, value) in get_data.items()
+            if key in field_names
+        }
+        return data if data else None
+
+    def get_queryset(self):
+        qs = ActivityRecord.objects.for_team(self.team)
+        if not (self.is_bound and self.is_valid()):
+            return qs
+        type = self.cleaned_data.get('type')
+        subtitle_language = self.cleaned_data.get('subtitle_language')
+        video_language = self.cleaned_data.get('video_language')
+        sort = self.cleaned_data.get('sort', '-created')
+        if type:
+            qs = qs.filter(type=type)
+        if subtitle_language:
+            qs = qs.filter(language_code=subtitle_language)
+        if video_language:
+            qs = qs.filter(video_language_code=video_language)
+        return qs.order_by(sort)

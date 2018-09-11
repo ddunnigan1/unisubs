@@ -1,5 +1,5 @@
 {% extends "future/base.html" %}
-{% load i18n videos_tags %}
+{% load i18n videos_tags modal %}
 
 {% block head-extra %}
 {% include "future/videos/embed-script.html" %}
@@ -24,7 +24,7 @@
           <div class="tab-content">
             <div id="video_info" class="tab-pane{% if tab == "info" %} active{% endif %}" role="tabpanel">
               <nav class="tab-actions">
-                <a href="#" class="button small" data-toggle="modal" data-target="#share-dialog">{% trans "Embed" %}</a>
+                <button class="button small modal-show" data-target="#share-dialog">{% trans "Embed" %}</button>
                 <span>{% trans "Follow" %}</span>
                 <form action="{% url "api:video-follow" video.video_id %}" class="ajaxForm updateOnChange" method="post">
                   {% csrf_token %}
@@ -66,94 +66,66 @@
 {% endblock %}
 
 {% block bottom %}
-<div class="modal fade" id="share-dialog">
-  <div class="modal-dialog modal-md">
-    <div class="modal-content">
-      <header class="dialogHeader">
-        <h4 class="dialogTitle">{% trans "Embed video" %} </h4>
-      </header>
-    <div class="text-left">
-      <p>{% blocktrans %}Use the following code to embed this video. See our <a href="https://github.com/pculture/unisubs/wiki/Embed-Code-Usage-Guide" title="Embed usage guide">usage guide</a> for more details on embedding.{% endblocktrans %}</p>
+{% startmodal "share-dialog" _('Embed Video') %}
+<div class="modal-content">
+  <p>{% blocktrans %}Use the following code to embed this video. See our <a href="https://github.com/pculture/unisubs/wiki/Embed-Code-Usage-Guide" title="Embed usage guide">usage guide</a> for more details on embedding.{% endblocktrans %}</p>
 
-      <p>
-        {% trans "Paste this in your document somewhere (closest to the closing body tag is preferable):" %}
-        <pre>
+  <p>
+  {% trans "Paste this in your document somewhere (closest to the closing body tag is preferable):" %}
+  <pre>
 &lt;script type="text/javascript" src='https://amara.org/embedder-iframe'&gt;&lt;/script&gt;
-        </pre>
-      </p>
-      <p>
-        {% trans "Paste this inside your HTML body, where you want to include the widget:" %}
-        <pre>
+  </pre>
+  </p>
+  <p>
+  {% trans "Paste this inside your HTML body, where you want to include the widget:" %}
+  <pre>
 &lt;div class="amara-embed" data-url="{{ player_url }}" {% if team %}data-team="{{ team.slug}}"{% else %}data-team="null"{% endif %}&gt;&lt;/div&gt;
-        </pre>
-      </p>
-    </div>
-    <form class="text-right">
-      <button class="button cta-reverse" data-dismiss="modal">Close</a>
-    </form>
-    </div>
-  </div>
+  </pre>
+  </p>
 </div>
+{% endmodal %}
 
 {% if create_url_form %}
-<div class="modal fade" id="add-url-dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="dialogHeader">
-        <h4 class"dialogTitle">{% trans 'Add another URL for this video' %}</h4>
-      </div>
-      <p>{% trans "Add a URL for another version of the exact same video. Useful when many versions of the same video exist, or when there are different formats (like HTML5)" %}</p>
-
-      <div id="add-url-form">{% include "future/videos/forms/create-url.html" %}</div>
-    </div>
-  </div>
-</div>
+{% startmodal "add-url-dialog" _('Add another URL for this video') %}
+<div id="add-url-form">{% include "future/videos/forms/create-url.html" %}</div>
+{% endmodal %}
 {% endif %}
 
 {% if allow_delete %}
-<div class="modal fade" id="delete-url-dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="dialogHeader">
-        <h4 class="dialogTitle">{% trans "Delete Video URL" %}</h4>
-        <h4 class="dialogSubtitle url"></h4>
-      </div>
-      <p class="alert alert-warning">{% trans "Warning: this cannot be undone. Only delete URLs for non-matching videos or videos where subtitles fail to display correctly." %}</p>
-        <form action="" class="ajaxForm" method="post">
-          {% csrf_token %}
-          <input type="hidden" name="form" value="delete-url">
-          <input type="hidden" name="id" value="">
-          <div class="form-actions">
-            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
-            <button type="submit" class="button cta">{% trans "Delete" %}</button>
-          </div>
-        </form>
-    </div>
+{% startmodal "delete-url-dialog" _('Delete Video URL') %}
+<form action="" class="ajaxForm" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="form" value="delete-url">
+  <input type="hidden" name="id" value="">
+  <h4 class="modal-header url"></h4>
+  <div class="modal-content">
+    <p class="alert alert-warning">{% trans "Warning: this cannot be undone. Only delete URLs for non-matching videos or videos where subtitles fail to display correctly." %}</p>
   </div>
-</div>
+  <div class="modal-footer">
+    <button class="button borderless modal-close">{% trans "Cancel" %}</a>
+    <button type="submit" class="button cta">{% trans "Delete" %}</button>
+  </div>
+</form>
+{% endmodal %}
 {% endif %}
 
 {% if allow_make_primary %}
-<div class="modal fade" id="make-url-primary-dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="dialogHeader">
-        <h4>{% trans "Make Video URL Primary" %}</h4>
-        <h4 class="url"></h4>
-      </div>
-      <p>{% trans "This will make it the default playback URL" %}</p>
-        <form action="" class="ajaxForm" method="post">
-          {% csrf_token %}
-          <input type="hidden" name="form" value="make-url-primary">
-          <input type="hidden" name="id" value="">
-          <div class="form-actions">
-            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
-            <button type="submit" class="button cta">{% trans "Make Primary" %}</button>
-          </div>
-        </form>
-    </div>
+{% startmodal "make-url-primary-dialog" _("Make Video URL Primary") %}
+<h4 class="modal-header url"></h4>
+<form action="" class="ajaxForm" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="form" value="make-url-primary">
+  <input type="hidden" name="id" value="">
+
+  <div class="modal-content">
+    <p>{% trans "This will make it the default playback URL" %}</p>
   </div>
-</div>
+  <div class="modal-footer">
+    <button class="button borderless modal-close">{% trans "Cancel" %}</a>
+    <button type="submit" class="button cta">{% trans "Make Primary" %}</button>
+  </div>
+</form>
+{% endmodal %}
 {% endif %}
 
 {% endblock %}

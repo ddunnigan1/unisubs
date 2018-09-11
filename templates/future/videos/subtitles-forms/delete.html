@@ -1,22 +1,20 @@
-{% load forms i18n query_string %}
-<div class="modal-dialog modal-md">
+{% load forms i18n query_string modal %}
+{% startmodal "delete-dialog" _("Deleting subtitles") %}
+<form action="{% query_string form=delete %}" class="ajaxForm" method="POST">
+  {% csrf_token %}
+  <h4 class="modal-header">{{ video.title_display }}</h4>
+  <h4 class="modal-subheader">{% blocktrans with language=subtitle_language.get_language_code_display %}Subtitle language: {{ language}}{% endblocktrans %}</h4>
   <div class="modal-content">
-    <header class="dialogHeader">
-      <h4 class="dialogTitle">{% trans "Deleting subtitles" %}</h4>
-      <h4 class="dialogSubTitle">{{ video.title_display }} - {{ subtitle_language.get_language_code_display }}</h4>
-    </header>
-    <form action="{% query_string form=delete %}" class="ajaxForm" method="POST">
-      {% csrf_token %}
-      <ul class="bullets">
-        {% for bullet in form.bullets %}
-        <li>{{ bullet }}</li>
-        {% endfor %}
-      </ul>
-      {{  form.verify|render_field  }}
-      <div class="text-right">
-        <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</a>
-        <button class="button cta" type="submit">{% trans "Delete subtitles" %}</button>
-      </div>
-    </form>
+    <ul class="bullets">
+      {% for bullet in form.bullets %}
+      <li>{{ bullet }}</li>
+      {% endfor %}
+    </ul>
+    {{ form.verify|render_field  }}
   </div>
-</div>
+  <div class="modal-footer">
+    <button class="button borderless modal-close">{% trans "Cancel" %}</a>
+    <button class="button cta" type="submit">{% trans "Delete subtitles" %}</button>
+  </div>
+</form>
+{% endmodal %}

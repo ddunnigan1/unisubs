@@ -226,7 +226,6 @@ def members(request, team):
         'show_invite_link': permissions.can_invite(team, request.user),
         'show_add_link': permissions.can_add_members(team, request.user),
         'show_application_link': show_application_link,
-        'team_nav': 'member_directory',
     }
 
     if form_name and is_team_admin:
@@ -826,45 +825,27 @@ def admin_list(request, team):
                    .select_related('user'))
     })
 
+@with_old_view(old_views.activity)
 @team_view
 def activity(request, team):
     filters_form = forms.ActivityFiltersForm(team, request.GET)
-    paginator = AmaraPaginator(filters_form.get_queryset(), ACTIONS_PER_PAGE)
-    page = paginator.get_page(request)
-
-    action_choices = ActivityRecord.type_choices()
-
-
+    paginator = AmaraPaginatorFuture(filters_form.get_queryset(),
+                                     ACTIONS_PER_PAGE)
     context = {
-        'paginator': paginator,
-        'page': page,
         'filters_form': filters_form,
-        'filtered': filters_form.is_bound,
         'team': team,
-        'tab': 'activity',
         'user': request.user,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Activity')),
-        ],
+        'team_nav': 'activity',
+        'tab': 'stream',
     }
-    if page.has_next():
-        next_page_query = request.GET.copy()
-        next_page_query['page'] = page.next_page_number()
-        context['next_page_query'] = next_page_query.urlencode()
-    # tells the template to use get_old_message instead
-    context['use_old_messages'] = True
-    if team.is_old_style():
-        template_dir = 'teams/'
+    context.update(paginator.get_context(request))
+    if request.is_ajax():
+        renderer = AJAXResponseRenderer(request)
+        renderer.replace('#activity-table',
+                         'future/teams/activity/table.html', context)
+        return renderer.render()
     else:
-        template_dir = 'new-teams/'
-
-    if not request.is_ajax():
-        return render(request, template_dir + 'activity.html', context)
-    else:
-        # for ajax requests we only want to return the activity list, since
-        # that's all that the JS code needs.
-        return render(request, template_dir + '_activity-list.html', context)
+        return render(request, 'future/teams/activity/stream.html', context)
 
 @team_view
 def statistics(request, team, tab):

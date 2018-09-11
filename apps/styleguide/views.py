@@ -26,6 +26,7 @@ from django.utils.translation import gettext as _
 
 from styleguide import forms
 from styleguide.styleguide import StyleGuide
+from ui.ajax import AJAXResponseRenderer
 
 # add your form class here if you need to test form processing on a styleguide
 # section
@@ -33,6 +34,7 @@ forms_by_section = {
     'multi-field': forms.MultiFieldForm,
     'image-upload': forms.ImageUpload,
     'switches': forms.SwitchForm,
+    'filter-box': forms.FilterBox,
 }
 
 _cached_styleguide = None
@@ -101,3 +103,46 @@ def member_search(request):
         ]
     }
     return HttpResponse(json.dumps(data), 'application/json')
+
+filter_box_colors = [ 'plum', 'amaranth', 'lime']
+filter_box_shapes = [ 'Square', 'Triangle', 'Circle']
+
+def calc_filter_box_colors(request):
+    if 'color' in request.GET:
+        return [
+            color for color in filter_box_colors
+            if color in request.GET.getlist('color')
+        ]
+    else:
+        return filter_box_colors
+
+def calc_filter_box_shapes(request):
+    if 'shape' in request.GET:
+        return [
+            shape for shape in filter_box_shapes
+            if any(shape.lower().startswith(q.lower()) for q in
+                   request.GET.getlist('shape'))
+        ]
+    else:
+        return filter_box_shapes
+
+def filter_box(request):
+    styleguide = get_styleguide()
+    section = styleguide.sections['filter-box']
+
+    context = {
+        'styleguide': styleguide,
+        'section': section,
+        'active_section': 'filter-box',
+        'form': get_form_for_section(request, 'filter-box'),
+        'colors': calc_filter_box_colors(request),
+        'shapes': calc_filter_box_shapes(request),
+    }
+    if request.is_ajax():
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.replace(
+            '#content-list', 'styleguide/filter-box-content.html', context
+        )
+        return response_renderer.render()
+    else:
+        return render(request, 'styleguide/filter-box.html', context)

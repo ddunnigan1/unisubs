@@ -6,7 +6,7 @@
     <li><a class="topnav-button amaranth bold" href="{% url "auth:login" %}?next={% url "videos:create" %}#create-account">{% trans "Sign up for free" %}</a> </li>
     <li><a class="topnav-button plum bold" href="{% url "auth:login" %}?next={% if next %}{{ next|urlencode }}{% else %}{{ request.path_info|urlencode }}{% endif %}">{% trans 'Login' %}</a></li>
     {% else %}
-    <li>{% include "future/user-menu.html" %}</li>
+    <li>{% if old_user_menu %}{% include "old/user-menu.html" %}{% else %}{% include "future/user-menu.html" %}{% endif %}</li>
     {% endif %}
   </ul>
 </nav>

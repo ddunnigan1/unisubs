@@ -1,29 +1,26 @@
-{% load i18n forms %}
-<div class="modal-dialog modal-md" role="document">
-  <div class="modal-content">
-    <header class="dialogHeader">
-      <h4 class="dialogTitle">{% trans 'Invite members to ' %}{{ team.name }}</h4>
-    </header>
-    <ul class="nav nav-tabs">
-      {% if show_username_invite_link %}
-      <li {% if modal_tab == 'username' %}class="active"{%endif%}>
-        <a href="#username" data-toggle="tab">Invite by username</a>
-      </li>
-      {% endif %}
-      {% if show_email_invite_link %}
-      <li {% if modal_tab == 'email' %}class="active"{%endif%}>
-        <a href="#email" data-toggle="tab">Invite by email</a>
-      </li>
-      {% endif %}
-      {% if show_add_link %}
-      <li {% if modal_tab == 'add' %}class="active"{%endif%}>
-        <a href="#add" data-toggle="tab">Add members</a>
-      </li>
-      {% endif %}
-    </ul>
-
+{% load i18n forms modal captureas %}
+{% captureas title %}{% blocktrans with team=team.name %}Invite members to {{ team }}{% endblocktrans %}{% endcaptureas %}
+{% startmodal "invite-members-dialog" title %}
+<div class="modal-tabs">
+  <ul class="nav nav-tabs">
+    {% if show_username_invite_link %}
+    <li {% if modal_tab == 'username' %}class="active"{%endif%}>
+      <a href="#username" data-toggle="tab">Invite by username</a>
+    </li>
+    {% endif %}
+    {% if show_email_invite_link %}
+    <li {% if modal_tab == 'email' %}class="active"{%endif%}>
+      <a href="#email" data-toggle="tab">Invite by email</a>
+    </li>
+    {% endif %}
+    {% if show_add_link %}
+    <li {% if modal_tab == 'add' %}class="active"{%endif%}>
+      <a href="#add" data-toggle="tab">Add members</a>
+    </li>
+    {% endif %}
+  </ul>
+<div class="modal-content">
     <div class="tab-content">
-
       {% if show_username_invite_link %}
       <div id="username" class="tab-pane
         {% if modal_tab == 'username' %}active{%endif%}">
@@ -35,7 +32,7 @@
           {{ form.message|render_field }}
           <input type="hidden" value="username" name="modalTab"/>
           <div class="text-right">
-            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</button>
+            <button class="button borderless modal-close">{% trans "Cancel" %}</button>
             <button type="submit" class="button cta"> {% trans 'Invite' %}</button>
           </div>
         </form>
@@ -53,7 +50,7 @@
           {{ form.message|render_field }}
           <input type="hidden" value="email" name="modalTab"/>
           <div class="text-right">
-            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</button>
+            <button class="button borderless modal-close">{% trans "Cancel" %}</button>
             <button type="submit" class="button cta"> {% trans 'Invite' %}</button>
           </div>
         </form>
@@ -71,13 +68,12 @@
           {{ form_add_member.role|render_field }}                    
           <input type="hidden" value="add" name="modalTab"/>
           <div class="text-right">
-            <button class="button borderless" data-dismiss="modal">{% trans "Cancel" %}</button>
+            <button class="button borderless modal-close">{% trans "Cancel" %}</button>
             <button type="submit" class="button cta"> {% trans 'Add members' %}</button>
           </div>
         </form>
       </div>
       {% endif %}
-
     </div>
   </div>
 </div>

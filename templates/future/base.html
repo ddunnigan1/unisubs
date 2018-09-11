@@ -1,4 +1,4 @@
-{% load i18n assets media_bundle announcement_tags messages_tags assets %}
+{% load i18n assets media_bundle announcement_tags messages_tags assets modal %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -57,28 +57,20 @@
     </main>
     {% block footer %}{% include "future/footer.html" %}{% endblock %}
     {% if user.is_staff %}
-    <div id="staff-controls" class="modal fade" role="dialog">
-      <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="dialogHeader">
-            <h4 class="dialogTitle">{% trans "Staff Controls" %}</h4>
-          </div>
-          <ul>
-            <li><a target="_blank" href="{% url "staff:index" %}">{% trans 'Dashboard' %}</a></li>
-            <li><a target="_blank" href="{% url "admin:index" %}">{% trans 'Site Admin' %}</a></li>
-            <li><a href="//github.com/pculture/unisubs/commit/{{ LAST_COMMIT_GUID }}" title="{{ LAST_COMMIT_GUID }}">Github</a></li>
-            {% if user.is_superuser %}
-            <li><a target="_blank" href="{% url "auth:login_trap" %}">{% trans 'Impersonate' %}</a></li>
-            <li><a target="_blank" href="{% url "billing" %}">{% trans 'Billing' %}</a></li>
-            {% endif %}
-            {% block page-controls %}{% endblock %}
-          </ul>
-          <div class="modal-footer">
-            <button type="button" class="button" data-dismiss="modal">{% trans "Close" %}</button>
-          </div>
-        </div>
-      </div>
+    {% startmodal "staff-controls" _('Staff Controls') %}
+    <div class="modal-content">
+      <ul>
+        <li><a target="_blank" href="{% url "staff:index" %}">{% trans 'Dashboard' %}</a></li>
+        <li><a target="_blank" href="{% url "admin:index" %}">{% trans 'Site Admin' %}</a></li>
+        <li><a href="//github.com/pculture/unisubs/commit/{{ LAST_COMMIT_GUID }}" title="{{ LAST_COMMIT_GUID }}">Github</a></li>
+        {% if user.is_superuser %}
+        <li><a target="_blank" href="{% url "auth:login_trap" %}">{% trans 'Impersonate' %}</a></li>
+        <li><a target="_blank" href="{% url "billing" %}">{% trans 'Billing' %}</a></li>
+        {% endif %}
+        {% block page-controls %}{% endblock %}
+      </ul>
     </div>
+    {% endmodal %}
     {% endif %}
 
     {% block main_js %}<script src="{% asset "js/application.js" %}"></script>{% endblock %}

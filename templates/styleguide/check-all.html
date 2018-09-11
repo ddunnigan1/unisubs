@@ -1,0 +1,20 @@
+{% extends "styleguide/base.html" %}
+{% load ui %}
+
+{% block "content" %}
+<p>Use the .checkAll class to create a checkbox that controls if a group of related checkboxes are all checked (or all unchecked).</p>
+
+<div class="listView columns-3">
+  <div class="listView-header">{% checkbox class="checkAll" data_name="selection" %}</div>
+  <div class="listView-header">Title</div>
+  <div class="listView-header">Language</div>
+
+  <div>{% checkbox name="selection" %}</div>
+  <div>My Video</div>
+  <div>English</div>
+
+  <div>{% checkbox name="selection" %}</div>
+  <div>My other Video</div>
+  <div>Spanish</div>
+</div>
+{% endblock %}
