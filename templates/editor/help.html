@@ -1,4 +1,5 @@
 {% load i18n %}
+{% with mod=mac_shortcuts|yesno:"Cmd,Ctrl" alt=mac_shortcuts|yesno:"Option,Alt" %}
 <div class="help-panel" ng-controller="KeyboardControlsController">
     <!-- not ready for release just yet
        <a class="advanced" ng-click="showAdvancedModal()">Advanced &raquo;</a>
@@ -52,9 +53,9 @@
                 <div class="shortcut-desc">{% trans "Stop edit to enable syncing keys" %}</div>
             </div>
             <div ng-switch-when="all-synced" class="instruction-item blue-key clickable" ng-click="triggerKey('alt s')">
-                <div class="key-pattern">alt</div>
+                <div class="key-pattern">{{ alt }}</div>
                 <div class="key-pattern small">+</div>
-                <div class="key-pattern small">s</div>
+                <div class="key-pattern small">S</div>
                 <div class="shortcut-desc">{% trans "Sync start/end time to current time" %}</div>
             </div>
           </div>
@@ -71,9 +72,9 @@
           <div class="shortcut-desc">{% trans "Skip back" %}</div>
         </div>
         <div class="instruction-item blue-key clickable" ng-click="triggerKey('alt s')">
-          <div class="key-pattern">Alt</div>
+          <div class="key-pattern">{{ alt }}</div>
           <div class="key-pattern small">+</div>
-          <div class="key-pattern small">s</div>
+          <div class="key-pattern small">S</div>
           <div class="shortcut-desc">{% trans "Sync start/end time to current time" %}</div>
         </div>
       </div>
@@ -121,3 +122,4 @@
     &#187;
   </a>
 </div>
+{% endwith %}
