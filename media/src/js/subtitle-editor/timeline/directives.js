@@ -330,8 +330,8 @@ var angular = angular || null;
 
         // Handle dragging the subtitle by the "dual" handle -- this adjusts both the end time of this sub, and the start time of the next
         //
-        function SubtitleDragHandlerDual($scope, subtitleDiv, clickTime) {
-            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime);
+        function SubtitleDragHandlerDual($scope, subtitleDiv, clickTime, changeGroupPrefix) {
+            SubtitleDragHandler.call(this, $scope, subtitleDiv, clickTime, changeGroupPrefix);
             this.handles = $('.handle.right', this.subtitleDiv).add($('.handle.left', this.subtitleDiv.next()));
             this.handles.addClass('adjusting');
         }
