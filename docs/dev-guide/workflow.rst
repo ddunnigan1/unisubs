@@ -123,6 +123,16 @@ As an example, here is a function that logs exceptions:
         except Exception:
             logger.error("General exception in foo()", exc_info=True)
 
+Code Review
+-----------
+
+When a developer makes a pull request, they move the issue to ``Needs Review`` and finds another developer to review their pull request. The
+reviewing developer needs to make sure that the code doesn't introduce any new bugs
+or security vulnerabilities, and uses existing naming and style conventions. If
+everything looks good, the reviewer approves the pull requests and merges, and
+moves the issue to ``Dev``. If not, they comment or request
+changes on the branch.
+
 .. _workflow:
 
 Workflow
@@ -172,7 +182,7 @@ Here's the workflow for a typical issue:
     - Tester tests the changes.
     - If there are problems, tester notes them on the issue and moves it back to ``In progress``.
     - Developer fixes the problems, adds a note to the issue, moves it back to ``Testing``, and we start testing again
-    - Finally, tester approves the changes, and moves issue to "Needs PR" pipeline for developer to make a pull request
+    - Finally, tester approves the changes, and moves issue to ``Needs PR`` for developer to make a pull request
 
   - **Review**
 
@@ -181,12 +191,11 @@ Here's the workflow for a typical issue:
     - A second developer reviews the code
     - If there are issues, the developer #2 adds comments to the PR and works
       with developer #1 to resolve them
-    - Once developer #2 thinks the code is ready, they merge the PR
+    - Once developer #2 thinks the code is ready, they merge the PR and move the issue to ``Dev``
     - If the code touches our submodule repositories (amara-entperprise,
       amara-assets, etc), then developer #1 should merge the changes back to master
-    - Once we decide that staging is ready to be deployed to production, we will
-      merge the staging branch to production then deploy andnd moves the issue
-      to the ``Waiting for deploy`` pipeline
+    - Once we decide that dev is ready to be deployed to production, we will
+      merge the dev branch to the staging branch, then staging to production and deploy
 
   - **Deploy**
     - We try to deploy new code every week. Usually this happens on a Wednesday.
