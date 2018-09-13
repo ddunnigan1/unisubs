@@ -279,7 +279,7 @@ var USER_IDLE_MINUTES = 15;
                 elt.prop('className', classes.join(' '));
                 $('span.subtitle-text', elt).html(content);
                 $('span.timing', elt).text(displayTime(subtitle.startTime));
-		$('span.warning', elt).toggle($scope.warningsShown && subtitle.hasWarning());
+                $('span.warning', elt).toggle($scope.warningsShown && subtitle.hasWarning());
             }
 
             function findSubtitleData(node) {
@@ -424,6 +424,12 @@ var USER_IDLE_MINUTES = 15;
                     first: markdown.substring(0, selectionRange.start).replace(/\s+$/, ''),
                     second: markdown.substring(selectionRange.start).replace(/^\s+/, '')
                 };
+            }
+
+            $scope.redrawSubtitles = function() {
+                _.each(subtitleList.subtitles, function(subtitle) {
+                    renderSubtitle(subtitle, subtitleMap[subtitle.id]);
+                });
             }
 
             function reloadSubtitles() {

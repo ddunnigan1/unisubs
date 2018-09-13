@@ -167,7 +167,6 @@ var angular = angular || null;
         };
         $scope.toggleWarningsShown = function() {
             $scope.warningsShown = !$scope.warningsShown;
-	    $scope.workingSubtitles.subtitleList.emitChange("reload", null);
         };
         $scope.toggleTutorial = function(shown) {
            $scope.tutorialShown = (typeof shown === "undefined") ? (!$scope.tutorialShown) : shown;

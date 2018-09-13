@@ -117,7 +117,6 @@ var angular = angular || null;
             this.minDeltaMS = -Number.MAX_SAFE_INTEGER;
             this.maxDeltaMS = Number.MAX_SAFE_INTEGER;
             this.snappings = []; // deltaMS values that we gravitate to when adjusting things with the mouse
-            console.log(this.changeGroup);
         }
 
         DragHandler.prototype = {

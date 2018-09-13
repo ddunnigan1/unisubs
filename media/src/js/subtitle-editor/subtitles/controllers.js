@@ -203,6 +203,10 @@ var angular = angular || null;
 		return subtitle.hasWarning(type, data);
 	    return false;
 	};
+        $scope.$watch('warningsShown', function() {
+            $scope.redrawSubtitles();
+        });
+
 
         $scope.onSubtitleClick = function(evt, subtitle, action) {
             var madeChange = false;
