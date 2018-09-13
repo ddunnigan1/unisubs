@@ -232,6 +232,9 @@ var angular = angular || null;
                     break;
 
                 case 'changeParagraph':
+                    if(subtitle == subtitleList.firstSubtitle()) {
+                        break;
+                    }
                     subtitleList.updateSubtitleParagraph(subtitle);
                     madeChange = true;
                     break;
