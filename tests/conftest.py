@@ -8,6 +8,7 @@ from django.core.cache import cache
 import django.test.client
 import django.utils.encoding
 from django_redis import get_redis_connection
+import mock
 import py.path
 import pytest
 
@@ -67,3 +68,23 @@ def setup_amara_db(db):
 @pytest.fixture
 def redis_connection():
     return get_redis_connection('default')
+
+@pytest.fixture
+def patch():
+    """
+    Use mock.patch to replace something until the test is done
+    """
+    patchers = []
+    def make_patch(*args, **kwargs):
+        patcher = mock.patch(*args, **kwargs)
+        patchers.append(patcher)
+        mock_obj = patcher.start()
+        def run_original():
+            return [patcher.temp_original(*args, **kwargs)
+                    for args, kwargs in mock_obj.call_args_list]
+        mock_obj.run_original = run_original
+        return mock_obj
+    yield make_patch
+    # cleanup
+    for patcher in patchers:
+        patcher.stop()
