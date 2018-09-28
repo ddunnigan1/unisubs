@@ -84,8 +84,11 @@ VIDEOS_PER_PAGE = 12
 VIDEOS_PER_PAGE_MANAGEMENT = 20
 MEMBERS_PER_PAGE = 10
 
-# maximum number of videos in the welcome page
-WELCOME_MAX_NEWEST_VIDEOS = 7
+'''
+Maximum number of videos in the welcome page (non-member team landing page)
+we set this to 8 videos since we do not show the "+N videos" card in the welcome page
+'''
+WELCOME_MAX_NEWEST_VIDEOS = 8
 
 def team_view(view_func):
     @functools.wraps(view_func)
@@ -930,13 +933,11 @@ def welcome(request, team):
         videos_count = videos.count()
         projects = Project.objects.for_team(team)
         newest_videos = videos[:WELCOME_MAX_NEWEST_VIDEOS]
-        more_video_count = max(0, videos.count() - WELCOME_MAX_NEWEST_VIDEOS)
     else:
         videos = None
         videos_count = 0
         projects = None
         newest_videos = None
-        more_video_count = 0
 
     if Application.objects.open(team, request.user):
         messages.info(request,
@@ -954,7 +955,6 @@ def welcome(request, team):
         'videos': newest_videos,
         'videos_count': videos_count,
         'members_count': team.members.count(),
-        'more_video_count': more_video_count,
         'projects': projects,
         'is_welcome_page': True, # used for adjusting the URL targets of the nav links in the non-member team landing page
     })

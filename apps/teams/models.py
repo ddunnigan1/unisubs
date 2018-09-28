@@ -704,14 +704,14 @@ class Team(models.Model):
         
         join_mode = behaviors.get_team_join_mode(self, user)
 
-        if join_mode:
+        if self.is_by_invitation():
+            return 'invitation'
+        elif join_mode:
             return join_mode
         elif self.user_is_member(user):
             return 'already-joined'
         elif self.is_open():
             return 'open'
-        elif self.is_by_invitation():
-            return 'invitation'
         elif self.is_by_application():
             try:
                 application = self.applications.get(user=user)
