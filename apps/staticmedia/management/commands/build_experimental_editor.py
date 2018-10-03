@@ -16,6 +16,10 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+import datetime
+import mimetypes
+import os
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 import boto3
@@ -31,6 +35,7 @@ class Command(BaseCommand):
                               aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         self.upload(client, 'editor.js', 'application/javascript')
         self.upload(client, 'editor.css', 'text/css')
+        self.upload_static_dir(client, 'images')
 
     def upload(self, client, bundle_name, mime_type):
         bundle = bundles.get_bundle(bundle_name)
@@ -41,3 +46,25 @@ class Command(BaseCommand):
             ACL='private',
             Body=bundle.build_contents())
         print('* {}'.format(bundle_name))
+
+    def upload_static_dir(self, client, subdir):
+        directory = os.path.join(settings.STATIC_ROOT, subdir)
+        for dirpath, dirs, files in os.walk(directory):
+            for filename in files:
+                path = os.path.join(dirpath, filename)
+                s3_path = os.path.relpath(path, settings.STATIC_ROOT)
+                self.upload_static_file(client, path, s3_path)
+
+    def upload_static_file(self, client, path, s3_path):
+        put_kwargs = dict(
+            Bucket=settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET,
+            Key='experimental/{}'.format(s3_path),
+            CacheControl='max-age %d' % (3600 * 24 * 365 * 1),
+            Expires=datetime.datetime.now() + datetime.timedelta(days=365),
+            ACL='private',
+            Body=open(path).read())
+        content_type, encoding = mimetypes.guess_type(path)
+        if content_type:
+            put_kwargs['ContentType'] = content_type
+        client.put_object(**put_kwargs)
+        print('* {}'.format(s3_path))
