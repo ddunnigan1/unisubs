@@ -412,7 +412,10 @@ class SubtitleEditorBase(View):
         self.handle_task(context, editor_data)
         context['editor_data'] = json.dumps(editor_data, indent=4)
 
-        return render(request, "editor/editor.html", context)
+        if self.experimental:
+            return render(request, "experimental-editor/editor.html", context)
+        else:
+            return render(request, "editor/editor.html", context)
 
 class SubtitleEditor(SubtitleEditorBase):
     @method_decorator(xframe_options_exempt)

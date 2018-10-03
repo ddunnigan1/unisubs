@@ -41,18 +41,18 @@ def media_bundle(context, bundle_name):
 
 def experimental_editor_tag(bundle_name):
     # somewhat hacky code to handle the experimental editor
-    if not settings.STATIC_MEDIA_USES_S3:
-        raise AssertionError("Can't use the experimental editor "
-                             "without STATIC_MEDIA_USES_S3 set")
     if bundle_name == 'editor.js':
-        url = "{}experimental/js/editor.js".format(utils.static_url())
+        url = "https://s3.amazonaws.com/{}/experimental/js/editor.js".format(
+            settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET)
         return format_html('<script src="{}"></script>', url)
     elif bundle_name == 'editor.css':
-        url = "{}experimental/css/editor.css".format(utils.static_url())
-        return '<link href="{}" rel="stylesheet" type="text/css" />'.format(
-            url)
+        url = "https://s3.amazonaws.com/{}/experimental/css/editor.css".format(
+            settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET)
+        return format_html(
+            '<link href="{}" rel="stylesheet" type="text/css" />', url)
     else:
         raise ValueError("Unkown bundle name: {}").format(bundle_name)
+
 
 @register.simple_tag
 def url_for(bundle_name):
