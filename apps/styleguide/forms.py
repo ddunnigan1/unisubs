@@ -23,8 +23,10 @@ from django import forms
 from auth.models import get_amara_anonymous_user
 from styleguide.models import StyleguideData
 from ui.forms import (
-    AmaraImageField, AmaraChoiceField, AmaraMultipleChoiceField, SwitchInput,
+    AmaraImageField, AmaraChoiceField, AmaraMultipleChoiceField, SearchField, SwitchInput,
+    ContentHeaderSearchBar, DependentBooleanField
 )
+from ui.utils import SplitCTA
 
 class StyleguideForm(forms.Form):
     def __init__(self, request, **kwargs):
@@ -66,10 +68,13 @@ class MultiFieldForm(StyleguideForm):
         ('horse', 'Horse'),
     ], label='Species')
 
-    role_admin = forms.BooleanField(label='Admin', required=False,
-                                    initial=True)
-    role_manager = forms.BooleanField(label='Manager', required=False)
-    role_any = forms.BooleanField(label='Any Team Member', required=False)
+    role = DependentBooleanField(
+        label='Role', required=True, initial='manager', choices=[
+            ('admin', 'Admin'),
+            ('manager', 'Manager'),
+            ('any', 'Any Team Member'),
+        ])
+
 
     subtitles_public = forms.BooleanField(
         label='Completed', required=False, initial=True,
@@ -109,6 +114,10 @@ class ImageUpload(StyleguideForm):
             styleguide_data.thumbnail = self.cleaned_data['thumbnail']
         styleguide_data.save()
 
+class ContentHeader(StyleguideForm):
+    search = SearchField(label='Search', required=False,
+                         widget=ContentHeaderSearchBar)
+
 class FilterBox(StyleguideForm):
     color = AmaraMultipleChoiceField(
         label="Select color", choices=(
@@ -117,3 +126,38 @@ class FilterBox(StyleguideForm):
             ('lime', 'Lime'),
         ))
     shape = forms.CharField(label="Search for shapes")
+
+class SplitButton(StyleguideForm):
+    def setup_form(self):
+        self.split_button_with_tooltip = \
+            SplitCTA('Split button with tooltip', '#',
+            main_tooltip='Main Tooltip 1!',
+            dropdown_tooltip='Dropdown Tooltip 1!',
+            menu_id='splitbutton1',
+            dropdown_items=[('Dropdown Item 1', '#'), ('Dropdown Item 2', '#')])
+
+        self.split_button_no_tooltip = \
+            SplitCTA('Split button no tooltip', '#',
+            menu_id='splitbutton2',
+            dropdown_items=[('Dropdown Item 3', '#'), ('Dropdown Item 4', '#')])
+
+        self.split_button_with_icon = \
+            SplitCTA('Split button with icon', '#',
+            icon='icon-transcribe',
+            menu_id='splitbutton3',
+            dropdown_items=[('Dropdown Item 5', '#'), ('Dropdown Item 6', '#')])
+
+        self.split_button_full_width = \
+            SplitCTA('Split button full width', '#',
+            block=True,
+            icon='icon-transcribe',
+            menu_id='splitbutton4',
+            dropdown_items=[('Dropdown Item 7', '#'), ('Dropdown Item 8', '#')])
+
+        self.split_button_disabled = \
+            SplitCTA('Split button disabled', '#',
+            block=True,
+            disabled=True,
+            icon='icon-transcribe',
+            menu_id='splitbutton5',
+            dropdown_items=[('Dropdown Item 9', '#'), ('Dropdown Item 10', '#')])

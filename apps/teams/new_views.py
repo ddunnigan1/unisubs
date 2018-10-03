@@ -37,7 +37,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.core.signing import BadSignature
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.http import (Http404, HttpResponse, HttpResponseRedirect,
@@ -51,7 +51,7 @@ from . import permissions
 from . import signals
 from . import stats
 from . import tasks
-from .behaviors import get_main_project
+from .behaviors import get_main_project, get_team_login_url
 from .bulk_actions import add_videos_from_csv
 from .exceptions import ApplicationInvalidException
 from .models import (Invite, Setting, Team, Project, TeamVideo,
@@ -62,6 +62,7 @@ from auth.models import CustomUser as User
 from auth.forms import CustomUserCreationForm
 from messages import tasks as messages_tasks
 from subtitles.models import SubtitleLanguage
+from teams.models import Project
 from teams.workflows import TeamWorkflow
 from ui import (
     AJAXResponseRenderer, ManagementFormList, render_management_form_submit,
@@ -82,6 +83,12 @@ ACTIONS_PER_PAGE = 20
 VIDEOS_PER_PAGE = 12
 VIDEOS_PER_PAGE_MANAGEMENT = 20
 MEMBERS_PER_PAGE = 10
+
+'''
+Maximum number of videos in the welcome page (non-member team landing page)
+we set this to 8 videos since we do not show the "+N videos" card in the welcome page
+'''
+WELCOME_MAX_NEWEST_VIDEOS = 8
 
 def team_view(view_func):
     @functools.wraps(view_func)
@@ -240,6 +247,39 @@ def members(request, team):
         )
         return response_renderer.render()
 
+    return render(request, 'future/teams/members/members.html', context)
+
+# implementaion of members() view for public consumption 
+# supposed to be used in the non-member team landing page 
+def members_public(request, slug):
+    try:
+        team = Team.objects.get(slug=slug)
+    except Team.DoesNotExist:
+        raise Http404
+    # do not show the member list for private teams
+    if team.team_private():
+        raise Http404
+
+    # TODO there must be a better way to do this 
+    # (e.g. accessing the undecorated members() function)
+
+    filters_form = forms.MemberFiltersForm(request.GET)
+    members = filters_form.update_qs(
+        team.members.prefetch_related('user__userlanguage_set',
+                          'projects_managed',
+                          'languages_managed'))
+    paginator = AmaraPaginatorFuture(members, MEMBERS_PER_PAGE)
+    page = paginator.get_page(request)
+    next_page, prev_page = paginator.make_next_previous_page_links(page, request)
+    context = {
+        'team': team,
+        'paginator': paginator,
+        'page': page,
+        'next': next_page,
+        'previous': prev_page,
+        'filters_form': filters_form,
+        'team_nav': 'member_directory',
+    }
     return render(request, 'future/teams/members/members.html', context)
 
 def manage_members_form(request, team, form_name, members, page):
@@ -889,9 +929,15 @@ def dashboard(request, slug):
 
 def welcome(request, team):
     if team.videos_public():
-        videos = team.videos.order_by('-id')[:2]
+        videos = team.videos.order_by('-id')
+        videos_count = videos.count()
+        projects = Project.objects.for_team(team)
+        newest_videos = videos[:WELCOME_MAX_NEWEST_VIDEOS]
     else:
         videos = None
+        videos_count = 0
+        projects = None
+        newest_videos = None
 
     if Application.objects.open(team, request.user):
         messages.info(request,
@@ -899,13 +945,18 @@ def welcome(request, team):
                         u"You will be notified of the team "
                         "administrator's response"))
 
-    return render(request, 'new-teams/welcome.html', {
+    return render(request, 'future/teams/welcome.html', {
         'team': team,
         'join_mode': team.get_join_mode(request.user),
+        'login_base_url': get_team_login_url(team),
         'team_messages': team.get_messages([
             'pagetext_welcome_heading',
         ]),
-        'videos': videos,
+        'videos': newest_videos,
+        'videos_count': videos_count,
+        'members_count': team.members.count(),
+        'projects': projects,
+        'is_welcome_page': True, # used for adjusting the URL targets of the nav links in the non-member team landing page
     })
 
 @team_view

@@ -20,7 +20,7 @@ from itertools import chain
 
 from django.core.files import File
 from django.forms import widgets
-from django.forms.util import flatatt
+from django.forms.utils import flatatt
 from django.template.loader import render_to_string
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_unicode, force_text
@@ -33,7 +33,7 @@ from utils import datauri
 from utils.amazon.fields import S3ImageFieldFile
 
 class AmaraLanguageSelectMixin(object):
-    def render(self, name, value, attrs=None, choices=()):
+    def render(self, name, value, attrs=None):
         if value is None:
             value = ''
         if attrs is None:
@@ -45,9 +45,9 @@ class AmaraLanguageSelectMixin(object):
             # multi-select
             attrs['data-initial'] = ':'.join(value)
         return super(AmaraLanguageSelectMixin, self).render(
-            name, value, attrs, choices)
+            name, value, attrs)
 
-    def render_options(self, choices, selected_choices):
+    def render_options(self, selected_choices):
         # The JS code populates the options
         return ''
 
@@ -62,12 +62,11 @@ class AmaraProjectSelectMultiple(widgets.SelectMultiple):
     pass
 
 class AmaraRadioSelect(widgets.RadioSelect):
-    def render(self, name, value, attrs=None, choices=()):
+    def render(self, name, value, attrs=None):
         if value is None:
             value = ''
-        choices = list(chain(self.choices, choices))
         output = [u'<ul>']
-        for i, choice in enumerate(choices):
+        for i, choice in enumerate(self.choices):
             input_id = '{}_{}'.format(attrs['id'], i)
             output.extend([
                 u'<li><div class="radio">',
@@ -101,15 +100,28 @@ class SearchBar(widgets.TextInput):
                          '{}'
                          '</div>'.format(_('Search'), input))
 
+class ContentHeaderSearchBar(widgets.TextInput):
+    def render(self, name, value, attrs=None):
+        attrs['class'] = 'contentHeader-searchBar'
+        input = super(ContentHeaderSearchBar, self).render(name, value, attrs)
+        return format_html(
+            '<div class="contentHeader-search">'
+            '<label class="sr-only">{}</label>' +
+            unicode(input) +
+            '</div>', _('Search'))
+
 class AmaraFileInput(widgets.FileInput):
     template_name = "widget/file_input.html"
     def render(self, name, value, attrs=None):
         if value is None:
             value = ''
-        final_attrs = self.build_attrs(attrs, type=self.input_type, name=name)
+        final_attrs = self.build_attrs(attrs, {
+            'type': self.input_type,
+            'name': name,
+        })
         if value != '':
             final_attrs['value'] = force_text(self._format_value(value))
-        return mark_safe(render_to_string(self.template_name, dictionary=final_attrs))
+        return mark_safe(render_to_string(self.template_name, final_attrs))
 
 class UploadOrPasteWidget(widgets.TextInput):
     template_name = "future/forms/widgets/upload-or-paste.html"
@@ -140,7 +152,10 @@ class AmaraClearableFileInput(widgets.ClearableFileInput):
         }
         if value is None:
             value = ''
-        context.update(self.build_attrs(attrs, type=self.input_type, name=name))
+        context.update(self.build_attrs(attrs, {
+            'type': self.input_type,
+            'name': name,
+        }))
         if value != '':
             context['value'] = force_text(self._format_value(value))
 
@@ -153,7 +168,7 @@ class AmaraClearableFileInput(widgets.ClearableFileInput):
                 context['checkbox_name'] = conditional_escape(checkbox_name)
                 context['checkbox_id'] = conditional_escape(checkbox_id)
 
-        return mark_safe(render_to_string(self.template_name, dictionary=context))
+        return mark_safe(render_to_string(self.template_name, context))
 
 class AmaraImageInput(widgets.ClearableFileInput):
     def __init__(self):
@@ -197,8 +212,62 @@ class SwitchInput(widgets.CheckboxInput):
             'attrs': flatatt(attrs),
         }))
 
+class DependentCheckboxes(widgets.MultiWidget):
+    # TODO Make this work with switches as well as checkboxes
+    template_name = 'ui/dependent-choices.html'
+
+    def __init__(self, choices):
+        self.choices = choices
+        super(DependentCheckboxes, self).__init__(
+            [widgets.CheckboxInput() for choice in choices])
+
+    def decompress(self, value):
+        saw_value = False
+
+        rv = []
+
+        for choice_value, choice_label in reversed(self.choices):
+            if choice_value == value or saw_value:
+                rv.append(True)
+                saw_value = True
+            else:
+                rv.append(False)
+        rv.reverse()
+        return rv
+
+    def get_context(self, name, value, attrs):
+        # We handle the required attribute specially.  Don't make the
+        # checkboxes required.  Instead make the first checkbox checked and
+        # disabled.
+        required = attrs['required']
+        attrs['required'] = False
+
+        context = super(DependentCheckboxes, self).get_context(
+            name, value, attrs)
+
+        self.add_checked_to_subwidgets(context['widget']['subwidgets'], value)
+        if required:
+            context['widget']['subwidgets'][0]['attrs'].update({
+                'disabled': 'disabled',
+                'checked': 'checked'
+            })
+
+
+        context['widget']['subwidgets_and_labels'] = [
+            (choice[1], subwidget)
+            for choice, subwidget in zip(self.choices, context['widget']['subwidgets'])
+        ]
+        return context
+
+    def add_checked_to_subwidgets(self, subwidgets, value):
+        saw_value = False
+        for choice, widget in reversed(zip(self.choices, subwidgets)):
+            if choice[0] == value or saw_value:
+                widget['attrs']['checked'] = 'checked'
+                saw_value = True
+
 __all__ = [
-    'AmaraRadioSelect', 'SearchBar', 'AmaraFileInput',
-    'AmaraClearableFileInput', 'UploadOrPasteWidget',
-    'AmaraImageInput', 'SwitchInput',
+    'AmaraRadioSelect', 'SearchBar', 'ContentHeaderSearchBar',
+    'AmaraFileInput', 'AmaraClearableFileInput', 'UploadOrPasteWidget',
+    'AmaraImageInput', 'SwitchInput', 'DependentCheckboxes',
 ]

@@ -16,46 +16,72 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from __future__ import absolute_import
+
 import json
 
 from django import template
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms.utils import flatatt
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from utils.bunch import Bunch
+from ui.templatetags.utils import fix_attrs
 
 register = template.Library()
 
 @register.simple_tag(name='dropdown-button-icon')
-def dropdown_button_icon(button_id, css_class=None):
-    attrs = {
-        'id': button_id,
+def dropdown_button_icon(menu_id, css_class=None, **attrs):
+    fix_attrs(attrs)
+    attrs.update({
+        'data-target': menu_id,
         'role': 'button',
         'aria-haspopup': 'true',
-        'aria-expanded': 'false'
-    }
+        'aria-expanded': 'false',
+        'class': 'dropdownMenu-button',
+    })
     if css_class:
-        attrs['class'] = css_class
+        attrs['class'] += ' {}'.format(css_class)
 
     return format_html(
-        u'<button{}><span class="fa fa-ellipsis-v"></span>', flatatt(attrs))
+        u'<button{}><span class="fa fa-ellipsis-v"></span></button>',
+        flatatt(attrs))
 
 @register.simple_tag(name='dropdown-button')
-def dropdown_button(button_id, css_class):
+def dropdown_button(menu_id, css_class, **attrs):
+    fix_attrs(attrs)
     return format_html(
-        u'<button id="{}" class="{}" role="button" aria-haspopup="true" '
-        'aria-expanded="false">', button_id, css_class)
+        u'<button data-target="{}" class="dropdownMenu-button {}" role="button" aria-haspopup="true" '
+        'aria-expanded="false"{}>', menu_id, css_class, flatatt(attrs))
 
 @register.simple_tag(name='end-dropdown-button')
 def end_dropdown_button():
     return mark_safe(u'</button>')
 
-@register.simple_tag
-def dropdown(button_id):
+@register.simple_tag(name='filterbox-dropdown-button')
+def filter_box_dropdown_button(menu_id, label):
     return format_html(
-        u'<ul class="dropdownMenu" role="menu" aria-labeledby="{}">', button_id)
+        '{}'
+        '<span class="filterBox-buttonIcon fa fa-filter"></span> '
+        '<span class="filterBox-buttonText">{}</span>'
+        '{}',
+        dropdown_button(menu_id, 'filterBox-button'), label,
+        end_dropdown_button())
+
+@register.simple_tag
+def dropdown(menu_id, css_class=None, labelled_by=None):
+    attrs = {
+        'class': 'dropdownMenu',
+        'role': 'menu',
+        'id': menu_id
+    }
+    if css_class:
+        attrs['class'] += ' {}'.format(css_class)
+    if labelled_by:
+        attrs['aria-labelledby'] = labelled_by
+
+    return format_html(u'<ul{}>', flatatt(attrs))
 
 @register.simple_tag(name='dropdown-item')
 def dropdown_item(label, view_name, *args, **kwargs):
@@ -77,10 +103,10 @@ def dropdown_js_item(label, *data, **kwargs):
     return make_dropdown_item(label, options, {
         'href': '#',
         'data-activate-args': json.dumps(data),
-    })
+    }, link_tag='button')
 
 
-def make_dropdown_item(label, options, link_attrs):
+def make_dropdown_item(label, options, link_attrs, link_tag='a'):
     link_attrs.update({
         'tabindex': -1,
         'role': 'menuitem',
@@ -112,7 +138,7 @@ def make_dropdown_item(label, options, link_attrs):
         link_html = format_html(
             u'<span class="dropdownMenu-link disabled">{}</span>', label_html)
     else:
-        link_html = format_html(u'<a{}>{}</a>', flatatt(link_attrs), label_html)
+        link_html = format_html(u'<{0}{1}>{2}</{0}>', link_tag, flatatt(link_attrs), label_html)
 
     return format_html(u'<li role="none" class="{}">{}</li>',
                        u' '.join(classes), link_html)

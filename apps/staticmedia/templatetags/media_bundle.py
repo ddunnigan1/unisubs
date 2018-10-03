@@ -20,8 +20,9 @@ from __future__ import absolute_import
 
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import to_locale
 from utils.translation import get_language_label
 
@@ -36,7 +37,7 @@ def media_bundle(context, bundle_name):
                                                        'editor.css'):
         return experimental_editor_tag(bundle_name)
     bundle = bundles.get_bundle(bundle_name)
-    return bundle.get_html()
+    return mark_safe(bundle.get_html())
 
 def experimental_editor_tag(bundle_name):
     # somewhat hacky code to handle the experimental editor
@@ -68,7 +69,7 @@ def js_i18n_catalog(context):
         src = utils.static_url() + 'jsi18catalog/{}.js'.format(locale)
     else:
         src = reverse('staticmedia:js_i18n_catalog', args=(locale,))
-    return '<script type="text/javascript" src="{}"></script>'.format(src)
+    return format_html('<script type="text/javascript" src="{}"></script>', src)
 
 @register.simple_tag(takes_context=True)
 def js_language_data(context):
@@ -77,7 +78,7 @@ def js_language_data(context):
         src = utils.static_url() + 'jslanguagedata/{}.js'.format(locale)
     else:
         src = reverse('staticmedia:js_language_data', args=(locale,))
-    return '<script type="text/javascript" src="{}"></script>'.format(src)
+    return format_html('<script type="text/javascript" src="{}"></script>', src)
 
 @register.simple_tag(takes_context=True)
 def current_language_name(context):

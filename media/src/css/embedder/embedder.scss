@@ -478,7 +478,7 @@ $color: rgba(50,50,50,.8);
 $color-dark: darken($color, 25%);
 $size: 1em;
 
-@mixin buttons() {
+@mixin buttons($size) {
 button {
   position: relative;
   display: inline-block;
@@ -522,21 +522,17 @@ button:active {
 }
 
 div.thumbnail-button {
- /* @size sets the relative size of the buttons, define before calling the buttons mixin */
-  $size: 8em; 
   opacity: 0.7; 
-  @include buttons();
+  @include buttons(8em);
   text-align: center;
   position: relative;
 }
 
 div.medium {
- $size: 5em;
-  @include buttons();
+  @include buttons(5em);
 }
 
 div.small {
-  $size: 3em;
-  @include buttons();
+  @include buttons(3em);
 }
 

@@ -97,7 +97,7 @@
   {% csrf_token %}
   <input type="hidden" name="form" value="delete-url">
   <input type="hidden" name="id" value="">
-  <h4 class="modal-header url"></h4>
+  <h4 class="modal-header"></h4>
   <div class="modal-content">
     <p class="alert alert-warning">{% trans "Warning: this cannot be undone. Only delete URLs for non-matching videos or videos where subtitles fail to display correctly." %}</p>
   </div>
@@ -111,7 +111,7 @@
 
 {% if allow_make_primary %}
 {% startmodal "make-url-primary-dialog" _("Make Video URL Primary") %}
-<h4 class="modal-header url"></h4>
+<h4 class="modal-header"></h4>
 <form action="" class="ajaxForm" method="post">
   {% csrf_token %}
   <input type="hidden" name="form" value="make-url-primary">
@@ -126,6 +126,10 @@
   </div>
 </form>
 {% endmodal %}
+{% endif %}
+
+{% if create_subtitles_form %}
+  {% include 'future/videos/create-subtitles-modal.html' with form=create_subtitles_form %}
 {% endif %}
 
 {% endblock %}

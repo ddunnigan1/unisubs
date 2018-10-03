@@ -5,7 +5,7 @@ import json
 
 from django.test import TestCase
 from django.test.client import Client
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from auth.models import CustomUser as User
 from tests.caching.utils import assert_invalidates_model_cache

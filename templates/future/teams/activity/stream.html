@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
   <div class="filterBox" data-singleton-filters="sort video" data-sort-default="-created">
-    {% dropdown-button "filter-dropdown" "filterBox-button" %}<span class="filterBox-buttonIcon fa fa-filter"></span> <span class="filterBox-buttonText">{% trans "Filter and Sort" %}</span>{% end-dropdown-button %}
+    {% filterbox-dropdown-button "filter-dropdown" _('Filter and Sort') %}
     {% dropdown "filter-dropdown" %}
     {% dropdown-js-item _('Type') 'type' %}
     {% dropdown-js-item _('Video') 'video' %}

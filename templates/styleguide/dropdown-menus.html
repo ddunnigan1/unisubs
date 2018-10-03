@@ -1,15 +1,16 @@
 {% extends "styleguide/base.html" %}
 {% load dropdown i18n %}
-{% block "content" %}
+{% block content %}
 
 <section>
   <p>Dropdown menus are used to present a list of actions to the user.</p>
   <p>We try to honor the keyboard bindings and properties from the <a href="https://www.w3.org/TR/wai-aria-practices/examples/menu-button/menu-button-links.html">ARIA practices document</a>.  Try <a href="#" onclick="document.getElementById('dropdown-menu-button').focus(); event.preventDefault();">focusing the toggle button</a> to start testing keyboard bindings.  </p>
 
-  {# First step is creating a button that you want to trigger the dropdown. Pick a unique ID for the button. #}
-  {% dropdown-button "dropdown-menu" "button plum" %}{% trans "Toggle dropdown" %}{% end-dropdown-button %}
-  {# Next use the dropdown tag, passing it the id of the button #}
-  {% dropdown "dropdown-menu" %}
+  {# First step is creating a button that you want to trigger the dropdown. Pick a unique ID for the menu. #}
+  {% dropdown-button "dropdown-menu" "button plum" id="dropdown-menu-button" %}{% trans "Toggle dropdown" %}{% end-dropdown-button %}
+  {# Next use the dropdown tag, passing it the same ID.  #}
+  {# Use labelled_by to indicate the element whos text should serve as a label for assistive software #}
+  {% dropdown "dropdown-menu" labelled_by="dropdown-menu-button" %}
   {# Next, include any number of dropdown-items.  Passing them the label and view name #}
   {% dropdown-item _('Dashboard') "profiles:dashboard" %}
   {# use disabled to indicate an item that can't be selected #}
@@ -49,7 +50,7 @@
 
 {% endblock %}
 
-{% block "scripts" %}
+{% block scripts %}
 <script>
 $('.dropdownMenu').on('link-activate', function(evt, data) {
   console.log(data);

@@ -505,7 +505,7 @@ class MappedChoiceField(serializers.ChoiceField):
         except KeyError:
             return 'unknown'
 
-class IsVisibleField(serializers.BooleanField):
+class IsVisibleField(serializers.NullBooleanField):
     def get_attribute(self, team):
         return team.team_public()
 
@@ -535,7 +535,7 @@ class TeamSerializer(serializers.ModelSerializer):
         default=Team._meta.get_field('video_policy').get_default())
     team_visibility = EnumField(TeamVisibility, required=False)
     video_visibility = EnumField(VideoVisibility, required=False)
-    is_visible = IsVisibleField(required=False)
+    is_visible = IsVisibleField(required=False, default=None)
 
     activity_uri = serializers.HyperlinkedIdentityField(
         view_name='api:team-activity',

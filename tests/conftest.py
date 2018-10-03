@@ -13,7 +13,7 @@ import pytest
 
 from amara.signals import before_tests
 from auth.models import CustomUser
-from utils.test_utils import monkeypatch, restframeworkcompat
+from utils.test_utils import monkeypatch
 
 patcher = None
 
@@ -21,7 +21,6 @@ def pytest_configure(config):
     global patcher
     patcher = monkeypatch.MonkeyPatcher()
     patcher.patch_functions()
-    patch_for_rest_framework()
     patch_mockredis()
 
     settings.MEDIA_ROOT = tempfile.mkdtemp(prefix='amara-test-media-root')
@@ -30,14 +29,6 @@ def pytest_configure(config):
     reporter.startdir = py.path.local('/run/pytest/')
 
     before_tests.send(config)
-
-def patch_for_rest_framework():
-    # patch some of old django code to be compatible with the rest
-    # framework testing tools
-    # restframeworkcompat is the compat module from django-rest-framework
-    # 3.0.3
-    django.test.client.RequestFactory = restframeworkcompat.RequestFactory
-    django.utils.encoding.force_bytes = restframeworkcompat.force_bytes_or_smart_bytes
 
 def patch_mockredis():
     from mockredis.client import MockRedis

@@ -1,4 +1,3 @@
-from optparse import make_option
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 import logging
@@ -7,13 +6,13 @@ from messages.models import Message
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option('--days',
+    def add_arguments(self, parser):
+        parser.add_argument('--days',
                     action='store_true',
                     dest='days',
                     default=None,
-                    help='Days of history of threads to process, by default all messages in history'),
-    )
+                    help='Days of history of threads to process, by default all messages in history')
+
     def handle(self, *args, **kwargs):
         threads = Message.objects.filter(thread__isnull=False)
         if kwargs['days'] is not None:

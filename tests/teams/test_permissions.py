@@ -20,7 +20,7 @@ from __future__ import absolute_import
 
 import datetime
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from teams.models import Team, TeamVideo, TeamMember, Workflow, Task
 from auth.models import CustomUser as User
 from contextlib import contextmanager

@@ -19,33 +19,33 @@
 import os
 
 from django.conf import settings
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.conf.urls.static import static
 
+from staticmedia import views
 from staticmedia import utils
 
 if settings.STATIC_MEDIA_USES_S3:
     # don't serve up the media from the local server if we're using S3
-    urlpatterns = patterns('staticmedia.views')
+    urlpatterns = []
 else:
     # mimic the S3 directory structure using views from the local server
-    urlpatterns = patterns(
-        'staticmedia.views',
+    urlpatterns = [
         # Special case requirejs since we might want to use it for different
         # JS bundles
-        url(r'^js/require.js$', 'requirejs', name='requirejs'),
-        url(r'^css/(?P<bundle_name>[\w\.-]+)$', 'css_bundle', name='css_bundle'),
-        url(r'^js/(?P<bundle_name>[\w\.-]+)$', 'js_bundle', name='js_bundle'),
+        url(r'^js/require.js$', views.requirejs, name='requirejs'),
+        url(r'^css/(?P<bundle_name>[\w\.-]+)$', views.css_bundle, name='css_bundle'),
+        url(r'^js/(?P<bundle_name>[\w\.-]+)$', views.js_bundle, name='js_bundle'),
         url(r'^js/(?P<bundle_name>[\w\.-]+)/(?P<path>.*)$',
-            'js_bundle_with_path', name='js_bundle_with_path'),
-        url(r'^jsi18catalog/(?P<locale>[\w-]+)\.js$', 'js_i18n_catalog',
+            views.js_bundle_with_path, name='js_bundle_with_path'),
+        url(r'^jsi18catalog/(?P<locale>[\w-]+)\.js$', views.js_i18n_catalog,
             name='js_i18n_catalog'),
         url(r'^jslanguagedata/(?P<locale>[\w-]+)\.js$',
-            'js_language_data', name='js_language_data'),
+            views.js_language_data, name='js_language_data'),
         # embed.js is a weird file, but we want to continue support for a
         # while
-        url(r'^embed.js$', 'old_embedder_js', name='old_embedder_js'),
-    ) + static(
+        url(r'^embed.js$', views.old_embedder_js, name='old_embedder_js'),
+    ] + static(
         '/images/', document_root=os.path.join(settings.STATIC_ROOT, 'images')
     ) + static(
         '/flowplayer/', document_root=os.path.join(settings.STATIC_ROOT, 'flowplayer')
@@ -53,15 +53,13 @@ else:
         '/fonts/', document_root=os.path.join(settings.STATIC_ROOT, 'fonts')
     )
 
-    urlpatterns += patterns(
-        'staticmedia.views',
-        (r'^(?P<path>.*)$', 'serve_add_static_media')
-    )
+    urlpatterns += [
+        url(r'^(?P<path>.*)$', views.serve_add_static_media)
+    ]
 
 if settings.DEBUG:
-    urlpatterns += patterns(
-        'staticmedia.views',
-        url(r'^test/old-embedder/$', 'old_embedder_test',
+    urlpatterns += [
+        url(r'^test/old-embedder/$', views.old_embedder_test,
             name='old_embedder_test'),
-        url(r'^test/embedder/$', 'embedder_test', name='embedder_test'),
-    )
+        url(r'^test/embedder/$', views.embedder_test, name='embedder_test'),
+    ]

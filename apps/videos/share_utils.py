@@ -1,7 +1,7 @@
 from django.utils.http import urlencode
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from utils.text import fmt

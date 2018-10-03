@@ -29,10 +29,10 @@ def startmodal(id_, title, remove_on_close=False):
     if remove_on_close:
         classes.append('removeOnClose')
     return format_html(
-        '<div id="{0}" class="{3}" role="dialog" aria-modal="true" aria-labeledby="{1}">'
+        u'<div id="{0}" class="{3}" role="dialog" aria-modal="true" aria-labeledby="{1}">'
         '<h4 id="{1}" class="modal-title">{2}</h4>',
         id_, title_id, unicode(title), ' '.join(classes))
 
 @register.simple_tag
 def endmodal():
-    return mark_safe('</div>')
+    return mark_safe(u'</div>')

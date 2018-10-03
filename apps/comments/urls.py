@@ -16,9 +16,11 @@
 # along with this program.  If not, see 
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import *
+from django.conf.urls import url
 
-urlpatterns = patterns('comments.views',
-    url('post/$', 'post', name='post'),
-    url('update_comments/$', 'update_comments', name='update_comments'),
-)
+from comments import views
+
+urlpatterns = [
+    url('post/$', views.post, name='post'),
+    url('update_comments/$', views.update_comments, name='update_comments'),
+]

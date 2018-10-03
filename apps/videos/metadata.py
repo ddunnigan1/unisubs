@@ -35,7 +35,6 @@ This is currently used by SubtitleVersion
 
 from django.db import models
 from django.template.defaultfilters import slugify
-from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_noop
 

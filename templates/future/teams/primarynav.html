@@ -1,4 +1,7 @@
 {% load i18n teams_tags %}
+{% if is_welcome_page %} 
+    <!-- do not show any navlink for non-member team landing pages -->
+{% else %}
 <nav class="primarynav mainnav-nav wide">
   <ul>
     <li{% if team_nav == "dashboard" %} class="active"{% endif %}><a href="{% url "teams:dashboard" team.slug %}">{% trans "Dashboard" %}</a></li>
@@ -14,3 +17,4 @@
     {% endif %}
   </ul>
 </nav>
+{% endif %}

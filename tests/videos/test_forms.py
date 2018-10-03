@@ -19,7 +19,7 @@
 
 from django.test import TestCase
 from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponseRedirect
 import mock
 from nose.tools import *

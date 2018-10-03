@@ -16,7 +16,7 @@
 # along with this program.  If not, see 
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-"""periodic_task_settings -- settings for periodic tasks."""
+"""task_settings -- settings for periodic tasks."""
 
 from datetime import timedelta
 

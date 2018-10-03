@@ -20,7 +20,7 @@
 
 import json
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.http import urlquote_plus
 
 def is_dependent(subtitle_language):

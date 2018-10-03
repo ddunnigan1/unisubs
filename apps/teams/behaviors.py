@@ -16,6 +16,7 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from django.urls import reverse
 from utils.behaviors import behavior
 
 @behavior
@@ -28,3 +29,20 @@ def get_main_project(team):
     overrided for specific teams though (e.g. TED).
     """
     return None
+
+@behavior
+def get_team_join_mode(team, user):
+    """
+    Get the appropriate join mode for the team - mainly used for the non-member landing page
+    """
+    if not user.is_authenticated():
+        return 'login'
+    else:
+        return None
+
+@behavior
+def get_team_login_url(team):
+    """
+    Get the appropriate login url for the team
+    """
+    return reverse('auth:login')

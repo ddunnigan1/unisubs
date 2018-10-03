@@ -33,14 +33,13 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from videos.templatetags.paginator import paginate
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Sum
 from django.http import (HttpResponse, Http404, HttpResponseRedirect,
                          HttpResponseForbidden)
-from django.shortcuts import (render, render_to_response, get_object_or_404,
-                              redirect)
+from django.shortcuts import (render, get_object_or_404, redirect)
 from django.template import RequestContext
 from django.utils.encoding import force_unicode
 from django.utils.http import urlquote_plus
@@ -75,7 +74,7 @@ from videos.decorators import (get_video_revision, get_video_from_code,
 from videos.forms import (
     VideoForm,
     CreateVideoUrlForm, NewCreateVideoUrlForm, AddFromFeedForm,
-    ChangeVideoOriginalLanguageForm, CreateSubtitlesForm,
+    ChangeVideoOriginalLanguageForm, CreateSubtitlesForm, TeamCreateSubtitlesForm
 )
 from videos.models import (
     Video, VideoUrl, AlreadyEditingException
@@ -297,8 +296,13 @@ def video(request, video_id, video_url=None, title=None):
         video_url = video.get_primary_videourl_obj()
 
     workflow = video.get_workflow()
-    if workflow.user_can_edit_video(request.user):
-        create_subtitles_form = CreateSubtitlesForm(request, video)
+    if workflow.user_can_create_new_subtitles(request.user):
+        form_name = request.GET.get('form', '')
+        if form_name == 'create-subtitles':
+            return create_subtitles(request, video_id)
+        else:
+            # this is the old code for creating the CreateSubtitlesForm
+            create_subtitles_form = CreateSubtitlesForm(request,video)
     else:
         create_subtitles_form = None
     if request.user.is_authenticated():
@@ -349,7 +353,46 @@ def video(request, video_id, video_url=None, title=None):
         'custom_sidebar': customization.sidebar,
         'header': customization.header,
         'use_old_messages': True,
+        'video_urls': [
+            (vurl, get_sync_account(video, vurl))
+            for vurl in video.get_video_urls()
+        ],
     })
+
+def create_subtitles(request, video_id):
+    try:
+        video = Video.cache.get_instance_by_video_id(video_id, 'video-page')
+    except Video.DoesNotExist:
+        raise Http404
+
+    workflow = video.get_workflow()
+    if not workflow.user_can_create_new_subtitles(request.user):
+        raise PermissionDenied()
+
+    team_slug = request.GET.get('team', None)
+    if request.method == 'POST':
+        if team_slug:
+            form = TeamCreateSubtitlesForm(request, video, team_slug, request.POST)
+        else:
+            form = CreateSubtitlesForm(request, video, request.POST)
+
+        if form.is_valid():
+            form.set_primary_audio_language()
+            response_renderer = AJAXResponseRenderer(request)
+            response_renderer.redirect(form.editor_url())
+            return response_renderer.render()
+    else:
+        if team_slug:
+            form = TeamCreateSubtitlesForm(request, video, team_slug)
+        else:
+            form = CreateSubtitlesForm(request, video)
+
+    response_renderer = AJAXResponseRenderer(request)
+    response_renderer.show_modal('future/videos/create-subtitles-modal.html', {
+        'form': form,
+        'video': video,
+    })
+    return response_renderer.render()
 
 def video_ajax_form(request, video_id):
     form = request.POST.get('form')
@@ -444,6 +487,10 @@ def urls_tab_replacement_data(request, video):
             'video': video,
             'allow_delete': True,
             'allow_make_primary': True,
+            'video_urls': [
+                (vurl, get_sync_account(video, vurl))
+                for vurl in video.get_video_urls()
+            ],
             'create_url_form': NewCreateVideoUrlForm(video, request.user),
         })
 
@@ -860,8 +907,7 @@ def diffing(request, first_version, second_pk):
         'video_url': video.get_video_url(),
     }
 
-    return render_to_response('videos/diffing.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/diffing.html', context)
 
 @login_required
 def stop_notification(request, video_id):
@@ -883,8 +929,7 @@ def stop_notification(request, video_id):
             logout(request)
     else:
         context['error'] = u'Incorrect secret hash'
-    return render_to_response('videos/stop_notification.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/stop_notification.html', context)
 
 @login_required
 @require_POST
@@ -1004,12 +1049,12 @@ def video_debug(request, video_id):
 
     is_youtube = video.videourl_set.filter(type=VIDEO_TYPE_YOUTUBE).count() != 0
 
-    return render_to_response("videos/video_debug.html", {
+    return render(request, "videos/video_debug.html", {
             'video': video,
             'is_youtube': is_youtube,
             'tasks': tasks,
             "cache": cache
-    }, context_instance=RequestContext(request))
+    })
 
 def reset_metadata(request, video_id):
     video = get_object_or_404(Video, video_id=video_id)
@@ -1034,11 +1079,10 @@ def set_original_language(request, video_id):
             _(u'The language for %(video)s has been changed'),
             video=video))
         return HttpResponseRedirect(reverse("videos:set_original_language", args=(video_id,)))
-    return render_to_response("videos/set-original-language.html", {
+    return render(request, "videos/set-original-language.html", {
         "video": video,
         'form': form
-    }, context_instance=RequestContext(request)
-    )
+    })
 
 @staff_member_required
 def url_search(request):

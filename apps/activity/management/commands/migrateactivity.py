@@ -1,4 +1,3 @@
-from optparse import make_option
 import json
 
 from django.core.management.base import BaseCommand
@@ -10,9 +9,8 @@ from teams.permissions_const import *
 from videos.models import Action
 
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option('-B', '--batch_size', dest='batch_size', default=200),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('-B', '--batch_size', dest='batch_size', default=200)
 
     def handle(self, *args, **options):
         self.batch_size = options['batch_size']

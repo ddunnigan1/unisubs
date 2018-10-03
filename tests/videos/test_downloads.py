@@ -21,7 +21,7 @@ import urllib
 import urlparse
 
 from babelsubs.parsers.dfxp import DFXPParser
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 
 from subtitles.templatetags import new_subtitles_tags

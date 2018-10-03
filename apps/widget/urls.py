@@ -16,33 +16,37 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import url, patterns
+from __future__ import absolute_import
+
+from django.conf.urls import url
 from django.views.generic.base import TemplateView
+import django.contrib.auth.views
+import thirdpartyaccounts.views
 
 from utils.genericviews import JSTemplateView
 
-urlpatterns = patterns(
-    'widget.views',
-    url(r'^rpc/xd/(\w+)$', 'xd_rpc'),
-    url(r'^null_rpc/xd/(\w+)$', 'xd_rpc', kwargs={'null':True}),
-    url(r'^rpc/xhr/(\w+)$', 'rpc', name='rpc'),
-    url(r'^null_rpc/xhr/(\w+)$', 'rpc', kwargs={'null':True}),
-    url(r'^rpc/jsonp/(\w+)$', 'jsonp'),
-    url(r'^null_rpc/jsonp/(\w+)$', 'jsonp', kwargs={'null':True}),
-    url(r'^widgetizerbootloader\.js$', 'widgetizerbootloader',
+from widget import views
+
+urlpatterns = [
+    url(r'^rpc/xd/(\w+)$', views.xd_rpc),
+    url(r'^null_rpc/xd/(\w+)$', views.xd_rpc, kwargs={'null':True}),
+    url(r'^rpc/xhr/(\w+)$', views.rpc, name='rpc'),
+    url(r'^null_rpc/xhr/(\w+)$', views.rpc, kwargs={'null':True}),
+    url(r'^rpc/jsonp/(\w+)$', views.jsonp),
+    url(r'^null_rpc/jsonp/(\w+)$', views.jsonp, kwargs={'null':True}),
+    url(r'^widgetizerbootloader\.js$', views.widgetizerbootloader,
         name='widgetizerbootloader'),
-    url(r'^convert_subtitles/$', 'convert_subtitles',
+    url(r'^convert_subtitles/$', views.convert_subtitles,
         name='convert_subtitles'),
     url(r'^save_emailed_translations/$',
-        'save_emailed_translations'),
-)
+        views.save_emailed_translations),
+]
 
-urlpatterns += patterns(
-    '',
-    url(r'^login/$', 'django.contrib.auth.views.login'),
-    url(r'^twitter_login/', 'thirdpartyaccounts.views.twitter_login',
+urlpatterns += [
+    url(r'^login/$', django.contrib.auth.views.login),
+    url(r'^twitter_login/', thirdpartyaccounts.views.twitter_login,
         kwargs={'next': '/widget/close_window/'}),
-    url(r'^facebook_login/', 'thirdpartyaccounts.views.facebook_login'),
+    url(r'^facebook_login/', thirdpartyaccounts.views.facebook_login),
     url(r'^close_window/$',
         TemplateView.as_view(template_name='widget/close_window.html')),
     url(r'^config.js$',
@@ -51,4 +55,4 @@ urlpatterns += patterns(
         JSTemplateView.as_view(template_name='widget/statwidgetconfig.js')),
     url(r'^extension_demo.html$',
         TemplateView.as_view(template_name='widget/extension_demo.html')),
-)
+]

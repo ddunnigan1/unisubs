@@ -21,7 +21,7 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.contrib import messages
 from django.http import Http404
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import to_locale, ugettext as _
 
 from ui import tasks

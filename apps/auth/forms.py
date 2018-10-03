@@ -19,7 +19,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.validators import EMPTY_VALUES
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.html import format_html
 from django.utils.http import urlsafe_base64_encode
@@ -205,7 +205,8 @@ class CustomPasswordResetForm(forms.Form):
              email_template_name='registration/password_reset_email.html',
              html_email_template_name=None,
              use_https=False, token_generator=default_token_generator,
-             from_email=None, request=None):
+             from_email=None, request=None,
+             **opts):
         """
         Generates a one-use only link for resetting password and sends to the
         user.

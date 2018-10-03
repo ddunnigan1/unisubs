@@ -1,6 +1,6 @@
 {% extends "styleguide/base.html" %}
 {% load forms dropdown %}
-{% block "content" %}
+{% block content %}
 <p>filterBox is a flexible system to allow users to filter content.</p>
 
 <p>When the filters are changed, we will make an AJAX request to the current URL.  Respond using AJAXResponseRenderer to update the page.</p>
@@ -8,8 +8,8 @@
 <p>If a sort has a default value, use data-[name]-default to specify it.  Then if a user chooses that value, we won't display the filter.</p>
 
 <div class="filterBox">
-  <button id="filter-box-dropdown-button" class="filterBox-button"><span class="filterBox-buttonIcon fa fa-filter"></span> <span class="filterBox-buttonText">Add a filter &hellip;</span></button>
-  {% dropdown "filter-box-dropdown-button" %}
+  {% filterbox-dropdown-button "dropdown-id" "Add a filter&hellip;" %}
+  {% dropdown "dropdown-id" %}
   {% dropdown-js-item 'Color' 'color' %}
   {% dropdown-js-item 'Shape' 'shape' %}
   {% enddropdown %}

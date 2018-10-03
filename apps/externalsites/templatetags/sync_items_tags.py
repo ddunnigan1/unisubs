@@ -2,7 +2,7 @@ import json
 from django.conf import settings
 from django.template.defaulttags import register
 from django.utils.safestring import mark_safe
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 ALL_LANGUAGES_DICT = dict(settings.ALL_LANGUAGES)
 

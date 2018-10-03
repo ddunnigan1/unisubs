@@ -20,7 +20,7 @@
 
 import json
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse
 from django.template import RequestContext
 from django.template.loader import render_to_string
@@ -38,7 +38,7 @@ class AJAXResponseRenderer(object):
     """
 
     def __init__(self, request):
-        self.request_context = RequestContext(request)
+        self.request = request
         self.changes = []
         self.headers = []
 
@@ -56,7 +56,7 @@ class AJAXResponseRenderer(object):
             template: template name to use to render the content
             context: context dict to pass to the template
         """
-        content = render_to_string(template, context, self.request_context)
+        content = render_to_string(template, context, self.request)
         self.add_change('replace', selector, content)
 
     def remove(self, selector):
@@ -73,7 +73,7 @@ class AJAXResponseRenderer(object):
             template: template name to use to render the content
             context: context dict to pass to the template
         """
-        content = render_to_string(template, context, self.request_context)
+        content = render_to_string(template, context, self.request)
         self.add_change('showModal', content)
 
     def show_modal_progress(self, progress, label):
@@ -111,6 +111,9 @@ class AJAXResponseRenderer(object):
 
     def reload_page(self):
         self.add_change('reloadPage')
+
+    def redirect(self, url):
+        self.add_change('redirect', url)
 
     def render(self):
         response = HttpResponse(json.dumps(self.changes),

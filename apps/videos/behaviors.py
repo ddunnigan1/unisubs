@@ -63,27 +63,42 @@ class SubtitlesPageCustomization(object):
         extra_page_controls: Extra links to display in the page control
             area for site admins
     """
-    def __init__(self, user, video, subtitle_language):
-        workflow = video.get_workflow()
+    def __init__(self, user, video, subtitle_language, team_slug=None):
         self.steps = None
         self.due_date = None
         self.header = None
         self.team = None
         self.extra_page_controls = []
-        if workflow.user_can_edit_subtitles(
-                user, subtitle_language.language_code):
+
+        workflow = video.get_workflow()
+        is_user_able_to_edit_subtitles = workflow.user_can_edit_subtitles(user, subtitle_language.language_code)
+        if is_user_able_to_edit_subtitles and team_slug is not None:
             self.cta = CTA(_("Edit Subtitles"), 'icon-edit',
-                           'subtitles:subtitle-editor', video_id=video.video_id,
-                           language_code=subtitle_language.language_code)
+                           'subtitles:subtitle-editor',
+                           video_id=video.video_id,
+                           language_code=subtitle_language.language_code,
+                           query={'team': team_slug},)
+        elif is_user_able_to_edit_subtitles:
+            self.cta = CTA(_("Edit Subtitles"), 'icon-edit',
+                           'subtitles:subtitle-editor',
+                           video_id=video.video_id,
+                           language_code=subtitle_language.language_code,)
         else:
             self.cta = None
+
 
 @behavior
 def subtitles_page_customize(request, video, subtitle_language):
     """Customize the subtitles page.
 
     """
-    return SubtitlesPageCustomization(request.user, video, subtitle_language)
+    try:
+        team_slug = request.GET.get('team', None)
+    except KeyError:
+        team_slug = None
+
+    return SubtitlesPageCustomization(request.user, video, subtitle_language, team_slug)
+
 
 class SubtitlesStep(object):
     """Represents an item on the subtitle steps list

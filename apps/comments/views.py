@@ -20,7 +20,7 @@ import json
 
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext
 
 from forms import CommentForm
@@ -52,8 +52,8 @@ def update_comments(request):
                 pass        
     else:
         qs = Comment.objects.none()
-    response = render_to_response('comments/update_comments.html',{
+    response = render(request, 'comments/update_comments.html',{
             'qs': qs
-        }, context_instance=RequestContext(request))
+        })
     response['comments-count'] = len(qs)
     return response

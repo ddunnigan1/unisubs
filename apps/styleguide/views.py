@@ -34,7 +34,9 @@ forms_by_section = {
     'multi-field': forms.MultiFieldForm,
     'image-upload': forms.ImageUpload,
     'switches': forms.SwitchForm,
+    'content-header': forms.ContentHeader,
     'filter-box': forms.FilterBox,
+    'split-button': forms.SplitButton,
 }
 
 _cached_styleguide = None

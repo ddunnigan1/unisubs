@@ -22,11 +22,8 @@ import email
 import gzip
 import mimetypes
 import time
-import optparse
 import os
 
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import to_locale, activate
@@ -43,13 +40,12 @@ from staticmedia.jslanguagedata import render_js_language_script
 class Command(BaseCommand):
     help = """Upload static media to S3 """
 
-    option_list = BaseCommand.option_list + (
-        optparse.make_option('--skip-commit-check', dest='skip_commit_check',
-                             action='store_true', default=False,
-                             help="Don't check the git commit in commit.py"),
-        optparse.make_option('--no-gzip', dest='gzip', action='store_false',
-                             default=True, help="Don't gzip files")
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('--skip-commit-check', dest='skip_commit_check',
+                            action='store_true', default=False,
+                            help="Don't check the git commit in commit.py")
+        parser.add_argument('--no-gzip', dest='gzip', action='store_false',
+                            default=True, help="Don't gzip files")
 
     def handle(self, *args, **options):
         self.options = options
@@ -78,20 +74,18 @@ class Command(BaseCommand):
                                "update commit.py")
 
     def setup_connection(self):
-        self.conn = S3Connection(settings.AWS_ACCESS_KEY_ID,
-                                 settings.AWS_SECRET_ACCESS_KEY)
-        self.bucket = self.conn.get_bucket(settings.STATIC_MEDIA_S3_BUCKET)
+        session = boto3.Session(
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        self.client = session.client('s3')
+        self.bucket = session.resource('s3').Bucket(settings.STATIC_MEDIA_S3_BUCKET)
 
     def log_upload(self, key):
         url_base = settings.STATIC_MEDIA_S3_URL_BASE
-        if isinstance(key, basestring):
-            name = key
-        else:
-            name = key.name
         if url_base.startswith("//"):
             # add http: for protocol-relative URLs
             url_base = "http:" + url_base
-        self.stdout.write("-> %s%s\n" % (url_base, name))
+        self.stdout.write("-> %s%s\n" % (url_base, key))
 
     def build_bundles(self):
         self.built_bundles = []
@@ -105,10 +99,10 @@ class Command(BaseCommand):
 
     def upload_bundles(self):
         for bundle, contents in self.built_bundles:
-            headers = self.cache_forever_headers()
-            headers['Content-Type'] = bundle.mime_type
+            settings = self.cache_forever_settings()
+            settings['ContentType'] = bundle.mime_type
             upload_path = '%s/%s' % (bundle.bundle_type, bundle.name)
-            self.upload_string(upload_path, contents, headers)
+            self.upload_string(upload_path, contents, settings)
 
     def upload_static_dir(self, subdir):
         directory = os.path.join(settings.STATIC_ROOT, subdir)
@@ -144,28 +138,28 @@ class Command(BaseCommand):
         # it in the root directory of our s3 bucket.  This means that we can't
         # cache it forever.  Also we have to pass a slightly weird filename to
         # upload_string()
-        headers = self.no_cache_headers()
+        settings = self.no_cache_settings()
         self.upload_string("embed.js", self.old_embedder_js_code,
-                           self.no_cache_headers(),
+                           self.no_cache_settings(),
                            store_in_s3_subdirectory=False)
 
     def upload_js_catalogs(self):
-        headers = self.cache_forever_headers()
-        headers['Content-Type'] = 'application/javascript'
+        settings = self.cache_forever_settings()
+        settings['ContentType'] = 'application/javascript'
         for locale in self.all_locales():
             filename = "jsi18catalog/{}.js".format(locale)
             activate(locale)
             catalog, plural = get_javascript_catalog(locale, 'djangojs', [])
             response = render_javascript_catalog(catalog, plural)
-            self.upload_string(filename, response.content, headers)
+            self.upload_string(filename, response.content, settings)
 
     def upload_js_language_data(self):
-        headers = self.cache_forever_headers()
-        headers['Content-Type'] = 'application/javascript'
+        settings = self.cache_forever_settings()
+        settings['ContentType'] = 'application/javascript'
         for locale in self.all_locales():
             activate(locale)
             filename = "jslanguagedata/{}.js".format(locale)
-            self.upload_string(filename, render_js_language_script(), headers)
+            self.upload_string(filename, render_js_language_script(), settings)
 
     def all_locales(self):
         locale_dir = os.path.join(settings.PROJECT_ROOT, 'locale')
@@ -174,74 +168,64 @@ class Command(BaseCommand):
                     locale_dir, child, 'LC_MESSAGES/djangojs.mo')):
                 yield child
 
-    def upload_string(self, filename, content, headers,
+    def upload_string(self, filename, content, settings,
                       store_in_s3_subdirectory=True):
-        content_type = headers.get('Content-Type', 'application/unknown')
+        content_type = settings.get('ContentType', 'application/unknown')
         if self.should_gzip(content_type):
             content = self.compress_string(content)
-            headers['Content-Encoding'] = 'gzip'
-        key = Key(bucket=self.bucket)
+            settings['ContentEncoding'] = 'gzip'
+
         if store_in_s3_subdirectory:
-            key.name = os.path.join(self.s3_subdirectory, filename)
+            key = os.path.join(self.s3_subdirectory, filename)
         else:
-            key.name = filename
+            key = filename
+
         self.log_upload(key)
-        key.set_contents_from_string(content, headers, replace=True,
-                                     policy='public-read')
+        self.bucket.put_object(ACL='public-read', Body=content, Key=key,
+                               **settings)
 
     def upload_file(self, source_file, filename):
         self.upload_string(filename, open(source_file).read(),
-                           self.headers_for_file(source_file))
+                           self.settings_for_file(source_file))
 
-    def http_date(self, time_delta):
-        timetuple = (datetime.datetime.now() + time_delta).timetuple()
-        return '%s GMT' % email.Utils.formatdate(time.mktime(timetuple))
-
-    def headers_for_file(self, path):
-        headers = self.cache_forever_headers()
+    def settings_for_file(self, path):
+        settings = self.cache_forever_settings()
         content_type, encoding = mimetypes.guess_type(path)
         if content_type is not None:
-            headers['Content-Type'] = content_type
-        return headers
+            settings['ContentType'] = content_type
+        return settings
 
-    def cache_forever_headers(self):
-        """Get HTTP headers to cache a resource "forever"
+    def cache_forever_settings(self):
+        """Get HTTP settings to cache a resource "forever"
 
         Note that "forever" doesn't really mean forever, just a very long
         time.  We use the somewhat standard amount of 1-year for this.
         """
         return {
             # HTTP/1.1
-            'Cache-Control': 'max-age %d' % (3600 * 24 * 365 * 1),
+            'CacheControl': 'max-age %d' % (3600 * 24 * 365 * 1),
             # HTTP/1.0
-            'Expires': self.http_date(datetime.timedelta(days=365)),
+            'Expires': datetime.datetime.now() + datetime.timedelta(days=365),
         }
 
-    def no_cache_headers(self):
-        """Get HTTP headers to disable caching a resource."""
+    def no_cache_settings(self):
+        """Get HTTP settings to disable caching a resource."""
         return {
             # HTTP/1.1
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Pragma': 'no-cache',
+            'CacheControl': 'no-store, no-cache, must-revalidate',
             # HTTP/1.0
-            'Expires': self.http_date(datetime.timedelta(days=-365)),
+            'Expires': datetime.datetime.now() + datetime.timedelta(days=-365),
         }
 
     def copy_experimental_editor(self):
-        # FIXME: only this method uses boto3, we should update the other code
-        # to use it as well
-        client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        self.copy_experimental_editor_file(client, 'js/editor.js')
-        self.copy_experimental_editor_file(client, 'css/editor.css')
+        self.copy_experimental_editor_file('js/editor.js')
+        self.copy_experimental_editor_file('css/editor.css')
 
-    def copy_experimental_editor_file(self, client, path):
+    def copy_experimental_editor_file(self, path):
         key = '{}/experimental/{}'.format(self.s3_subdirectory, path)
-        client.copy_object(Bucket=settings.STATIC_MEDIA_S3_BUCKET,
-                           Key=key,
-                           CopySource='{}/experimental/{}'.format(
-                               settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET, path))
         self.log_upload(key)
+        self.client.copy_object(
+            Bucket=settings.STATIC_MEDIA_S3_BUCKET, Key=key,
+            CopySource='{}/experimental/{}'.format(
+                settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET, path))
 

@@ -1,7 +1,7 @@
 {% extends "styleguide/base.html" %}
-{% load dropdown webdesign captureas ui %}
+{% load dropdown captureas ui %}
 
-{% block "content" %}
+{% block content %}
 
 <section>
   <p>List View is a generic way to display items in a tabular layout.</p>
@@ -32,14 +32,14 @@
   class which sets grid-template-columns.  Here, it's the styleguide-example
   class. {% endcomment %}
   <div tabindex="0" class="listView styleguide-example">
-    <div class="listView-header">{% checkbox class="checkAll" data_name="selection" %}</div>
+    <div class="listView-header">{% checkbox "all" id_prefix="selection-" class="checkAll" data_name="selection" %}</div>
     <div class="listView-header">Title</div>
     <div class="listView-header">Language</div>
     <div class="listView-header"></div>
 
     {% for i in "x"|rjust:"10" %} {# dirty way to do a for loop #}
     {% captureas menu_id %}menu-1-{{ forloop.counter }}{% endcaptureas %}
-    <div class="listView-checkbox">{% checkbox name="selection" %}</div>
+    <div class="listView-checkbox">{% checkbox forloop.counter id_prefix="selection-" name="selection" %}</div>
     <div>{% lorem 4 w random %}<div class="listView-secondary">Some extra info</div></div>
     <div>{% cycle "English" "French" "Spanish" "Japanese" %}<div class="listView-secondary">Some extra info</div></div>
     <div class="listView-actions">
@@ -60,14 +60,14 @@
   <p>A varient of List View is the always-expanded version.  Here the secondary info is shown by default, without having to expand it.</p>
 
   <div class="listView styleguide-example">
-    <div class="listView-header">{% checkbox class="checkAll" data_name="selection2" %}</div>
+    <div class="listView-header">{% checkbox "all" id_prefix="selection2-" class="checkAll" data_name="selection2" %}</div>
     <div class="listView-header">Title</div>
     <div class="listView-header">Language</div>
     <div class="listView-header"></div>
 
     {% for i in "x"|rjust:"10" %} {# dirty way to do a for loop #}
     {% captureas menu_id %}menu-2-{{ forloop.counter }}{% endcaptureas %}
-    <div class="listView-checkbox">{% checkbox name="selection2" %}</div>
+    <div class="listView-checkbox">{% checkbox forloop.counter id_prefix="selection2-" name="selection2" %}</div>
 
     {# To make an always-expanded listview, just add the visible class to the secondary info  #}
     <div>{% lorem 4 w random %}<div class="listView-secondary visible">Some extra info</div></div>

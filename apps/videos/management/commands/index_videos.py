@@ -16,8 +16,6 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from optparse import make_option
-
 from django.core.management.base import BaseCommand
 
 from videos.models import Video, VideoIndex
@@ -25,12 +23,11 @@ import time
 
 class Command(BaseCommand):
     help = "Recalculate the search index for all videos"
-    option_list = BaseCommand.option_list + (
-        make_option('-b', '--batch-size', dest='batch-size', default=100,
+    def add_arguments(self, parser):
+        parser.add_argument('-b', '--batch-size', dest='batch-size', default=100,
                     help='Set amount of videos to update at once'),
-        make_option('-l', '--rate-limit', dest='rate-limit', metavar='COUNT',
-                    help='Only update COUNT videos per second'),
-    )
+        parser.add_argument('-l', '--rate-limit', dest='rate-limit', metavar='COUNT',
+                    help='Only update COUNT videos per second')
 
     def handle(self, **options):
         batch_size = options['batch-size']

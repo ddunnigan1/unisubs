@@ -241,7 +241,7 @@ def render_page(page, qs, on_page=30, request=None,
     context.update(extra_context)
 
     if request:
-        content = render_to_string(template, context, RequestContext(request))
+        content = render_to_string(template, context, request)
     else:
         context['STATIC_URL'] = settings.STATIC_URL
         content = render_to_string(template, context)

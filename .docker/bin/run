@@ -18,7 +18,6 @@ die-on-term = true
 enable-threads = true
 enable-metrics
 buffer-size = 32768
-reload-on-as = 512
 no-orphans = true
 vacuum = true
 disable-logging

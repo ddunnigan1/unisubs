@@ -23,12 +23,11 @@ from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe, SafeUnicode
 from django.utils.translation import ugettext_lazy as _
 from django import forms
+from django.forms import fields as django_fields
 from django.forms import widgets as django_widgets
 
 from utils import translation
 from ui.forms import widgets
-
-from auth.models import CustomUser as User
 
 class HelpTextList(SafeUnicode):
     """
@@ -265,9 +264,38 @@ class AmaraImageField(forms.ImageField):
         super(AmaraImageField, self).__init__(**kwargs)
         self.widget.preview_size = preview_size
 
+class DependentBooleanField(forms.MultiValueField):
+    """
+    Displays a several checkboxes, each one depending on the previous.
+
+    See the multiField styleguide entry for how we use this
+    """
+
+    def __init__(self, choices, **kwargs):
+        self.choices = choices
+        fields = [
+            django_fields.BooleanField(required=False)
+            for c in choices
+        ]
+        widget = widgets.DependentCheckboxes(choices)
+        super(DependentBooleanField, self).__init__(
+            widget=widget, fields=fields, require_all_fields=False, **kwargs)
+
+    def compress(self, data_list):
+        for choice, checked in reversed(zip(self.choices, data_list)):
+            if checked:
+                return choice[0]
+        if self.required:
+            # required fields make the first choice always checked and
+            # disabled.  That means we won't see it in the POST data, but
+            # we should return it here.
+            return self.choices[0][0]
+        return None
+
 __all__ = [
     'AmaraChoiceField', 'AmaraMultipleChoiceField', 'LanguageField',
     'MultipleLanguageField', 'SearchField', 'HelpTextList',
     'UploadOrPasteField', 'AmaraImageField', 'MultipleAutoCompleteField',
+    'DependentBooleanField',
 ]
 

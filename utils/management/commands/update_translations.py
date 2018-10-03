@@ -32,7 +32,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-from optparse import make_option
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -267,12 +266,10 @@ def all_locales():
     return rv
 
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option('--merge',
-            action='store_true',
-            default=False,
-            help='Merge .pot file with our .po files'),
-        )
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--merge', action='store_true', default=False,
+            help='Merge .pot file with our .po files')
 
     def handle(self, *args, **kwargs):
         os.chdir(settings.PROJECT_ROOT)

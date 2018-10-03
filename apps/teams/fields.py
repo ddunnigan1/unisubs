@@ -67,12 +67,15 @@ class ProjectFieldMixin(object):
                 self.set_select_data('placeholder', _('Select project'))
 
             if initial is None:
-                initial = choices[0][0]
+                initial = self.default_initial(choices)
             self.initial = initial
             if self.futureui:
                 self.setup_widget()   
         else:
             self.enabled = False
+
+    def default_initial(self, choices):
+        return choices[0][0]
 
     def setup_widget(self):
         if len(self.choices) < 7:
@@ -85,7 +88,7 @@ class ProjectFieldMixin(object):
         return value.id if isinstance(value, Project) else value
 
     def clean(self, value):
-        if not self.enabled or value in EMPTY_VALUES or not self.team:
+        if not self.enabled or self.value_is_empty(value) or not self.team:
             return None
         if value == 'none':
             if getattr(self, 'source_teams', None):
@@ -100,8 +103,17 @@ class ProjectFieldMixin(object):
 
         return projects
 
+    def value_is_empty(self, value):
+        if isinstance(value, list):
+            return all(v in EMPTY_VALUES for v in value)
+        else:
+            return value in EMPTY_VALUES
+
 class MultipleProjectField(ProjectFieldMixin, AmaraMultipleChoiceField):
     widget = widgets.AmaraProjectSelectMultiple
+
+    def default_initial(self, choices):
+        return []
 
 class TeamMemberRoleSelect(AmaraChoiceField):
     def __init__(self, *args, **kwargs):

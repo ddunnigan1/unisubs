@@ -4,6 +4,7 @@
 # our django version
 
 import json
+import importlib
 import os
 import sys
 import gettext as gettext_module
@@ -11,7 +12,6 @@ import gettext as gettext_module
 from django import http
 from django.conf import settings
 from django.template import Context, Template
-from django.utils import importlib
 from django.utils.translation import to_locale
 from django.utils.encoding import smart_text
 from django.utils.formats import get_format_modules, get_format

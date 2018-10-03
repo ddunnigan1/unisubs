@@ -31,6 +31,19 @@ services:
       - db
       - redis
 
+  feed-worker:
+    image: amara-app
+    command: manage feedworker
+    environment:
+      DJANGO_SETTINGS_MODULE: dev_settings
+      LANG: en_US.UTF-8
+      JSON_LOGGING:
+    volumes:
+      - .:/opt/apps/amara:z
+    depends_on:
+      - db
+      - redis
+
   scheduler:
     image: amara-app
     command: scheduler

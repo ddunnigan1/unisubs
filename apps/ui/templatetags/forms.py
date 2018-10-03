@@ -116,13 +116,13 @@ def calc_label(field, reverse_required=False):
 
 def label_with_required(label):
     return format_html(
-        '{} <span class="fieldOptional">{}</span>',
-        unicode(label), _('(required)'))
+        u'{} <span class="fieldOptional">{}</span>',
+        unicode(label), _(u'(required)'))
 
 def label_with_optional(label):
     return format_html(
-        '{} <span class="fieldOptional">{}</span>',
-        unicode(label), _('(optional)'))
+        u'{} <span class="fieldOptional">{}</span>',
+        unicode(label), _(u'(optional)'))
 
 @register.inclusion_tag('future/forms/field.html')
 def multi_field(label, *fields, **kwargs):

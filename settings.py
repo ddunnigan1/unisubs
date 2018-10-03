@@ -73,7 +73,6 @@ METADATA_LANGUAGES = (
 
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -138,10 +137,33 @@ PCF_LOGO_URL = "https://s3.amazonaws.com/amara/assets/PCFLogo.png"
 ASSETS_S3_PREFIX = 'assets/'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader'
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            rel('templates'),
+        ],
+        'OPTIONS': {
+            'context_processors': (
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'utils.context_processors.current_site',
+                'utils.context_processors.current_commit',
+                'utils.context_processors.custom',
+                'utils.context_processors.user_languages',
+                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.i18n',
+                'staticmedia.context_processors.staticmedia',
+            ),
+            'loaders': (
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader'
+            ),
+        }
+
+    },
+]
 
 
 MIDDLEWARE_CLASSES = (
@@ -155,6 +177,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'auth.middleware.AmaraAuthenticationMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'openid_consumer.middleware.OpenIDMiddleware',
     'middleware.P3PHeaderMiddleware',
@@ -165,26 +188,6 @@ MIDDLEWARE_CLASSES = (
 HOMEPAGE_VIEW = 'views.home'
 ROOT_URLCONF = 'urls'
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-   rel('templates'),
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.request',
-    'utils.context_processors.current_site',
-    'utils.context_processors.current_commit',
-    'utils.context_processors.custom',
-    'utils.context_processors.user_languages',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.i18n',
-    'staticmedia.context_processors.staticmedia',
-)
-
 INSTALLED_APPS = (
     # this needs to be first, yay for app model loading mess
     'auth',
@@ -193,7 +196,6 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.webdesign',
     # third party apps
     'rest_framework',
     'django_rq',
@@ -395,6 +397,9 @@ AWS_USER_DATA_BUCKET_NAME  = ''
 STATIC_MEDIA_USES_S3 = USE_AMAZON_S3 = False
 STATIC_MEDIA_COMPRESSED = True
 STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET = 's3.staging.amara.org'
+
+# django-storages
+AWS_DEFAULT_ACL = None
 
 AVATAR_MAX_SIZE = 500*1024
 THUMBNAILS_SIZE = (
@@ -767,10 +772,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'null': {
-            'level':'DEBUG',
-            'class':'django.utils.log.NullHandler',
-        },
         'main': log_handler_info(),
     },
     'loggers': {

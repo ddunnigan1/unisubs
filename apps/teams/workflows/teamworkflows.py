@@ -42,7 +42,7 @@ Team workflows are responsible for:
 
 from collections import namedtuple
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
 from django.utils.translation import ungettext

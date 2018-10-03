@@ -22,6 +22,7 @@
   - generalLayout
   - textCenter
   - blockCenter
+  - width100
 
 - - Avatars, Icons, Steps
   - avatars
@@ -32,6 +33,8 @@
   - buttonTags
   - buttonOptions
   - asyncButton
+  - id: split-button
+    title: Split Buttons
 
 - - Forms
   - forms
@@ -73,6 +76,8 @@
   - id: filter-box
     title: Filter Box
   - actionBar
+  - id: content-header
+    title: Content header
   - selectList
   - pagination
   - hangingLink

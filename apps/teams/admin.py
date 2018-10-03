@@ -20,7 +20,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib import messages as django_messages
 from django.contrib.admin.views.main import ChangeList
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from auth.models import CustomUser as User

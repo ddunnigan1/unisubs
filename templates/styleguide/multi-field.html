@@ -1,6 +1,6 @@
 {% extends "styleguide/base.html" %}
 {% load forms %}
-{% block "content" %}
+{% block content %}
 <p>
 Use these to display a series of checkboxes, where each one implies the one
 before.  A common case is permissions, where if you give a permission to one
@@ -19,7 +19,7 @@ role, then you always want to give it to the "higher" roles.
   {% csrf_token %}
   {% multi_field "Animal" form.animal_color form.animal_species help_text="Try yellow dog to see an error" optional=True %}
 
-  {% multi_field _("Role") form.role_admin form.role_manager form.role_any dependent=True required=True %}
+  {% render_field form.role %}
 
   {% multi_field _("Subtitle Visibility") form.subtitles_public form.drafts_public dependent=True %}
 
@@ -30,5 +30,15 @@ role, then you always want to give it to the "higher" roles.
     <button class="button cta" type="submit">Submit</button>
   </div>
 </form>
+
+{% if form.is_bound and form.is_valid %}
+<section>
+  <ul>
+  {% for name, value in form.cleaned_data.items %}
+  <li>{{ name}}: {{ value}}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
 
 {% endblock %}

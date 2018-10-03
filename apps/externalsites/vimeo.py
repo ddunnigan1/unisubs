@@ -19,7 +19,7 @@
 import babelsubs, unilangs
 from google import APIError
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from requests.auth import HTTPBasicAuth
 import base64, requests, logging
 

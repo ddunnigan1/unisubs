@@ -18,7 +18,7 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 import datetime
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 
 from auth.models import CustomUser as User, EmailConfirmation

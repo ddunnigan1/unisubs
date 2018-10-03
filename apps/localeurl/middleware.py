@@ -27,7 +27,7 @@ class LocaleURLMiddleware(object):
     name. For example, a request on 'fr.example.com' would set the language to
     French.
 
-    If you use this middleware the django.core.urlresolvers.reverse function
+    If you use this middleware the django.urls.reverse function
     is be patched to return paths with locale prefix (see models.py).
     """
     def __init__(self):

@@ -1,19 +1,17 @@
-FROM ubuntu:14.04
+FROM ubuntu:18.04
 ARG DEV_INSTALL
 MAINTAINER Amara "http://amara.org"
 ENV DEBIAN_FRONTEND noninteractive
-RUN (echo "deb http://archive.ubuntu.com/ubuntu trusty main universe multiverse" > /etc/apt/sources.list)
-RUN (echo "deb-src http://archive.ubuntu.com/ubuntu trusty main universe multiverse" >> /etc/apt/sources.list)
-RUN (echo "deb http://archive.ubuntu.com/ubuntu trusty-updates main universe multiverse" >> /etc/apt/sources.list)
-RUN (echo "deb-src http://archive.ubuntu.com/ubuntu trusty-updates main universe multiverse" >> /etc/apt/sources.list)
-RUN locale-gen en_US.UTF-8
+RUN (echo "deb http://archive.ubuntu.com/ubuntu bionic main universe multiverse" > /etc/apt/sources.list)
+RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic main universe multiverse" >> /etc/apt/sources.list)
+RUN (echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
+RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN apt-get update
-RUN apt-get -y --force-yes install wget python-dev python-setuptools make gcc libmysqlclient-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto subversion openjdk-6-jre libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass libav-tools libz-dev pkg-config lua5.2 liblua5.2-dev lua-cjson
+RUN apt-get -y install wget python-dev python-setuptools python-pip make gcc libmysqlclient-dev libmemcached-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto icedtea-netx libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass ffmpeg libz-dev tzdata
 ENV APP_DIR /opt/apps/amara
 ENV CLOSURE_PATH /opt/google-closure
 RUN git clone https://github.com/google/closure-library $CLOSURE_PATH
 RUN (cd $CLOSURE_PATH && git checkout adbcc8ef6530ea16bac9f877901fe6b32995c5ff)
-RUN easy_install pip
 # install urllib3[secure] before other packages.  This prevents SSL warnings
 RUN pip install --upgrade urllib3[secure]
 RUN mkdir -p /opt/extras/pictures

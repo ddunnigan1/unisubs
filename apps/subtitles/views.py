@@ -29,7 +29,7 @@ from django.db.models import Count
 from django.conf import settings
 from django.contrib import messages
 from django.template import RequestContext
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _

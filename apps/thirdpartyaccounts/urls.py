@@ -16,15 +16,17 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
-urlpatterns = patterns('thirdpartyaccounts.views',
-    url(r'^facebook_login/(?P<email>[^/]+)/$', 'facebook_login', name='facebook_login'),
-    url(r'^facebook_login_confirm/(?P<email>[^/]+)/$', 'facebook_login', {'confirmed': False}, name='facebook_login_confirm_email'),
-    url(r'^facebook_login_confirm/$', 'facebook_login', {'confirmed': False, 'email': None}, name='facebook_login_confirm'),
-    url(r'^twitter_login/$', 'twitter_login', name='twitter_login'),
-    url(r'^twitter_login_done/$', 'twitter_login_done', name='twitter_login_done'),
-    url(r'^twitter_login_confirm/$', 'twitter_login', {'confirmed': False}, name='twitter_login_confirm'),
-    url(r'^twitter_login_done_confirm/$', 'twitter_login_done', {'confirmed': False}, name='twitter_login_done_confirm'),
-)
+from thirdpartyaccounts import views
+
+urlpatterns = [
+    url(r'^facebook_login/(?P<email>[^/]+)/$', views.facebook_login, name='facebook_login'),
+    url(r'^facebook_login_confirm/(?P<email>[^/]+)/$', views.facebook_login, {'confirmed': False}, name='facebook_login_confirm_email'),
+    url(r'^facebook_login_confirm/$', views.facebook_login, {'confirmed': False, 'email': None}, name='facebook_login_confirm'),
+    url(r'^twitter_login/$', views.twitter_login, name='twitter_login'),
+    url(r'^twitter_login_done/$', views.twitter_login_done, name='twitter_login_done'),
+    url(r'^twitter_login_confirm/$', views.twitter_login, {'confirmed': False}, name='twitter_login_confirm'),
+    url(r'^twitter_login_done_confirm/$', views.twitter_login_done, {'confirmed': False}, name='twitter_login_done_confirm'),
+]
 

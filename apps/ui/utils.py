@@ -27,13 +27,14 @@ from collections import deque
 from urllib import urlencode
 
 from collections import namedtuple
-from django.core.urlresolvers import reverse
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
+from django.urls import reverse
+from django.utils.html import format_html, format_html_join, html_safe, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from ui.templatetags import dropdown
 from utils.text import fmt
 
+@html_safe
 class Link(object):
     def __init__(self, label, view_name, *args, **kwargs):
         self.label = label
@@ -71,6 +72,7 @@ class Link(object):
                 self.label == other.label and
                 self.url == other.url)
 
+@html_safe
 class AjaxLink(Link):
     def __init__(self, label, **query_params):
         # All of our ajax links hit the current page, adding some query
@@ -106,16 +108,113 @@ class CTA(Link):
             css_class += " cta"
         if block:
             css_class += " block"
-        link = link_element.format(self.url, css_class, self.icon, self.label)
+        link = format_html(link_element, self.url, css_class, self.icon,
+                           self.label)
         if len(self.tooltip) > 0:
-            link = tooltip_element.format(self.tooltip, link)
-        return mark_safe(link)
+            link = format_html(tooltip_element, self.tooltip, link)
+        return link
 
     def __eq__(self, other):
         return (isinstance(other, Link) and
                 self.label == other.label and
                 self.icon == other.icon and
                 self.url == other.url)
+
+class SplitCTA(CTA):
+    '''
+    args:
+    menu_id - id of the dropdown menu container. If there are multiple SplitCTA's in a page, each one must have a unique menu_id
+    dropdown_items - an iterable of (label, url) tuples
+    '''
+    def __init__(self, label, view_name, icon=None, block=False,
+                    disabled=False, main_tooltip=None, menu_id='splitCTADropdownMenu',
+                    dropdown_tooltip=None, dropdown_items=[], 
+                    *args, **kwargs):
+        super(SplitCTA, self).__init__(label, icon, view_name, block, disabled, main_tooltip)
+        self.dropdown_tooltip = dropdown_tooltip
+        self.dropdown_items = dropdown_items
+        self.menu_id = menu_id
+
+    def _create_main_button(self):
+        # mark-up variables
+        tooltip_mu = u'<span class="{}" data-toggle="tooltip" data-placement="top" title="{}">{}</span>'
+        cta_mu = u'<a href="{}" class="{}">{}{}</a>'
+        icon_mu = ""
+
+        tooltip_css_class = ""
+        cta_css_class = "button split-button"
+
+        if self.icon:
+            icon_mu = format_html(u'<i class="icon {}"></i>', self.icon)
+
+        if self.disabled:
+            cta_css_class += " disabled"
+        else:
+            cta_css_class += " cta"
+
+        if self.tooltip:
+            if self.block:
+                tooltip_css_class += "width-100"
+
+            # just the cta element
+            cta = format_html(cta_mu, self.url, cta_css_class, icon_mu, self.label)
+
+            # the cta element wrapped in the tooltip span
+            cta = format_html(tooltip_mu, tooltip_css_class, self.tooltip, cta)
+        else:
+            if self.block:
+                cta_css_class += " block"
+            # no need to wrap the cta element in the tooltip span if there's no tooltip
+            cta = format_html(cta_mu, self.url, cta_css_class, icon_mu, self.label)
+
+        return cta
+
+    def _create_dropdown_toggle(self):        
+        tooltip_mu = u'<span data-toggle="tooltip" data-placement="top" title="{}">{}</span>'
+        caret_mu = u'<span class="caret"></span>'
+
+        css_class = "button split-button split-button-dropdown-toggle"
+
+        if self.disabled:
+            css_class += " disabled"
+        else:
+            css_class += " cta"
+
+        dropdown_toggle = (dropdown.dropdown_button(self.menu_id, css_class)
+                           + mark_safe(caret_mu)
+                           + dropdown.end_dropdown_button())
+
+        # wrap the dropdown toggle mark-up around the tooltip mark-up
+        if self.dropdown_tooltip:
+            dropdown_toggle = format_html(tooltip_mu, self.dropdown_tooltip, dropdown_toggle)
+
+        return dropdown_toggle
+
+    def _create_dropdown_menu(self):
+        dropdown_menu = dropdown.dropdown(self.menu_id, css_class='dropdownMenuLeft')
+        dropdown_items = [dropdown.dropdown_item(i[0], i[1], raw_url=True) for i in self.dropdown_items]
+        dropdown_items = mark_safe(''.join(dropdown_items))
+
+        return dropdown_menu + dropdown_items + dropdown.enddropdown()
+
+    def render(self, block=False):
+        container = u'<div class="{}">{}{}{}</div>'
+
+        if self.block:
+            css_class = " split-button-container-full-width"
+        else:
+            css_class = " split-button-container"
+
+        main_cta = self._create_main_button()
+        dropdown_toggle = self._create_dropdown_toggle()
+        dropdown_menu = self._create_dropdown_menu()
+
+        return format_html(container, css_class, main_cta, dropdown_toggle, dropdown_menu)
+
+    def __eq__(self, other):
+        return (super(SplitCTA, self).__eq__(other) and
+                self.dropdown_tooltip == other.dropdown_tooltip and
+                self.dropdown_items == other.dropdown_items)
 
 class Tab(Link):
     def __init__(self, name, label, view_name, *args, **kwargs):
@@ -131,14 +230,15 @@ class Tab(Link):
 class SectionWithCount(list):
     """Section that contains a list of things with a count in the header
     """
-    header_template = _('%(header)s <span class="count">(%(count)s)</span>')
+    header_template = u'{} <span class="count">({})</span>'
     def __init__(self, header_text):
         self.header_text = header_text
 
     def header(self):
-        return mark_safe(fmt(self.header_template, header=self.header_text,
-                             count=len(self)))
+        return format_html(self.header_template, self.header_text,
+                           len(self))
 
+@html_safe
 class ContextMenu(object):
     """Context menu
 
@@ -172,7 +272,7 @@ class ContextMenu(object):
             else:
                 output.append(u'<li>{}<li>'.format(unicode(item)))
         output.append(u'</ul></div>')
-        return mark_safe(u'\n'.join(output))
+        return u'\n'.join(output)
 
 class MenuSeparator(object):
     """Display a line to separate items in a ContextMenu."""
@@ -182,5 +282,5 @@ def request_from_mac(request):
 
 __all__ = [
     'Link', 'AjaxLink', 'CTA', 'Tab', 'SectionWithCount', 'ContextMenu',
-    'MenuSeparator',
+    'MenuSeparator', 'SplitCTA'
 ]

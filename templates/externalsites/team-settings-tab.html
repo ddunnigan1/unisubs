@@ -20,7 +20,7 @@
 	  <a href="{% url "teams:settings_sync_externalsites" slug=team.slug %}">{% trans "Check for syncing issues" %} >> </a>
 	</div>
 	{% endif %}
-        <form id="external-accounts" class="settings" method="POST" action="">
+        <form id="external-accounts" class="settings" method="POST" action="" novalidate>
             {% csrf_token %}
 
             <fieldset class="youtube">

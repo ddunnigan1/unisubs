@@ -23,6 +23,8 @@ def get_terms(query):
 
     If there is a set of " chars, then we will treat the contents as one term
     """
+    if isinstance(query, str):
+        query = query.encode('utf-8')
     terms = []
     pos = 0
     def add_unquoted_term(t):
@@ -43,4 +45,11 @@ def get_terms(query):
             break
         terms.append(query[pos:quote_end])
         pos = quote_end + 1
+    terms = apply_term_filter(terms)
     return [t for t in terms if t]
+
+# regex to remove chars that cause issues in queries
+term_filter = re.compile(r'[<>@]', re.UNICODE)
+
+def apply_term_filter(terms):
+    return [term_filter.sub('', t) for t in terms]

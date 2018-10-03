@@ -155,13 +155,20 @@ class Enum(object):
     def __len__(self):
         return len(self.members)
 
+    def deconstruct(self):
+        args = []
+        kwargs = {
+            'enum_name': self.enum_name,
+            'members': [(m.slug, m.label) for m in self.members]
+        }
+        name = 'utils.enum.Enum'
+        return (name, args, kwargs)
+
 class EnumField(models.PositiveSmallIntegerField):
     """
     Store enum values in a database field.
     """
     # FIXME: merge this code with codefield.CodeField
-
-    __metaclass__ = models.SubfieldBase
 
     def __init__(self, enum=None, **kwargs):
         if enum is None:
@@ -182,26 +189,18 @@ class EnumField(models.PositiveSmallIntegerField):
                 params={'value': value},
             )
 
-    def get_default(self):
-        if self.has_default() and isinstance(self.default, EnumMember):
-            return self.default.number
-        else:
-            return super(EnumField, self).get_default()
-
-    @property
-    def choices(self):
+    def enumfield_get_choices(self):
         return self.enum.choices()
+
+    def enumfield_set_choices(self, choices):
+        if choices:
+            raise AttributeError("Can't set choices for EnumField")
+
+    choices = property(enumfield_get_choices, enumfield_set_choices)
 
     def value_from_object(self, obj):
         value = getattr(obj, self.attname)
         return value.number if isinstance(value, EnumMember) else value
-
-    @property
-    def raw_default(self):
-        if isinstance(self.default, EnumMember):
-            return self.default.number
-        else:
-            return self.default
 
     def db_type(self, connection):
         return 'tinyint UNSIGNED' # 256 values should be enough for our enums
@@ -210,16 +209,21 @@ class EnumField(models.PositiveSmallIntegerField):
         super(EnumField, self).contribute_to_class(cls, name)
         setattr(cls, '{}_choices'.format(name), self.enum.slug_choices)
 
+    def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return None
+        return self.enum.lookup_number(value)
+
     def to_python(self, value):
         if isinstance(value, basestring):
             if value.isdigit():
                 return self.enum.lookup_number(int(value))
             else:
                 return self.enum.lookup_slug(value)
-        elif isinstance(value, (int, long)):
-            return self.enum.lookup_number(value)
-        else:
+        elif isinstance(value, EnumMember) or value is None:
             return value
+        else:
+            raise ValueError("Don't know how to convert {}".format(value))
 
     def get_prep_value(self, value):
         if value is None:
@@ -230,3 +234,10 @@ class EnumField(models.PositiveSmallIntegerField):
             return self.enum.lookup_slug(value).number
         else:
             return value.number
+
+    def deconstruct(self):
+        name, path, args, kwargs = super(EnumField, self).deconstruct()
+        if 'choices' in kwargs:
+            del kwargs['choices']
+        kwargs['enum'] = self.enum
+        return (name, path, args, kwargs)

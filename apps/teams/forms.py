@@ -26,12 +26,12 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError as django_core_ValidationError
 from django.core.files.base import ContentFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.validators import EMPTY_VALUES, validate_email
 from django.db.models import Q
 from django.db import transaction, IntegrityError
 from django.forms.formsets import formset_factory
-from django.forms.util import ErrorDict
+from django.forms.utils import ErrorDict
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -863,7 +863,7 @@ class LegacyRenameableSettingsForm(LegacySettingsForm):
 class GeneralSettingsForm(forms.ModelForm):
     logo = forms.ImageField(
         validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
-        help_text=_('Max 940 x 235'),
+        help_text=_('Max size: 940px x 235px. Over-sized images will be clipped at the center'),
         widget=AmaraClearableFileInput,
         required=False)
     square_logo = forms.ImageField(
@@ -1508,7 +1508,7 @@ class VideoFiltersForm(FiltersForm):
             '-time': '-created',
         }.get(sort or '-time'))
 
-        return qs.select_related('video')
+        return qs
 
 class ManagementVideoFiltersForm(VideoFiltersForm):
     language = NewLanguageField(label=_("Video language"),
@@ -1588,7 +1588,7 @@ class ActivityFiltersForm(FiltersForm):
         if type:
             qs = qs.filter(type__in=type)
         if video:
-            qs = qs.filter(video=Video.objects.search(video))
+            qs = qs.filter(video__in=Video.objects.search(video))
         if subtitle_language:
             qs = qs.filter(language_code__in=subtitle_language)
         if video_language:
@@ -2064,18 +2064,12 @@ class EditMembershipForm(forms.Form):
 
 class ApplicationForm(forms.Form):
     about_you = forms.CharField(widget=forms.Textarea, label="")
-    language1 = LanguageField(
-        choices=get_language_choices(), required=True)
-    language2 = LanguageField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language3 = LanguageField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language4 = LanguageField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language5 = LanguageField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language6 = LanguageField(
-        choices=get_language_choices(with_empty=True), required=False)
+    language1 = NewLanguageField(required=True)
+    language2 = NewLanguageField(required=False)
+    language3 = NewLanguageField(required=False)
+    language4 = NewLanguageField(required=False)
+    language5 = NewLanguageField(required=False)
+    language6 = NewLanguageField(required=False)
 
     def __init__(self, application, *args, **kwargs):
         super(ApplicationForm, self).__init__(*args, **kwargs)
@@ -2119,7 +2113,7 @@ class ApplicationForm(forms.Form):
     def _get_language_list(self):
         languages = []
         for i in xrange(1, 7):
-            value = self.cleaned_data['language{}'.format(i)]
+            value = self.cleaned_data.get('language{}'.format(i))
             if value:
                 languages.append({"language": value, "priority": i})
 

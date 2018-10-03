@@ -20,7 +20,7 @@ from functools import update_wrapper
 import json
 import sys
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template.context import RequestContext
 from django.http import HttpResponse
 from django.core.serializers.json import DjangoJSONEncoder
@@ -53,9 +53,9 @@ def render_to(template):
         def wrapper(request, *args, **kw):
             output = func(request, *args, **kw)
             if isinstance(output, (list, tuple)):
-                return render_to_response(output[1], output[0], RequestContext(request))
+                return render(request, output[1], output[0])
             elif isinstance(output, dict):
-                return render_to_response(template, output, RequestContext(request))
+                return render(request, template, output)
             return output
         return update_wrapper(wrapper, func)
     return renderer
@@ -142,3 +142,11 @@ class CheckResult(object):
     def __nonzero__(self):
         return bool(self.result)
 
+
+def post_or_get_value(request, name, default=None):
+    if name in request.POST:
+        return request.POST[name]
+    elif name in request.GET:
+        return request.GET[name]
+    else:
+        return default

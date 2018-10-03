@@ -21,8 +21,8 @@ from __future__ import absolute_import
 from os import path
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.urls import reverse
+from django.test import TestCase, TransactionTestCase
 
 from teams.models import Team, TeamMember, TeamVideo, Project, EmailInvite
 from videos.models import Video, VideoUrl
@@ -345,7 +345,7 @@ class ViewsTests(TestCase):
             user.save()
         return TeamMember.objects.create(user=user, role=role, team=team)
 
-class EmailInviteViewTest(TestCase):
+class EmailInviteViewTest(TransactionTestCase):
     def setUp(self):
         self.author = UserFactory()
         self.user = UserFactory()
@@ -361,9 +361,16 @@ class EmailInviteViewTest(TestCase):
         self.email_invite.created = self.email_invite.created - datetime.timedelta(days=3, minutes=1)
         self.email_invite.save()
         response = self.client.get(self.email_invite.get_url())
-        self.assertRedirects(response, reverse('teams:email_invite_invalid'))
+        self.assertRedirects(
+            response,
+            reverse('teams:email_invite_invalid'),
+            fetch_redirect_response=False)
 
     def test_invite_has_been_used(self):
         self.email_invite.link_to_account(self.user)
+        self.client.force_login(self.user)
         response = self.client.get(self.email_invite.get_url())
-        self.assertRedirects(response, reverse('teams:email_invite_invalid'))
+        self.assertRedirects(
+            response,
+            reverse('teams:email_invite_invalid'),
+            fetch_redirect_response=False)

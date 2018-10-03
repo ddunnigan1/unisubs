@@ -72,6 +72,11 @@ def setup_test_links(repo_path, testdir):
 def no_tests_specified(args):
     return all(arg.startswith('-') for arg in args[1:])
 
+    @pytest.fixture(autouse=True)
+    def undo_set_debug_to_false(self, db):
+        # pytest-django sets this to False, undo it.
+        settings.DEBUG = True
+
 if __name__ == '__main__':
     startup.startup()
     # The first arg is the test directory to run.  Use that for

@@ -2,6 +2,7 @@ import mimetypes
 import os, re, sys, urllib
 import warnings
 from copy import copy
+from importlib import import_module
 from urlparse import urlparse, urlsplit
 
 from django.conf import settings
@@ -17,7 +18,6 @@ from django.test.utils import ContextList
 from django.utils.encoding import smart_str
 from django.utils.functional import curry
 from django.utils.http import urlencode
-from django.utils.importlib import import_module
 from django.utils.itercompat import is_iterable
 
 try:

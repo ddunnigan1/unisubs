@@ -39,7 +39,7 @@ from django.utils.dateformat import format as date_format
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.forms.forms import NON_FIELD_ERRORS
 
@@ -167,13 +167,13 @@ EXISTS(
         # Terms with less chars are not indexed, so they will never match anything.
         terms = get_terms(query)
         if len(terms) == 1 and len(terms[0]) > 2:
-            return self.filter(index__text__search=query)
+            return self.filter(index__text__search=terms[0])
         else:
             terms = [t for t in get_terms(query) if len(t) > 2]
             if len(terms) > MAX_VIDEO_SEARCH_TERMS:
                 terms = terms[:MAX_VIDEO_SEARCH_TERMS]
-            query = u' '.join(u'+"{}"'.format(t) for t in terms)
-            return self.filter(index__text__search=query)
+            new_query = u' '.join(u'+"{}"'.format(t) for t in terms)
+            return self.filter(index__text__search=new_query)
 
     def add_num_completed_languages(self):
         sql = ("""
@@ -979,6 +979,13 @@ class Video(models.Model):
         return self.primary_audio_language_code or None
 
     @property
+    def readable_language(self):
+        if self.primary_audio_language_code:
+            return translation.get_language_label(self.primary_audio_language_code)
+        else:
+            return None
+
+    @property
     def filename(self):
         """Return a filename-safe version of this video's string representation.
 
@@ -1125,6 +1132,18 @@ class Video(models.Model):
         return [
             l for l in self.all_subtitle_languages() if l.subtitles_complete
         ]
+
+    def complete_or_writelocked_language_codes(self):
+        return [
+            l.language_code for l in self.all_subtitle_languages() if l.subtitles_complete 
+                                                                   or l.is_writelocked
+        ]
+
+    def incomplete_languages_sorted(self):
+        return sorted(self.incomplete_languages(), key=lambda l: l.language_code)
+    
+    def complete_languages_sorted(self):
+        return sorted(self.complete_languages(), key=lambda l: l.language_code)
 
     def incomplete_languages_with_public_versions(self):
         self.prefetch_languages(with_public_tips=True)
@@ -1467,7 +1486,7 @@ class VideoMetadata(models.Model):
         never allow it to overwrite a key with a different name.
 
         """
-        field = VideoMetadata._meta.get_field_by_name('key')[0]
+        field = VideoMetadata._meta.get_field('key')
 
         choices = field.choices
         for x in choices:

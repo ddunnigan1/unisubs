@@ -23,7 +23,7 @@ from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.core.mail import EmailMessage, send_mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.validators import EMPTY_VALUES
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -36,9 +36,11 @@ from django.utils.translation import ugettext
 from videos.feed_parser import FeedParser
 from videos.models import Video, VideoFeed, VideoUrl
 from videos.permissions import can_user_edit_video_urls
-from teams.permissions import can_create_and_edit_subtitles
+from teams.permissions import can_create_and_edit_subtitles, can_edit_videos
+from teams.models import Team
 from videos.tasks import import_videos_from_feed
 from videos.types import video_type_registrar, VideoTypeError
+from ui.forms import AmaraChoiceField
 from utils.forms import AjaxForm, EmailListField, UsernameListField, StripRegexField, FeedURLField
 from utils import http
 from utils.text import fmt
@@ -412,6 +414,30 @@ class CreateSubtitlesForm(CreateSubtitlesFormBase):
 
     def get_video(self):
         return self.video
+
+class TeamCreateSubtitlesForm(CreateSubtitlesForm):
+
+    subtitle_language_code = AmaraChoiceField(label=_('Subtitle into:'))
+    primary_audio_language_code = AmaraChoiceField(
+                label=_('Video language'))
+
+    def __init__(self, request, video, team_slug, data=None):
+        super(TeamCreateSubtitlesForm, self).__init__(request, video, data=data)
+        team = Team.objects.get(slug=team_slug)
+
+        if self.needs_primary_audio_language:
+            if can_edit_videos(team, request.user):
+                self.fields['primary_audio_language_code'].help_text = ''
+            else:
+                self.fields['primary_audio_language_code'].help_text = 'Please double check the video language. Only team admins and above can change the video language once it is set.'
+
+        self.team_url_arg = '?team={}'.format(team_slug)
+        self.action_url = reverse('videos:create_subtitles', kwargs={
+                'video_id': self.video.video_id
+            }) + self.team_url_arg
+
+    def editor_url(self):
+        return super(TeamCreateSubtitlesForm, self).editor_url() + self.team_url_arg
 
 class MultiVideoCreateSubtitlesForm(CreateSubtitlesFormBase):
     """Form to create subtitles for pages that display multiple videos.

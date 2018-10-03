@@ -30,7 +30,7 @@ def render_comment_form(context, obj):
     form = CommentForm(obj, auto_id='id_comment_form_%s')
     return {
         'form': form,
-        'is_authnticated': context['user'].is_authenticated(),
+        'is_authenticated': context['user'].is_authenticated(),
         'next_page': context['request'].get_full_path()
     }
 

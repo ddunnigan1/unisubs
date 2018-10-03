@@ -16,11 +16,12 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
-urlpatterns = patterns(
-    'ui.views',
-    url(r'^task-progress/(?P<job_id>[0-9a-f-]+)/$', 'task_progress',
+from ui import views
+
+urlpatterns = [
+    url(r'^task-progress/(?P<job_id>[0-9a-f-]+)/$', views.task_progress,
         name='task-progress'),
-    url(r'^language-select/$', 'language_select', name='language-select'),
-)
+    url(r'^language-select/$', views.language_select, name='language-select'),
+]

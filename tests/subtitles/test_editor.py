@@ -21,8 +21,8 @@ import datetime
 import json
 
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import  reverse
 from django.test import TestCase
+from django.urls import reverse
 
 from auth.models import CustomUser
 from subtitles import pipeline

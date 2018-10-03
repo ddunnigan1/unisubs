@@ -36,13 +36,12 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from videos.templatetags.paginator import paginate
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import IntegrityError
 from django.db.models import Sum
 from django.http import (HttpResponse, Http404, HttpResponseRedirect,
                          HttpResponseForbidden)
-from django.shortcuts import (render, render_to_response, get_object_or_404,
-                              redirect)
+from django.shortcuts import (render, get_object_or_404, redirect)
 from django.template import RequestContext
 from django.utils.encoding import force_unicode
 from django.utils.http import urlquote_plus
@@ -172,24 +171,20 @@ class LanguageList(object):
         return len(self.items)
 
 def index(request):
-    return render_to_response('index.html', {},
-                              context_instance=RequestContext(request))
+    return render(request, 'index.html', {})
 
 def watch_page(request):
     context = {
         'featured_videos': Video.objects.featured()[:VIDEO_IN_ROW],
         'latest_videos': Video.objects.latest()[:VIDEO_IN_ROW*3],
     }
-    return render_to_response('videos/watch.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/watch.html', context)
 
 def featured_videos(request):
-    return render_to_response('videos/featured_videos.html', {},
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/featured_videos.html', {})
 
 def latest_videos(request):
-    return render_to_response('videos/latest_videos.html', {},
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/latest_videos.html', {})
 
 @login_required
 def create(request):
@@ -215,8 +210,7 @@ def create(request):
         if video_form.created:
             messages.info(request, message=_(u'''Existing subtitles will be imported in a few minutes.'''))
         return redirect(video.get_absolute_url())
-    return render_to_response('videos/create.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/create.html', context)
 
 create.csrf_exempt = True
 
@@ -668,8 +662,7 @@ def diffing(request, first_version, second_pk):
         'video_url': video.get_video_url(),
     }
 
-    return render_to_response('videos/diffing.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/diffing.html', context)
 
 @login_required
 def stop_notification(request, video_id):
@@ -691,8 +684,7 @@ def stop_notification(request, video_id):
             logout(request)
     else:
         context['error'] = u'Incorrect secret hash'
-    return render_to_response('videos/stop_notification.html', context,
-                              context_instance=RequestContext(request))
+    return render(request, 'videos/stop_notification.html', context)
 
 @login_required
 @require_POST
@@ -812,12 +804,12 @@ def video_debug(request, video_id):
 
     is_youtube = video.videourl_set.filter(type=VIDEO_TYPE_YOUTUBE).count() != 0
 
-    return render_to_response("videos/video_debug.html", {
+    return render(request, "videos/video_debug.html", {
             'video': video,
             'is_youtube': is_youtube,
             'tasks': tasks,
             "cache": cache
-    }, context_instance=RequestContext(request))
+    })
 
 def reset_metadata(request, video_id):
     video = get_object_or_404(Video, video_id=video_id)
@@ -842,8 +834,7 @@ def set_original_language(request, video_id):
             _(u'The language for %(video)s has been changed'),
             video=video))
         return HttpResponseRedirect(reverse("videos:set_original_language", args=(video_id,)))
-    return render_to_response("videos/set-original-language.html", {
+    return render(request, "videos/set-original-language.html", {
         "video": video,
         'form': form
-    }, context_instance=RequestContext(request)
-    )
+    })
