@@ -197,6 +197,6 @@ def handler500(request):
     ensure_user(request)
     return render(request, '500.html', status=500)
 
-def handler403(request):
+def handler403(request, exception):
     ensure_user(request)
     return render(request, '403.html', status=403)

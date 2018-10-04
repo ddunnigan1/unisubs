@@ -36,7 +36,7 @@ from teams.workflows import TeamWorkflow
 from ui import CTA, SplitCTA, Link
 from utils.memoize import memoize
 from utils.breadcrumbs import BreadCrumb
-from utils.chunkedqs import chunkedqs
+from utils.chunkedqs import chunkedqs, batch_qs
 from utils.pagination import AmaraPaginatorFuture
 from utils.translation import get_language_label
 from .subtitleworkflows import TeamVideoWorkflow
@@ -173,15 +173,18 @@ def get_dashboard_videos(team, user, main_project):
     if main_project:
         qs = qs.filter(teamvideo__project=main_project)
 
-    for video in chunkedqs(qs, MAX_DASHBOARD_VIDEOS_TO_CHECK * 2):
-        cta_languages = [l for l in user_languages if l not in video.complete_or_writelocked_language_codes()]
+    for batch in batch_qs(qs, MAX_DASHBOARD_VIDEOS_TO_CHECK * 2):
+        for video in batch:
+            cta_languages = [l for l in user_languages if l not in video.complete_or_writelocked_language_codes()]
 
-        if (cta_languages):
-            available_videos.append(SimpleDashboardVideoView(video, team, cta_languages))
-            added_videos += 1
-        '''
-        Stop looking for videos to display in the dashboard once we reach the maximum
-        '''        
+            if (cta_languages):
+                available_videos.append(SimpleDashboardVideoView(video, team, cta_languages))
+                added_videos += 1
+            '''
+            Stop looking for videos to display in the dashboard once we reach the maximum
+            '''
+            if added_videos == MAX_DASHBOARD_VIDEOS_TO_CHECK:
+                break
         if added_videos == MAX_DASHBOARD_VIDEOS_TO_CHECK:
             break
 
