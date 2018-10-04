@@ -5,7 +5,7 @@
         <h3 ng-show="translating()"><a href="#" ng-click="changeStage('typing')" ng-class="stageLinkClass('typing')">{% trans "Translate" %}</a></h3>
         <p ng-show="!translating()">{% trans "Is all the content subtitled?" %}</p>
         <p ng-show="translating()">{% trans "Is all the content translated?" %}</p>
-	{% include "editor/workflow-errors-typing.html" %}
+	{% include "./workflow-errors-typing.html" %}
         <button title="{% trans 'Be sure you have no blank lines' %}" ng-class="{disabled:!workflow.canCompleteStage('typing')}"
             ng-click="workflow.canCompleteStage('typing') && workflow.completeStage('typing')">
             {% trans "Yes, start syncing" %}
@@ -30,7 +30,7 @@
         <p>{% trans "Watch the video again and verify that the subtitles are complete and correct." %}<br>
         <a class="edit-metadata" href="#" ng-click="onEditTitleClicked($event)">{% trans "Edit title and description." %}</a>
         </p>
-	{% include "editor/workflow-errors-review.html" %}
+	{% include "./workflow-errors-review.html" %}
         <button ng-repeat="action in actions" ng-class="{'disabled':!action.canPerform()}" class="[[ action.class ]]" ng-click="action.canPerform() && action.perform()"
 	 title="[[ action.tooltip() ]]">
             [[ action.label ]]
