@@ -177,17 +177,20 @@ def unlink_external_sync_accounts(owner):
 
 @job
 def remove_credit_to_video_url(video_url, access_token):
-    video_id = video_url.videoid
-    current_description = google.get_video_info(video_id).description
+    try:
+        video_id = video_url.videoid
+        current_description = google.get_video_info(video_id).description
 
-    new_description = current_description.replace(credit.YOUTUBE_AMARA_CREDIT_TEXT + "\n\n", '')
+        new_description = current_description.replace(credit.YOUTUBE_AMARA_CREDIT_TEXT + "\n\n", '')
 
-    protocol = getattr(settings, 'DEFAULT_PROTOCOL')
-    domain = (settings.HOSTNAME).replace("www.",'')
-    empty_short_link = u"{0}://{1}".format(unicode(protocol),
-                                              unicode(domain))
-    # r'^v/\w+/$' is the regex for the video shortlink path
-    shortlink_regex = re.escape(empty_short_link) + r'\/v\/\w+\/'
-    new_description = re.sub(shortlink_regex, '', new_description)
+        protocol = getattr(settings, 'DEFAULT_PROTOCOL')
+        domain = (settings.HOSTNAME).replace("www.",'')
+        empty_short_link = u"{0}://{1}".format(unicode(protocol),
+                                                  unicode(domain))
+        # r'^v/\w+/$' is the regex for the video shortlink path
+        shortlink_regex = re.escape(empty_short_link) + r'\/v\/\w+\/'
+        new_description = re.sub(shortlink_regex, '', new_description)
 
-    google.update_video_description(video_id, access_token, new_description)
+        google.update_video_description(video_id, access_token, new_description)
+    except google.APIError as e:
+        logger.error("Unable to remove credit from video_url id {}: {}".format(video_id, e))
