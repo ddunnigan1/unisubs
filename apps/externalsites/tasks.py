@@ -175,7 +175,7 @@ def unlink_external_sync_accounts(owner):
     YouTubeAccount.objects.for_owner(owner).delete()
     VimeoSyncAccount.objects.for_owner(owner).delete()
 
-@task
+@job
 def remove_credit_to_video_url(video_url, access_token):
     video_id = video_url.videoid
     current_description = google.get_video_info(video_id).description
