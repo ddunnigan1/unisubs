@@ -30,12 +30,12 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import password_reset as contrib_password_reset
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms import ValidationError
-from django.forms.util import ErrorList
+from django.forms.utils import ErrorList
 from django.http import (HttpResponseRedirect, HttpResponseForbidden,
                          HttpResponse, HttpResponseBadRequest)
-from django.shortcuts import render, render_to_response, redirect, resolve_url
+from django.shortcuts import render, redirect, resolve_url
 from django.template import RequestContext
 from django.template.response import TemplateResponse
 from django.utils.encoding import force_text
@@ -55,6 +55,7 @@ from auth.providers import get_authentication_provider
 from ipware.ip import get_real_ip, get_ip
 from thirdpartyaccounts.views import facebook_login, twitter_login
 from externalsites.views import google_login
+from utils import post_or_get_value
 from utils.http import get_url_host
 from utils.translation import get_user_languages_from_cookie
 
@@ -64,7 +65,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def login(request):
-    redirect_to = request.REQUEST.get(REDIRECT_FIELD_NAME, '')
+    redirect_to = post_or_get_value(request, REDIRECT_FIELD_NAME, '')
     if login_form_needs_captcha(request):
         form = SecureAuthenticationForm(label_suffix="")
     else:
@@ -86,7 +87,7 @@ def logout(request):
     return response
 
 def confirm_create_user(request, account_type, email):
-    redirect_to = request.REQUEST.get(REDIRECT_FIELD_NAME, '')
+    redirect_to = post_or_get_value(request, REDIRECT_FIELD_NAME, '')
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
@@ -152,8 +153,7 @@ def create_user(request):
 @login_required
 def delete_user(request):
     if not request.user.has_valid_password():
-        return render_to_response('auth/delete_user.html', {
-        }, context_instance=RequestContext(request))
+        return render(request, 'auth/delete_user.html', {})
     if request.method == 'POST':
         form = DeleteUserForm(request.POST)
         if form.is_valid():
@@ -174,9 +174,9 @@ def delete_user(request):
                  errors.append(_(u"Incorrect Password"))
     else:
         form = DeleteUserForm()
-    return render_to_response('auth/delete_user.html', {
+    return render(request, 'auth/delete_user.html', {
         'form': form
-    }, context_instance=RequestContext(request))
+    })
 
 def cache_key(request):
     ip = get_real_ip(request)
@@ -315,8 +315,10 @@ def password_reset_complete(request,
     if extra_context is not None:
         context.update(extra_context)
     logout(request)
-    return TemplateResponse(request, template_name, context,
-                            current_app=current_app)
+    if current_app is not None:
+        request.current_app = current_app
+
+    return TemplateResponse(request, template_name, context)
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -330,9 +332,9 @@ def login_trap(request):
             return redirect('/')
     else:
         form = ChooseUserForm()
-    return render_to_response('auth/login_trap.html', {
+    return render(request, 'auth/login_trap.html', {
         'form': form
-    }, context_instance=RequestContext(request))
+    })
 
 
 # Helpers
@@ -357,8 +359,7 @@ def render_login(request, user_creation_form, login_form, redirect_to, email_for
             context['ted_auth'] = get_authentication_provider('ted')
         if confirm_type == 'facebook':
             context['submit_facebook'] = "submit-proceed-to-create-facebook"
-    return render_to_response(
-        template, context, context_instance=RequestContext(request))
+    return render(request, template, context)
 
 def make_redirect_to(request, default=''):
     """Get the URL to redirect to after logging a user in.
@@ -366,7 +367,7 @@ def make_redirect_to(request, default=''):
     This method has a simply check against open redirects to prevent attackers
     from putting their sites into the next GET param (see 1253)
     """
-    redirect_to = request.REQUEST.get(REDIRECT_FIELD_NAME, default)
+    redirect_to = post_or_get_value(request, REDIRECT_FIELD_NAME, default)
     if not redirect_to or '//' in redirect_to:
         return '/'
     else:

@@ -37,7 +37,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.core.signing import BadSignature
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.http import (Http404, HttpResponse, HttpResponseRedirect,
@@ -49,8 +49,9 @@ from . import views as old_views
 from . import forms
 from . import permissions
 from . import signals
+from . import stats
 from . import tasks
-from .behaviors import get_main_project
+from .behaviors import get_main_project, get_team_login_url
 from .bulk_actions import add_videos_from_csv
 from .exceptions import ApplicationInvalidException
 from .models import (Invite, Setting, Team, Project, TeamVideo,
@@ -61,6 +62,7 @@ from auth.models import CustomUser as User
 from auth.forms import CustomUserCreationForm
 from messages import tasks as messages_tasks
 from subtitles.models import SubtitleLanguage
+from teams.models import Project
 from teams.workflows import TeamWorkflow
 from ui import (
     AJAXResponseRenderer, ManagementFormList, render_management_form_submit,
@@ -81,6 +83,12 @@ ACTIONS_PER_PAGE = 20
 VIDEOS_PER_PAGE = 12
 VIDEOS_PER_PAGE_MANAGEMENT = 20
 MEMBERS_PER_PAGE = 10
+
+'''
+Maximum number of videos in the welcome page (non-member team landing page)
+we set this to 8 videos since we do not show the "+N videos" card in the welcome page
+'''
+WELCOME_MAX_NEWEST_VIDEOS = 8
 
 def team_view(view_func):
     @functools.wraps(view_func)
@@ -225,7 +233,6 @@ def members(request, team):
         'show_invite_link': permissions.can_invite(team, request.user),
         'show_add_link': permissions.can_add_members(team, request.user),
         'show_application_link': show_application_link,
-        'team_nav': 'member_directory',
     }
 
     if form_name and is_team_admin:
@@ -240,6 +247,39 @@ def members(request, team):
         )
         return response_renderer.render()
 
+    return render(request, 'future/teams/members/members.html', context)
+
+# implementaion of members() view for public consumption 
+# supposed to be used in the non-member team landing page 
+def members_public(request, slug):
+    try:
+        team = Team.objects.get(slug=slug)
+    except Team.DoesNotExist:
+        raise Http404
+    # do not show the member list for private teams
+    if team.team_private():
+        raise Http404
+
+    # TODO there must be a better way to do this 
+    # (e.g. accessing the undecorated members() function)
+
+    filters_form = forms.MemberFiltersForm(request.GET)
+    members = filters_form.update_qs(
+        team.members.prefetch_related('user__userlanguage_set',
+                          'projects_managed',
+                          'languages_managed'))
+    paginator = AmaraPaginatorFuture(members, MEMBERS_PER_PAGE)
+    page = paginator.get_page(request)
+    next_page, prev_page = paginator.make_next_previous_page_links(page, request)
+    context = {
+        'team': team,
+        'paginator': paginator,
+        'page': page,
+        'next': next_page,
+        'previous': prev_page,
+        'filters_form': filters_form,
+        'team_nav': 'member_directory',
+    }
     return render(request, 'future/teams/members/members.html', context)
 
 def manage_members_form(request, team, form_name, members, page):
@@ -534,35 +574,88 @@ def member_profile(request, team, username):
 @team_view
 def add_members(request, team):
     summary = None
+    errors = []
+    successes = []
     if not permissions.can_add_members(team, request.user):
         return HttpResponseForbidden(_(u'You cannot invite people to this team.'))
-    if request.POST:
+    if request.method == "POST":
         form = forms.AddMembersForm(team, request.user, request.POST)
         if form.is_valid():
             summary = form.save()
+            if not team.is_old_style():
+                if summary['added']:
+                    msg = ungettext(u'{} member added to the team!',
+                                    u'{} members added to the team!',
+                                    summary['added'])
+                    successes.append(msg.format(summary['added']))
+                if summary['unknown']:
+                    msg = ungettext(u'The following user does not exist: {}',
+                                    u'The following users do not exist: {}',
+                                    len(summary['unknown']))
+                    errors.append(msg.format(", ".join(summary['unknown'])))
+                if summary['already']:
+                    msg = ungettext(u'The following is already a member: {}',
+                                    u'The following are already members: {}',
+                                    len(summary['already']))
+                    errors.append(msg.format(", ".join(summary['already'])))
 
-    form = forms.AddMembersForm(team, request.user)
+                # if every username was succesfully added, close the modal and refresh
+                # the member directory
+                if (summary['added'] and
+                    not summary['unknown'] and
+                    not summary['already']):
+                    success_msg = ungettext(u'{} member added to the team!',
+                                            u'{} members added to the team!',
+                                            summary['added'])
+                    messages.success(request, success_msg.format(summary['added']))
+                    response_renderer = AJAXResponseRenderer(request)
+                    response_renderer.reload_page()
+                    return response_renderer.render()
+    else:
+        form = forms.AddMembersForm(team, request.user)
 
     if team.is_old_style():
         template_name = 'teams/add_members.html'
-    else:
-        template_name = 'new-teams/add_members.html'
 
-    return render(request, template_name,  {
-        'team': team,
-        'form': form,
-        'summary': summary,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Members'), 'teams:members', team.slug),
-            BreadCrumb(_('Invite')),
-        ],
-    })
+        return render(request, template_name,  {
+            'team': team,
+            'form': form,
+            'summary': summary,
+            'breadcrumbs': [
+                BreadCrumb(team, 'teams:dashboard', team.slug),
+                BreadCrumb(_('Members'), 'teams:members', team.slug),
+                BreadCrumb(_('Invite')),
+            ],
+        })
+    else:
+        template_name = 'future/teams/members/forms/invite_modal.html'
+
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.show_modal(template_name, 
+            { 'team': team, 
+              'form': forms.InviteForm(team, request.user), 
+              'form_add_member': form,
+              'username_tab_non_field_errors': None,
+              'email_tab_non_field_errors': None,
+              'add_tab_non_field_errors': errors,
+              'add_tab_non_field_successes': successes, 
+              'team_nav': 'member_directory',
+              'show_username_invite_link': permissions.can_invite(team, request.user),
+              'show_add_link': permissions.can_add_members(team, request.user),
+              'show_email_invite_link': permissions.can_send_email_invite(team, request.user),
+              'modal_tab': 'add',
+            })
+        return response_renderer.render()    
 
 @team_view
 def invite(request, team):
-    if not permissions.can_invite(team, request.user):
+    if not permissions.can_invite(team, request.user) and not permissions.can_add_members(team, request.user):
         return HttpResponseForbidden(_(u'You cannot invite people to this team.'))
+
+    form_add_member = None
+    if permissions.can_add_members(team, request.user):
+        form_add_member = forms.AddMembersForm(team, request.user)
+
     if request.POST:
         form = forms.InviteForm(team, request.user, request.POST)
         if form.is_valid():
@@ -571,37 +664,73 @@ def invite(request, team):
             # sending invites twice for the same user, and that borks
             # the naive signal for only created invitations
             form.save()
-            success_msg = []
-            if form.cleaned_data['username']:
-                success_msg.append(u'{} has been invited to the team.'.format(form.cleaned_data['username']))
-            if form.cleaned_data['email']:
-                success_msg.append(u'{} has been sent an email invite.'.format(form.cleaned_data['email']))
-            messages.success(request, _("<br/>".join(success_msg)))
-            return HttpResponseRedirect(reverse('teams:members',
-                                                args=[team.slug]))
+
+            if form.emails:
+                emails =  "".join(["{}<br>".format(e) for e in form.emails])
+                messages.success(request, _(u'An invite has been sent to the following:<br>{}').format(emails))
+            if form.usernames:
+                usernames =  "".join(["{}<br>".format(e) for e in form.usernames])
+                messages.success(request, _(u'An invite has been sent to the following:<br>{}').format(usernames))
+            if team.is_old_style() and form.cleaned_data['username']:
+                messages.success(request, _(u'An invite has been sent to {}').format(form.cleaned_data['username']))
+
+            if team.is_old_style():
+                return HttpResponseRedirect(reverse('teams:members',
+                                                    args=[team.slug]))
+            else:
+                response_renderer = AJAXResponseRenderer(request)
+                response_renderer.reload_page()
+                return response_renderer.render()
     else:
         form = forms.InviteForm(team, request.user)
 
     if team.is_old_style():
         template_name = 'teams/invite_members.html'
-    else:
-        template_name = 'new-teams/invite.html'
-        # template_name = 'future/teams/members/invite.html'
-        '''
-        The future UI invite member page still need works
-        1. Make autocomplete work with the new field
-        2. The text-box does not render properly
-        '''
 
-    return render(request, template_name,  {
-        'team': team,
-        'form': form,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Members'), 'teams:members', team.slug),
-            BreadCrumb(_('Invite')),
-        ],
-    })
+        return render(request, template_name,  {
+            'team': team,
+            'form': form,
+            'breadcrumbs': [
+                BreadCrumb(team, 'teams:dashboard', team.slug),
+                BreadCrumb(_('Members'), 'teams:members', team.slug),
+                BreadCrumb(_('Invite')),
+            ],
+            'team_nav': 'member_directory',
+        })
+    else:
+        template_name = 'future/teams/members/forms/invite_modal.html'
+
+        # show the Add members form by default for staff
+        if request.user.is_staff and not request.POST.get('modalTab', None):
+            modal_tab = 'add'
+        else:
+            modal_tab = request.POST.get('modalTab', 'username')
+
+        # for separating the errors being rendered in the modal tabs
+        username_tab_non_field_errors = None
+        email_tab_non_field_errors = None
+        if form.non_field_errors:
+            if modal_tab == 'username':
+                username_tab_non_field_errors = form.non_field_errors
+            elif modal_tab == 'email':
+                email_tab_non_field_errors = form.non_field_errors
+
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.show_modal(template_name, 
+            { 'team': team, 
+              'form': form, 
+              'form_add_member': form_add_member,
+              'username_tab_non_field_errors': username_tab_non_field_errors,
+              'email_tab_non_field_errors': email_tab_non_field_errors,
+              'add_tab_non_field_errors': None,
+              'add_tab_non_field_successes': None,
+              'team_nav': 'member_directory',
+              'show_username_invite_link': permissions.can_invite(team, request.user),
+              'show_add_link': permissions.can_add_members(team, request.user),
+              'show_email_invite_link': permissions.can_send_email_invite(team, request.user),
+              'modal_tab': modal_tab,
+            })
+        return response_renderer.render()
 
 def email_invite(request, signed_pk):
     try:
@@ -712,7 +841,7 @@ def application_form(request, team):
             return redirect(team)
     else:
         form = forms.ApplicationForm(application)
-    return render(request, "new-teams/application.html", {
+    return render(request, "future/teams/applications/join.html", {
         'team': team,
         'form': form,
     })
@@ -736,45 +865,27 @@ def admin_list(request, team):
                    .select_related('user'))
     })
 
+@with_old_view(old_views.activity)
 @team_view
 def activity(request, team):
     filters_form = forms.ActivityFiltersForm(team, request.GET)
-    paginator = AmaraPaginator(filters_form.get_queryset(), ACTIONS_PER_PAGE)
-    page = paginator.get_page(request)
-
-    action_choices = ActivityRecord.type_choices()
-
-
+    paginator = AmaraPaginatorFuture(filters_form.get_queryset(),
+                                     ACTIONS_PER_PAGE)
     context = {
-        'paginator': paginator,
-        'page': page,
         'filters_form': filters_form,
-        'filtered': filters_form.is_bound,
         'team': team,
-        'tab': 'activity',
         'user': request.user,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Activity')),
-        ],
+        'team_nav': 'activity',
+        'tab': 'stream',
     }
-    if page.has_next():
-        next_page_query = request.GET.copy()
-        next_page_query['page'] = page.next_page_number()
-        context['next_page_query'] = next_page_query.urlencode()
-    # tells the template to use get_old_message instead
-    context['use_old_messages'] = True
-    if team.is_old_style():
-        template_dir = 'teams/'
+    context.update(paginator.get_context(request))
+    if request.is_ajax():
+        renderer = AJAXResponseRenderer(request)
+        renderer.replace('#activity-table',
+                         'future/teams/activity/table.html', context)
+        return renderer.render()
     else:
-        template_dir = 'new-teams/'
-
-    if not request.is_ajax():
-        return render(request, template_dir + 'activity.html', context)
-    else:
-        # for ajax requests we only want to return the activity list, since
-        # that's all that the JS code needs.
-        return render(request, template_dir + '_activity-list.html', context)
+        return render(request, 'future/teams/activity/stream.html', context)
 
 @team_view
 def statistics(request, team, tab):
@@ -818,9 +929,15 @@ def dashboard(request, slug):
 
 def welcome(request, team):
     if team.videos_public():
-        videos = team.videos.order_by('-id')[:2]
+        videos = team.videos.order_by('-id')
+        videos_count = videos.count()
+        projects = Project.objects.for_team(team)
+        newest_videos = videos[:WELCOME_MAX_NEWEST_VIDEOS]
     else:
         videos = None
+        videos_count = 0
+        projects = None
+        newest_videos = None
 
     if Application.objects.open(team, request.user):
         messages.info(request,
@@ -828,13 +945,18 @@ def welcome(request, team):
                         u"You will be notified of the team "
                         "administrator's response"))
 
-    return render(request, 'new-teams/welcome.html', {
+    return render(request, 'future/teams/welcome.html', {
         'team': team,
         'join_mode': team.get_join_mode(request.user),
+        'login_base_url': get_team_login_url(team),
         'team_messages': team.get_messages([
             'pagetext_welcome_heading',
         ]),
-        'videos': videos,
+        'videos': newest_videos,
+        'videos_count': videos_count,
+        'members_count': team.members.count(),
+        'projects': projects,
+        'is_welcome_page': True, # used for adjusting the URL targets of the nav links in the non-member team landing page
     })
 
 @team_view
@@ -1302,6 +1424,40 @@ def ajax_member_search(request, team):
     return HttpResponse(json.dumps(data), 'application/json')
 
 @team_view
+def ajax_inviteable_users_search(request, team):
+    query = request.GET.get('q', '')
+    qs = team.search_invitable_users(query)
+    data = { 'results': [ user.get_select2_format() for user in qs[:8] ] }
+    return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
+def ajax_inviteable_users_multiple_search(request, team):
+    usernames = request.GET.getlist('usernames[]', [])
+    unknown = []
+    invited_already = []
+    member_already = []
+    invitable = []
+
+    for username in usernames:
+        try:
+            user = User.objects.get(username=username)
+            if team.is_member(user):
+                member_already.append(username)
+            elif Invite.objects.filter(user=user, team=team, approved=None).exists():
+                invited_already.append(username)
+            else:
+                invitable.append(user.get_select2_format())
+        except User.DoesNotExist:
+            unknown.append(username)
+
+    data = { 'unknown': unknown,
+             'invited_already': invited_already,
+             'member_already': member_already,
+             'invitable': invitable }
+
+    return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
 def ajax_video_search(request, team):
     query = request.GET.get('q', '')
     qs = Video.objects.search(query).filter(teamvideo__team=team)[:8]
@@ -1324,3 +1480,10 @@ def ajax_video_search(request, team):
     }
 
     return HttpResponse(json.dumps(data), 'application/json')
+
+@team_view
+def debug_stats(request, team):
+    return render(request, "future/teams/debug-stats.html", {
+        'team': team,
+        'stats': stats.get_stats(team),
+    })

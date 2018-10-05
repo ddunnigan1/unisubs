@@ -18,11 +18,12 @@
 
 import json
 import logging
-from requests.auth import HTTPBasicAuth
 
-from celery.task import task
-from notifications.models import TeamNotificationSettings, TeamNotification
+from requests.auth import HTTPBasicAuth
 import requests
+
+from notifications.models import TeamNotificationSettings, TeamNotification
+from utils.taskqueue import job
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class NotificationHandlerBase(object):
                           subtitles_language_code, status, extra):
         pass
 
-@task
+@job
 def do_http_post(team_id, url, data, headers, auth_username, auth_password):
     """Handle the HTTP POST for a notifaction
 

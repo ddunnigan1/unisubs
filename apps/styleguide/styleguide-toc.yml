@@ -1,0 +1,87 @@
+# Table of contents for our style guide
+#
+# This file is formatted as a YAML list.  Each item is one of the following:
+#  - Reference to a style guide section
+#  - Nested list containing a header, followed by more items
+
+- - Global
+  - palette
+  - typography
+  - lists
+  - alerts
+  - announcements
+  - progressbars
+  - indicators
+  - tabs
+  - id: tables
+    title: Tables
+  - id: dropdown-menus
+    title: Dropdown menus
+
+- - Layout
+  - generalLayout
+  - textCenter
+  - blockCenter
+  - width100
+
+- - Avatars, Icons, Steps
+  - avatars
+  - icons
+  - stepList
+
+- - Buttons
+  - buttonTags
+  - buttonOptions
+  - asyncButton
+  - id: split-button
+    title: Split Buttons
+
+- - Forms
+  - forms
+  - fields
+  - checkboxes
+  - id: switches
+    title: Switches
+  - id: multi-field
+    title: multiField
+  - fieldsets
+  - id: settings-fieldsets
+    title: Settings page forms
+  - fieldErrors
+  - fileUpload
+  - id: image-upload
+    title: Image Uploads
+  - compoundField
+  - buttonField
+  - searchbar
+  - selects
+
+- - Modals / Dialogs
+  - id: modals
+    title: Modal dialogs
+  - id: language-switcher
+    title: Language Switcher
+
+- - Utility Classes
+  - thumbWrapper
+
+- - Elements
+  - videoCards
+  - videoSubtitlesList
+  - filterList
+  - id: listview
+    title: List View
+  - id: check-all
+    title: Check All
+  - id: filter-box
+    title: Filter Box
+  - actionBar
+  - id: content-header
+    title: Content header
+  - selectList
+  - pagination
+  - hangingLink
+  - constrainContent
+  - assignmentHistoryTable
+  - zeroState
+

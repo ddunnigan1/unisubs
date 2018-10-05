@@ -1,8 +1,9 @@
 API Documentation
 ======================
 
-Amara provides a REST API to interactive with the site.  Please contact us if
-you’d like to use the Amara API for commercial purposes.
+Amara provides a REST API to interactive with the site.  Please contact us at
+enterprise@amara.org if you’d like to use the Amara API for commercial
+purposes.
 
 Overview
 --------

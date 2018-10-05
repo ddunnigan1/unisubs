@@ -21,8 +21,8 @@ from urlparse import urlparse, parse_qs
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.management.base import BaseCommand
-from django.core.urlresolvers import resolve
 from django.test import RequestFactory
+from django.urls import resolve
 
 from auth.models import CustomUser as User
 from localeurl.utils import strip_path

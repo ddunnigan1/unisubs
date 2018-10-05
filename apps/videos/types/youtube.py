@@ -16,13 +16,13 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 import re
+import logging
 from urlparse import urlparse
 
 from base import VideoType
-from celery.task import task
 from externalsites import google
+from utils.taskqueue import job
 import externalsites
-import logging
 logger = logging.getLogger(__name__)
 
 class YoutubeVideoType(VideoType):
@@ -83,8 +83,9 @@ class YoutubeVideoType(VideoType):
             except google.APIError:
                 if len(accounts) > YoutubeVideoType.MAX_ACCOUNTS_TO_TRY:
                     accounts_pks = map(lambda x: x.pk, accounts[YoutubeVideoType.MAX_ACCOUNTS_TO_TRY:])
-                    get_set_values_background.apply_async(args=[self.video_id, accounts_pks,
-                                                                video.pk, video_url.pk], countdown=2)
+                    get_set_values_background.enqueue_in(
+                        2, self.video_id, accounts_pks, video.pk,
+                        video_url.pk)
                     incomplete = True
                     self._video_info = None
                 else:
@@ -131,7 +132,7 @@ class YoutubeVideoType(VideoType):
                 return video_id[:YoutubeVideoType.VIDEOID_MAX_LENGTH]
         raise ValueError("Unknown video id")
 
-@task()
+@job
 def get_set_values_background(video_id, accounts_pks, video_pk, video_url_pk):
     from django.db import models
     from videos.models import Video, VideoUrl

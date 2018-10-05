@@ -107,6 +107,7 @@ class Build(Command):
     """Build the app container."""
 
     def add_arguments(self, parser):
+        parser.add_argument('--production', action='store_true')
         parser.add_argument('--no-cache', action='store_true')
 
     def run(self):
@@ -114,6 +115,8 @@ class Build(Command):
         cmdline = ['python', build_script, 'amara-app']
         if self.args.no_cache:
             cmdline.append('--no-cache')
+        if not self.args.production:
+            cmdline.append('--dev')
         subprocess.call(cmdline)
 
 class Manage(Command):
@@ -178,7 +181,6 @@ class DBReset(Command):
     def run(self):
         run_manage(['drop_all_tables'])
         run_manage(['migrate'])
-        run_manage(['setup_indexes'])
         run_manage(['create_anonymous_user'])
 
 class DBDump(Command):
@@ -245,11 +247,12 @@ class Up(Command):
         if self.args.guitests:
             cwd = 'guitests'
             cmdline = ['docker-compose', '-f', 'docker-compose.yml', '-f',
-                       'docker-compose.expose-ports.yml', 'up', 'app', 'worker', 'feed-worker']
+                       'docker-compose.expose-ports.yml', 'up', 'app',
+                       'worker']
         else:
             cwd = None
-            cmdline = ['docker-compose', 'up', 'app', 'worker', 'feed-worker',
-                       'asset-builder']
+            cmdline = ['docker-compose', 'up', 'app', 'worker',
+                       'asset-builder', 'scheduler']
         subprocess.run(cmdline, env=env, cwd=cwd)
 
 class PrepDeploy(Command):
@@ -347,11 +350,15 @@ class Gulp(Command):
     """Run gulp for the amara-assets repo."""
 
     def add_arguments(self, parser):
+        parser.add_argument('--compress', action='store_true')
         parser.add_argument('gulp_args', nargs=argparse.REMAINDER)
 
     def run(self):
+        env = {}
+        if not self.args.compress:
+            env['SKIP_UGLIFY'] = '1'
         run_node(['node', 'node_modules/gulp/bin/gulp.js'] +
-                 list(self.args.gulp_args))
+                 list(self.args.gulp_args), env=env)
 
 class Switch(Command):
     """
@@ -551,7 +558,7 @@ def run_manage(args, check=True, **kwargs):
 # If you update this, make sure to also change the value in
 # codeship-services.yml
 NODE_IMAGE = 'node:9.0.0'
-def run_node(command):
+def run_node(command, env=None):
     """
     Run the docker node container with the amara-assets repo
     """
@@ -560,6 +567,9 @@ def run_node(command):
         '-v', '{}:/mnt'.format(unisubs_root()),
         '-w', '/mnt/amara-assets',
     ]
+    if env:
+        for key, value in env.items():
+            cmdline.append('-e{}={}'.format(key, value))
     cmdline.append(NODE_IMAGE)
     cmdline.extend(command)
     returncode = subprocess.call(cmdline)

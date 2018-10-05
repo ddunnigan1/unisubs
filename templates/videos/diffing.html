@@ -32,7 +32,7 @@
     {{ block.super }}
     <script type="text/javascript">
         jQuery(function($) {
-            var IS_AUTHENTICATED = '{{ user.is_authenticated }}' == 'True';
+            var IS_AUTHENTICATED = {% if user.is_authenticated %}true{% else %}false{% endif %};
             if (IS_AUTHENTICATED){
                 $('.roll_back').click(function(){
                     if ( ! confirm('{% trans "Subtitles will be rolled back to a previous version" %}')){

@@ -1875,15 +1875,8 @@ def assert_tip_cache_correct(video, subtitle_language, public_tip,
     raise AssertionError('\n'.join(lines))
 
 class FetchAndJoinTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # Use a class fixture to create our video since it's relatively
-        # expensize to do
-        cls.video = VideoFactory(with_many_visibility_combinations=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.video.delete()
+    def setUp(self):
+        self.video = VideoFactory(with_many_visibility_combinations=True)
 
     def run_fetch_and_join(self, *args, **kwargs):
         qs = self.video.newsubtitlelanguage_set.all()
@@ -1932,20 +1925,9 @@ class FetchAndJoinTest(TestCase):
                         v.video
 
 class FetchForLanguagesTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # Use a class fixture to create our video since it's relatively
-        # expensize to do
-        cls.video = VideoFactory(with_many_visibility_combinations=True)
-        cls.languages = list(cls.video.newsubtitlelanguage_set.all())
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.video.delete()
-
     def setUp(self):
-        for l in self.languages:
-            l.clear_tip_cache()
+        self.video = VideoFactory(with_many_visibility_combinations=True)
+        self.languages = list(self.video.newsubtitlelanguage_set.all())
 
     def run_fetch_for_languages(self, *args, **kwargs):
         return SubtitleVersion.objects.fetch_for_languages(self.languages,

@@ -16,34 +16,42 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from __future__ import absolute_import
+
 import logging
 
-from celery import current_task
-from celery.task import task
+from utils.taskqueue import job, Job
 
 logger = logging.getLogger(__name__)
 
-@task(queue='priority')
+@job(queue='high')
 def process_management_form(FormClass, pickle_state):
+    current_job = Job.get_current()
+
     def progress_callback(current, total):
-        current_task.update_state(state='PROGRESS', meta={
+        current_job.update_meta({
+            'form_status': 'PROGRESS',
             'current': current,
             'total': total,
         })
     try:
         form = FormClass.restore_from_pickle_state(pickle_state)
         if not form.is_valid():
-            current_task.update_state(state='FAILURE', meta={
+            current_job.update_meta({
+                'form_status': 'FAILURE',
                 'error_messages': [
                     unicode(e) for e in form.errors
                 ]
             })
             return
         form.submit(progress_callback)
-        current_task.update_state(state='SUCCESS', meta={
+        current_job.update_meta({
+            'form_status': 'SUCCESS',
             'message': form.message(),
             'error_messages': form.error_messages(),
         })
     except:
         logger.warn("Error processing form", exc_info=True)
-        current_task.update_state(state='FAILURE')
+        current_job.update_meta({
+            'form_status': 'FAILURE',
+        })

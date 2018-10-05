@@ -3,17 +3,17 @@ import logging
 
 logger = logging.getLogger('notifications.tasks')
 
-from celery.task import task
 from django.db.models import Q, Max
 
 from notifications.models import TeamNotification
 from teams.models import Team
+from utils.taskqueue import job
 import utils.dates
 
 REMOVE_AFTER = 90
 MIN_KEEP = 1000
 
-@task
+@job
 def prune_notification_history():
     remove_after = utils.dates.now() - timedelta(days=REMOVE_AFTER)
     team_list = Team.objects.all()

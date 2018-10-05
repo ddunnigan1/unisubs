@@ -18,8 +18,6 @@
 from datetime import datetime, timedelta
 import logging
 
-from celery.schedules import crontab, timedelta
-from celery.task import task
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db.models import ObjectDoesNotExist
@@ -35,30 +33,27 @@ from subtitles.models import (
     SubtitleLanguage, SubtitleVersion
 )
 from auth.models import CustomUser as User
+from utils.taskqueue import job
 from videos.types import video_type_registrar
 from videos.types import UPDATE_VERSION_ACTION, DELETE_LANGUAGE_ACTION
 from videos.types import VideoTypeError
 
-celery_logger = logging.getLogger('celery.task')
+logger = logging.getLogger(__name__)
 
-@task
+@job
 def cleanup():
     import datetime
     from django.db import transaction
     from django.contrib.sessions.models import Session
-    from djcelery.models import TaskState
     from auth.models import EmailConfirmation
 
-    EmailConfirmation.objects.delete_expired_confirmations()
+    with transaction.atomic():
+        EmailConfirmation.objects.delete_expired_confirmations()
 
-    now = datetime.datetime.now()
-    Session.objects.filter(expire_date__lt=now).delete()
+        now = datetime.datetime.now()
+        Session.objects.filter(expire_date__lt=now).delete()
 
-    d = now - datetime.timedelta(days=31)
-    TaskState.objects.filter(tstamp__lt=d).delete()
-    transaction.commit_unless_managed()
-
-@task(time_limit=20)
+@job(timeout=20)
 def save_thumbnail_in_s3(video_id):
     try:
         video = Video.objects.get(pk=video_id)
@@ -70,36 +65,17 @@ def save_thumbnail_in_s3(video_id):
         content = ContentFile(response.content)
         video.s3_thumbnail.save(video.thumbnail.split('/')[-1], content)
 
-@task
+@job
 def update_video_feed(video_feed_id):
     try:
         video_feed = VideoFeed.objects.get(pk=video_feed_id)
         video_feed.update()
     except VideoFeed.DoesNotExist:
-        celery_logger.warn(
+        logger.warn(
             '**update_video_feed**. VideoFeed does not exist. ID: %s',
             video_feed_id)
 
-@task(rate_limit='500/m')
-def update_video_feed_with_rate_limit(video_feed_id):
-    return update_video_feed(video_feed_id)
-
-@task(ignore_result=False)
-def add(a, b):
-    print "TEST TASK FOR CELERY. EXECUTED WITH ARGUMENTS: %s %s" % (a, b)
-    return (a, b, a+b)
-
-@task
-def test_task(n):
-    if not n:
-        print '.'
-
-    from time import sleep
-    for i in xrange(n):
-        print '.',
-        sleep(0.5)
-
-@task()
+@job
 def video_changed_tasks(video_pk, new_version_id=None):
     from videos import metadata_manager
     from videos.models import Video
@@ -112,14 +88,14 @@ def video_changed_tasks(video_pk, new_version_id=None):
             BillingRecord.objects.insert_record(
                 SubtitleVersion.objects.get(pk=new_version_id))
         except Exception, e:
-            celery_logger.error("Could not add billing record", extra={
+            logger.error("Could not add billing record", extra={
                 "version_pk": new_version_id,
                 "exception": str(e)})
 
     video = Video.objects.get(pk=video_pk)
     video.update_search_index()
 
-@task
+@job
 def subtitles_complete_changed(language_pk):
     """
     On the editor, if you don't actually change the subs, but still change
@@ -133,11 +109,11 @@ def subtitles_complete_changed(language_pk):
     try:
         BillingRecord.objects.insert_record(version)
     except Exception, e:
-        celery_logger.error("Could not add billing record", extra={
+        logger.error("Could not add billing record", extra={
             "version_pk": version.pk,
             "exception": str(e)})
 
-@task()
+@job
 def send_change_title_email(video_id, user_id, old_title, new_title):
     from videos.models import Video
 
@@ -167,7 +143,7 @@ def send_change_title_email(video_id, user_id, old_title, new_title):
                              'videos/email_title_changed.html',
                              context, fail_silently=not settings.DEBUG)
 
-@task()
+@job
 def import_videos_from_feed(feed_id):
     feed = VideoFeed.objects.get(id=feed_id)
     new_videos = feed.update()

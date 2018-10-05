@@ -24,14 +24,14 @@ import re
 
 from django import forms
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError as django_core_ValidationError
 from django.core.files.base import ContentFile
-from django.core.urlresolvers import reverse
-from django.core.validators import EMPTY_VALUES
+from django.urls import reverse
+from django.core.validators import EMPTY_VALUES, validate_email
 from django.db.models import Q
 from django.db import transaction, IntegrityError
 from django.forms.formsets import formset_factory
-from django.forms.util import ErrorDict
+from django.forms.utils import ErrorDict
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -54,7 +54,7 @@ from teams.models import (
 )
 from teams import behaviors, permissions, tasks
 from teams.exceptions import ApplicationInvalidException
-from teams.fields import TeamMemberInput, TeamMemberRoleSelect, MultipleProjectField
+from teams.fields import TeamMemberInput, TeamMemberRoleSelect, MultipleProjectField, MultipleUsernameInviteField
 from teams.permissions import (
     roles_user_can_invite, can_delete_task, can_add_video, can_perform_task,
     can_assign_task, can_remove_video, can_change_video_titles,
@@ -64,8 +64,9 @@ from teams.permissions_const import ROLE_NAMES
 from teams.signals import member_remove
 from teams.workflows import TeamWorkflow
 from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
-                      AmaraRadioSelect, SearchField, AmaraClearableFileInput,
-                      AmaraFileInput, HelpTextList, MultipleLanguageField)
+                      AmaraMultipleChoiceField, AmaraRadioSelect, SearchField,
+                      AmaraClearableFileInput, AmaraFileInput, HelpTextList,
+                      MultipleLanguageField, AmaraImageField)
 from ui.forms import LanguageField as NewLanguageField
 from utils.html import clean_html
 from utils import send_templated_email
@@ -773,7 +774,7 @@ class GuidelinesMessagesForm(forms.Form):
     messages_invite = MessageTextField(
         label=_('When a member is invited to join the team'))
     messages_application = MessageTextField(
-        label=_('When a member applies to join the team'), max_length=15000)
+        label=_('Custom message to display at the top of the application form'), max_length=15000)
     messages_joins = MessageTextField(
         label=_('When a member joins the team'))
     messages_manager = MessageTextField(
@@ -862,7 +863,7 @@ class LegacyRenameableSettingsForm(LegacySettingsForm):
 class GeneralSettingsForm(forms.ModelForm):
     logo = forms.ImageField(
         validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
-        help_text=_('Max 940 x 235'),
+        help_text=_('Max size: 940px x 235px. Over-sized images will be clipped at the center'),
         widget=AmaraClearableFileInput,
         required=False)
     square_logo = forms.ImageField(
@@ -979,16 +980,17 @@ class LanguagesForm(forms.Form):
         return self.cleaned_data
 
 class AddMembersForm(forms.Form):
-    role = forms.ChoiceField(choices=TeamMember.ROLES[::-1],
+    role = AmaraChoiceField(choices=TeamMember.ROLES[::-1],
                              initial='contributor',
                              label=_("Assign a role"))
-    members = forms.CharField(required=False,
-                              widget=forms.Textarea(attrs={'rows': 10}),
+    members = forms.CharField(widget=forms.Textarea(attrs={'rows': 10}),
                               label=_("Users to add to team"))
-    def __init__(self, team, user, *args, **kwargs):
-        super(AddMembersForm, self).__init__(*args, **kwargs)
+
+    def __init__(self, team, user, data=None, *args, **kwargs):
+        super(AddMembersForm, self).__init__(data=data, *args, **kwargs)
         self.team = team
-        self.user = user
+        self.user = user        
+
     def save(self):
         summary = {
             "added": 0,
@@ -996,6 +998,7 @@ class AddMembersForm(forms.Form):
             "already": [],
             }
         member_role = self.cleaned_data['role']
+
         for username in set(self.cleaned_data['members'].split()):
             try:
                 user = User.objects.get(username=username)
@@ -1012,66 +1015,144 @@ class AddMembersForm(forms.Form):
                     summary["already"].append(username)
         return summary
 
+
+# The form is kinda in a weird state since it tries to work both for old style
+# and new style teams
 class InviteForm(forms.Form):
+    # For old style team invite page, the auto-complete actually works 
     username = UserAutocompleteField(required=False, error_messages={
         'invalid': _(u'User has a pending invite or is already a member of this team')
         },
         help_text="Amara username of the user you want to invite")
-    email = forms.EmailField(required=False, max_length=254,
-                            widget=forms.TextInput(),
-                            help_text=_("You can also invite a team member via email--both a username and an email works too!") )
+
+    # For new style teams that allow sending invites to multiple users at a time
+    usernames = MultipleUsernameInviteField(label=_('Username'),
+                                  required=False,
+                                  help_text=_('Amara username of the existing user you want to invite. '
+                                              'You can invite multiple users. '
+                                              'Pasting a comma-separated or a line-by-line list of usernames and pressing the "Enter" key also works!'))
+    email = forms.CharField(required=False,
+                            widget=forms.Textarea(attrs={'rows': 3}),
+                            help_text=_('Email address of the new member you want to invite. '
+                                        'You can invite multiple users by entering one email address per line.') )
     message = forms.CharField(required=False,
                               widget=forms.Textarea(attrs={'rows': 4}),
                               label=_("Message to user"))
-    role = forms.ChoiceField(choices=TeamMember.ROLES[1:][::-1],
+    role = AmaraChoiceField(choices=TeamMember.ROLES[1:][::-1],
                              initial='contributor',
                              label=_("Assign a role"))
 
-    def __init__(self, team, user, *args, **kwargs):
-        super(InviteForm, self).__init__(*args, **kwargs)
+    def __init__(self, team, user, data=None, *args, **kwargs):
+        super(InviteForm, self).__init__(data=data, *args, **kwargs)
+        if data:
+            # getting the current modal tab from invalidated POST data
+            self.modal_tab = data.get('modalTab', None)
+
+            # getting the current username selections from invalidated POST data
+            form_data_usernames = data.getlist('usernames')
+            if form_data_usernames:
+                self.fields['usernames'].set_initial_selections(form_data_usernames)
+
         self.team = team
-        self.user = user
+        self.user = user # the invite author
+        self.users = [] # the users to be invited
+        self.emails = []
+        self.usernames = []
+        
         self.fields['role'].choices = [(r, ROLE_NAMES[r])
                                        for r in roles_user_can_invite(team, user)]
-        self.fields['username'].queryset = team.invitable_users()
-        self.fields['username'].set_autocomplete_url(
-            reverse('teams:autocomplete-invite-user', args=(team.slug,))
-        )
+        
+        if self.team.is_old_style():
+            del self.fields['usernames']
+            self.fields['username'].queryset = team.invitable_users()
+            self.fields['username'].set_autocomplete_url(
+                reverse('teams:autocomplete-invite-user', args=(team.slug,))
+            )
+        else:
+            del self.fields['username']
+            self.fields['usernames'].set_ajax_autocomplete_url(
+                reverse('teams:ajax-inviteable-users-search', kwargs={'slug':team.slug})
+                )
+            self.fields['usernames'].set_ajax_multiple_username_url(
+                reverse('teams:ajax-inviteable-users-multiple-search', kwargs={'slug':team.slug})
+                )
+
+    def validate_emails(self):
+        for email in self.emails:
+            try:
+                validate_email(email)
+            except django_core_ValidationError:
+                self.add_error('email', _(u"{} is an invalid email address.".format(email)))
+
+            invitee = self.team.users.filter(email=email).first()
+            if invitee:
+                self.add_error('email', _(u"The email address {} belongs to {} who is already a part of the team!".format(email, invitee)))
+
+    def validate_usernames(self):
+        for username in self.usernames:
+            try:
+                user = User.objects.get(username=username)
+                if self.team.is_member(user):
+                    self.add_error('usernames', _(u'The user {} already belongs to this team!').format(username))
+                elif Invite.objects.filter(user=user, team=self.team, approved=None).exists():
+                    self.add_error('usernames', _(u'The user {} already has an invite for this team!').format(username))
+                else:
+                    self.users.append(user)
+            except User.DoesNotExist:
+                self.add_error('usernames', _(u'The user {} does not exist.').format(username))
+
+    def clean_username(self):
+        username = self.data['username']
+        if username:
+            try:
+                user = User.objects.get(username=username)
+                if self.team.is_member(user):
+                    self.add_error('username', _(u'The user {} already belongs to this team!').format(username))
+                elif Invite.objects.filter(user=user, team=self.team, approved=None).exists():
+                    self.add_error('username', _(u'The user {} already has an invite for this team!').format(username))
+                else:
+                    return username
+            except User.DoesNotExist:
+                self.add_error('usernames', _(u'The user {} does not exist.').format(username))
 
     def clean(self):
         cleaned_data = super(InviteForm, self).clean()
-        email = cleaned_data.get('email')
-        username = cleaned_data.get('username')
 
-        if not (email or username):
-            raise forms.ValidationError(_(u"A valid username or email address must be provided"))            
+        if (self.team.is_old_style() and
+            not (self['email'].errors or self['username'].errors) and
+            not (cleaned_data.get('email') or cleaned_data.get('username'))):
+            raise forms.ValidationError(_(u"A valid username or email address must be provided"))
 
-        return cleaned_data
+        emails = cleaned_data.get('email')
+        usernames = cleaned_data.get('usernames')
 
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        
-        invitees = self.team.users.filter(email=email)
-        if invitees.exists():
-            if invitees.count() == 1:
-                raise forms.ValidationError(
-                    _(u"This email address belongs to {} "
-                       "who is already a part of the team!".format(invitees.first())))
-            else:
-                raise forms.ValidationError(
-                    _(u"This email address belongs to multiple user accounts, "
-                       "one of which is {} who is already a part of the team!".format(invitees.first())))           
+        if self.modal_tab == 'username' and not usernames:
+            self.add_error('usernames', _(u'At least one username must be provided!'))
+        if self.modal_tab == 'email' and not emails:
+            self.add_error('email', _(u'At least one email must be provided!'))
 
-        return email
-        
+        if emails:
+            self.emails = emails.split()
+            self.emails = set(self.emails)
+            self.validate_emails()
+            
+        if usernames:
+            self.usernames = usernames
+            self.usernames = set(self.usernames)
+            self.validate_usernames()
+
+        return cleaned_data        
 
     def save(self):
-        if self.cleaned_data['email']:
-            self.process_emails()
-        if self.cleaned_data['username']:
-            return self.create_invite(self.cleaned_data['username'])
+        for email in self.emails:
+            self.process_email_invite(email)
+        for user in self.users:
+            self.create_invite(user)
 
-    def create_invite(self, user):
+        if self.team.is_old_style() and self.cleaned_data['username']:
+            return self.create_invite(User.objects.get(username=self.cleaned_data['username']))
+
+    def create_invite(self, user):        
         invite = Invite.objects.create(
             team=self.team, user=user, 
             author=self.user, role=self.cleaned_data['role'],
@@ -1085,8 +1166,8 @@ class InviteForm(forms.Form):
         from messages import tasks as notifier        
         notifier.team_invitation_sent.delay(invite_pk)
 
-    def process_emails(self):
-        invitees = User.objects.filter(email=self.cleaned_data['email'])
+    def process_email_invite(self, email):
+        invitees = User.objects.filter(email=email)
         for invitee in invitees:
             self.create_invite(invitee)
             '''
@@ -1096,7 +1177,7 @@ class InviteForm(forms.Form):
             '''
 
         if invitees.count() == 0:
-            email_invite = EmailInvite.create_invite(email=self.cleaned_data['email'], 
+            email_invite = EmailInvite.create_invite(email=email, 
                 author=self.user, team=self.team, role=self.cleaned_data['role'])
             email_invite.send_mail(self.cleaned_data['message'])
 
@@ -1427,7 +1508,7 @@ class VideoFiltersForm(FiltersForm):
             '-time': '-created',
         }.get(sort or '-time'))
 
-        return qs.select_related('video')
+        return qs
 
 class ManagementVideoFiltersForm(VideoFiltersForm):
     language = NewLanguageField(label=_("Video language"),
@@ -1455,38 +1536,33 @@ class ManagementVideoFiltersForm(VideoFiltersForm):
             qs = qs.missing_completed_language(needs_subtitles)
         return qs
 
-class ActivityFiltersForm(forms.Form):
+class ActivityFiltersForm(FiltersForm):
     SORT_CHOICES = [
+        ('-created', _('newest first (default)')),
+        ('created', _('oldest first')),
+    ]
+    SORT_CHOICES_OLD = [
         ('-created', _('date, newest')),
         ('created', _('date, oldest')),
     ]
-    type = forms.ChoiceField(
-        label=_('Activity Type'), required=False,
+    type = AmaraMultipleChoiceField(
+        label=_('Select Type'), required=False,
         choices=[])
-    video_language = forms.ChoiceField(
-        label=_('Video Language'), required=False,
-        choices=[])
-    subtitle_language = forms.ChoiceField(
-        label=_('Subtitle Language'), required=False,
-        choices=[])
-    sort = forms.ChoiceField(
-        label=_('Sorted by'), required=True,
+    video = forms.CharField(label=_('Search for video'), required=False)
+    video_language = MultipleLanguageField(
+        label=_('Select Video Language'), required=False,
+        options='my popular all')
+    subtitle_language = MultipleLanguageField(
+        label=_('Select Subtitle Language'), required=False,
+        options='my popular all')
+    sort = AmaraChoiceField(
+        label=_('Select sort'), required=False,
         choices=SORT_CHOICES)
 
     def __init__(self, team, get_data):
-        super(ActivityFiltersForm, self).__init__(
-                  data=self.calc_data(get_data))
+        super(ActivityFiltersForm, self).__init__(get_data)
         self.team = team
         self.fields['type'].choices = self.calc_activity_choices()
-        language_choices = [
-            ('', ('Any language')),
-        ]
-        if team.is_old_style():
-            language_choices.extend(get_language_choices(flat=True))
-        else:
-            language_choices.extend(get_language_choices())
-        self.fields['video_language'].choices = language_choices
-        self.fields['subtitle_language'].choices = language_choices
 
     def calc_activity_choices(self):
         choices = [
@@ -1497,33 +1573,29 @@ class ActivityFiltersForm(forms.Form):
             (value, choice_map[value])
             for value in self.team.new_workflow.activity_type_filter_options()
         )
+        choices.sort(key=lambda choice: unicode(choice[1]))
         return choices
 
-    def calc_data(self, get_data):
-        field_names = set(['type', 'video_language', 'subtitle_language',
-                           'sort'])
-        data = {
-            key: value
-            for (key, value) in get_data.items()
-            if key in field_names
-        }
-        return data if data else None
-
-    def get_queryset(self):
+    def _get_queryset(self, cleaned_data):
         qs = ActivityRecord.objects.for_team(self.team)
         if not (self.is_bound and self.is_valid()):
             return qs
-        type = self.cleaned_data.get('type')
-        subtitle_language = self.cleaned_data.get('subtitle_language')
-        video_language = self.cleaned_data.get('video_language')
-        sort = self.cleaned_data.get('sort', '-created')
+        type = cleaned_data.get('type')
+        video = cleaned_data.get('video')
+        subtitle_language = cleaned_data.get('subtitle_language')
+        video_language = cleaned_data.get('video_language')
+        sort = cleaned_data.get('sort', '-created')
         if type:
-            qs = qs.filter(type=type)
+            qs = qs.filter(type__in=type)
+        if video:
+            qs = qs.filter(video__in=Video.objects.search(video))
         if subtitle_language:
-            qs = qs.filter(language_code=subtitle_language)
+            qs = qs.filter(language_code__in=subtitle_language)
         if video_language:
-            qs = qs.filter(video_language_code=video_language)
-        return qs.order_by(sort)
+            qs = qs.filter(video_language_code__in=video_language)
+        if sort:
+            qs = qs.order_by(sort)
+        return qs
 
 class MemberFiltersForm(forms.Form):
     LANGUAGE_CHOICES = [
@@ -1741,12 +1813,13 @@ class ChangeMemberRoleForm(ManagementForm):
     languages = MultipleLanguageField(label=_('Subtitle language(s)'), options='null all', required=False)
 
     def __init__(self, user, queryset, selection, all_selected,
-                 data=None, files=None, is_owner=False, **kwargs):
+                 data=None, files=None, is_owner=False, team=None, **kwargs):
         self.user = user
         self.is_owner = is_owner
+        self.team = team
         super(ChangeMemberRoleForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files)
-        self.fields['projects'].setup(kwargs['team'])
+        self.fields['projects'].setup(team)
 
     def clean(self):
         cleaned_data = super(ChangeMemberRoleForm, self).clean()
@@ -1850,6 +1923,27 @@ class ChangeMemberRoleForm(ManagementForm):
                 "%(count)s members could not be edited",
                 self.error_count), count=self.error_count))
         return errors
+
+    def get_pickle_state(self):
+        return (
+            self.user.id,
+            self.team.id,
+            self.is_owner,
+            self.queryset.query,
+            self.selection,
+            self.all_selected,
+            self.data,
+            self.files,
+        )
+
+    @classmethod
+    def restore_from_pickle_state(cls, state):
+        user = User.objects.get(id=state[0])
+        team = Team.objects.get(id=state[1])
+        is_owner = state[2]
+        queryset = TeamMember.objects.all()
+        queryset.query = state[3]
+        return cls(user, queryset, is_owner=is_owner, team=team, *state[4:])
 
 class RemoveMemberForm(ManagementForm):
     name = "remove_member"
@@ -1970,18 +2064,12 @@ class EditMembershipForm(forms.Form):
 
 class ApplicationForm(forms.Form):
     about_you = forms.CharField(widget=forms.Textarea, label="")
-    language1 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True))
-    language2 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language3 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language4 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language5 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True), required=False)
-    language6 = forms.ChoiceField(
-        choices=get_language_choices(with_empty=True), required=False)
+    language1 = NewLanguageField(required=True)
+    language2 = NewLanguageField(required=False)
+    language3 = NewLanguageField(required=False)
+    language4 = NewLanguageField(required=False)
+    language5 = NewLanguageField(required=False)
+    language6 = NewLanguageField(required=False)
 
     def __init__(self, application, *args, **kwargs):
         super(ApplicationForm, self).__init__(*args, **kwargs)
@@ -2022,24 +2110,32 @@ class ApplicationForm(forms.Form):
                         "messages/email/application-sent-email.html", context)
         send_new_messages_notifications.delay(ids)
 
+    def _get_language_list(self):
+        languages = []
+        for i in xrange(1, 7):
+            value = self.cleaned_data.get('language{}'.format(i))
+            if value:
+                languages.append({"language": value, "priority": i})
+
+        if not languages:
+            raise forms.ValidationError(_("Please select at least one language"), code='no-language')
+        return languages
+
     def clean(self):
         try:
             self.application.check_can_submit()
         except ApplicationInvalidException, e:
             raise forms.ValidationError(e.message)
+        self._get_language_list()
         return self.cleaned_data
 
     def save(self):
         try:
             self.application.note = self.cleaned_data['about_you']
-            self.application.save()
         except IntegrityError as e:
             raise forms.ValidationError(e.__cause__, code='duplicate')
-        languages = []
-        for i in xrange(1, 7):
-            value = self.cleaned_data['language{}'.format(i)]
-            if value:
-                languages.append({"language": value, "priority": i})
+        languages = self._get_language_list()
+        self.application.save()
         self.application.user.set_languages(languages)
         self.notify()
 
@@ -2092,8 +2188,8 @@ class EditVideosForm(VideoManagementForm):
     language = NewLanguageField(label=_("Language"), options="null popular all")
     project = ProjectField(label=_('Project'), required=False,
                            null_label=_('No change'))
-    thumbnail = forms.ImageField(widget=AmaraClearableFileInput,
-                                 label=_('Thumbnail'), required=False)
+    thumbnail = AmaraImageField(label=_('Thumbnail'), preview_size=(220, 123),
+                                required=False)
 
     '''
     don't allow project managers to change the project of a video
@@ -2154,7 +2250,10 @@ class EditVideosForm(VideoManagementForm):
                 video.primary_audio_language_code = language
                 video.save()
             if thumbnail:
-                team_video.video.s3_thumbnail.save(thumbnail.name, thumbnail)
+                video.s3_thumbnail.save(thumbnail.name, thumbnail)
+            elif thumbnail == False:
+                video.s3_thumbnail = None
+                video.save()
 
     def message(self):
         msg = ungettext('Video has been edited',

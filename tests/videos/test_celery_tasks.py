@@ -46,8 +46,7 @@ class SendChangeTitleTaskTest(TestCase):
         mail.outbox = []
 
     def run_send_change_title_email(self, user_id):
-        send_change_title_email.apply(args=(self.video.id, user_id,
-                                            'old-title', 'new-title'))
+        send_change_title_email(self.video.id, user_id, 'old-title', 'new-title')
 
     def check_emails(self, recipients):
         email_tos = set()

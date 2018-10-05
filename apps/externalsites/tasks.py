@@ -19,7 +19,6 @@
 import logging
 import re
 
-from celery.task import task
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -32,9 +31,10 @@ from subtitles.models import SubtitleLanguage, SubtitleVersion
 from videos.models import VideoUrl, VIDEO_TYPE_YOUTUBE
 from auth.models import CustomUser as User
 from teams.models import Team
+from utils.taskqueue import job
 logger = logging.getLogger(__name__)
 
-@task
+@job
 def update_subtitles(account_type, account_id, video_url_id, lang_id):
     """Update a subtitles for a language"""
     logger.info("externalsites.tasks.update_subtitles(%s, %s, %s, %s)",
@@ -60,7 +60,7 @@ def update_subtitles(account_type, account_id, video_url_id, lang_id):
     else:
         account.update_subtitles(video_url, language)
 
-@task
+@job
 def delete_subtitles(account_type, account_id, video_url_id, lang_id):
     """Delete a subtitles for a language"""
     logger.info("externalsites.tasks.delete_subtitles(%s, %s, %s, %s)",
@@ -88,7 +88,7 @@ def delete_subtitles(account_type, account_id, video_url_id, lang_id):
 
     account.delete_subtitles(video_url, language)
 
-@task
+@job
 def update_all_subtitles(account_type, account_id):
     """Update all subtitles for a given account."""
     logger.info("externalsites.tasks.update_all_subtitles(%s, %s)",
@@ -125,7 +125,7 @@ def update_all_subtitles(account_type, account_id):
                 update_subtitles.delay(account_type, account_id,
                                        video_url.id, language.id)
 
-@task
+@job
 def add_amara_credit(video_url_id):
     video_url = VideoUrl.objects.get(id=video_url_id)
     account = get_sync_account(video_url.video, video_url)
@@ -135,7 +135,7 @@ def add_amara_credit(video_url_id):
         except google.OAuthError:
             logger.exception("Error adding youtube credit")
 
-@task
+@job
 def fetch_subs(video_url_id, user_id=None,  team_id=None):
     if team_id is None:
         team = None
@@ -150,7 +150,7 @@ def fetch_subs(video_url_id, user_id=None,  team_id=None):
     except google.OAuthError:
         logger.exception("Error fetching sutitles")
 
-@task
+@job
 def retry_failed_sync():
     sh = SyncHistory.objects.get_attempt_to_resync()
     if sh is None:
@@ -161,7 +161,7 @@ def retry_failed_sync():
     except google.OAuthError:
         logger.exception("Error retrying failed sync")
 
-@task
+@job
 def import_video_from_youtube_account(account_id):
     try:
         account = YouTubeAccount.objects.get(id=account_id)
@@ -170,7 +170,7 @@ def import_video_from_youtube_account(account_id):
         logger.warn("import_video_from_youtube_account: "
                     "YouTubeAccount.DoesNotExist ({})".format(account_id))
 
-@task
+@job
 def unlink_external_sync_accounts(owner):
     YouTubeAccount.objects.for_owner(owner).delete()
     VimeoSyncAccount.objects.for_owner(owner).delete()

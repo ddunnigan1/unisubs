@@ -12,6 +12,7 @@ codebase.
    testing
    db-migrations
    caching
+   tasks
    teams
    editor
    subtitle-workflows

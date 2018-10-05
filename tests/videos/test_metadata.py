@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import translation
 from django.test import TestCase
 from nose.tools import *

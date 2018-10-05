@@ -4,16 +4,16 @@ from Cookie import SimpleCookie
 from inspect import getargspec
 from urllib import urlencode, quote
 
-from django.core.serializers.json import DateTimeAwareJSONEncoder
-from django.core.urlresolvers import reverse
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.http import HttpResponse
+from django.urls import reverse
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.functional import Promise
 
 
-class LazyEncoder(DateTimeAwareJSONEncoder):
+class LazyEncoder(DjangoJSONEncoder):
     """
     Smarter encoder that can encode a few data types tipically found
     in django code such as datetimes, promises and querysets

@@ -20,13 +20,16 @@ from collections import namedtuple
 import os
 
 from django.conf import settings
-from django.template.loader import render_to_string
+from django.urls import reverse
+from django.template.loader import TemplateDoesNotExist, render_to_string
 from markdown import markdown
 import pykss
 import yaml
 
+from ui import Link
+
 CSS_ROOT = os.path.join(settings.PROJECT_ROOT, 'amara-assets/scss/')
-TOC_PATH = os.path.join(CSS_ROOT, 'styleguide-toc.yml')
+TOC_PATH = os.path.join(settings.PROJECT_ROOT, 'apps/styleguide/styleguide-toc.yml')
 
 # Single example in a section
 StyleGuideExample = namedtuple('StyleGuideExample', 'source styles')
@@ -35,8 +38,19 @@ StyleGuideTOCItem = namedtuple('StyleGuideTOCItem', 'title section_id')
 # TOC item that refers to a list of subitems
 StyleGuideTOCList= namedtuple('StyleGuideTOCList', 'title children')
 
-class StyleGuideSection(object):
-    """Hanndle 1 section of the style guide.
+class StyleGuideSectionTemplate(object):
+    """
+    Section of the styleguide that we render using a template from
+    the styleguide/sections/ directory
+    """
+    def __init__(self, section_id, title):
+        self.id = section_id
+        self.title = title
+        self.template_name = 'styleguide/{}.html'.format(section_id)
+
+class StyleGuideSectionPyKSS(object):
+    """
+    Section of the styleguide that we render using pykss
 
     This class wraps the pykss Section class to provide the things we use in
     our styleguide HTML.
@@ -45,10 +59,10 @@ class StyleGuideSection(object):
         self.setup_id(pykss_section)
         self.setup_title_description(pykss_section)
         self.setup_examples(pykss_section)
-        self.render_content()
+        self.template_name = "styleguide/kss-section.html"
 
     def setup_id(self, pykss_section):
-        self.id = 'section-' + pykss_section.section.replace('.', '-')
+        self.id = pykss_section.section.replace('.', '-')
 
     def setup_title_description(self, pykss_section):
         if '\n' in pykss_section.description:
@@ -75,7 +89,7 @@ class StyleGuideSection(object):
 class StyleGuide(object):
     def __init__(self):
         self.pykss_parser = pykss.Parser(CSS_ROOT)
-        self.sections = []
+        self.sections = {}
         self.walk_toc_file()
 
     def parse_toc_file(self):
@@ -83,30 +97,27 @@ class StyleGuide(object):
             return yaml.load(f)
 
     def walk_toc_file(self):
-        self.toc_parts = []
-        self.toc_parts.append('<ul>')
-        for node in self.parse_toc_file():
-            self.toc_parts.append('<li>')
-            self.walk_toc_node(node)
-            self.toc_parts.append('</li>')
-        self.toc_parts.append('</ul>')
-        self.toc = ''.join(self.toc_parts)
+        self.toc = []
+        toc_data = self.parse_toc_file()
+        for section in toc_data:
+            name, items = section[0], section[1:]
+            self.toc.append(
+                (
+                    name,
+                    [ self.parse_toc_section(i) for i in items ]
+                 )
+            )
 
-    def walk_toc_node(self, node):
-        if isinstance(node, list):
-            # Handle a list of TOC items
-            self.toc_parts.append(node[0])
-            self.toc_parts.append('<ul>')
-            for child in node[1:]:
-                self.toc_parts.append('<li>')
-                self.walk_toc_node(child)
-                self.toc_parts.append('</li>')
-            self.toc_parts.append('</ul>')
+    def parse_toc_section(self, section_data):
+        if isinstance(section_data, dict):
+            # Handle a section that we render with a django template
+            section = StyleGuideSectionTemplate(section_data['id'], section_data['title'])
         else:
-            # Handle a single TOC item
-            section = StyleGuideSection(self.pykss_parser.sections[node])
-            self.sections.append(section)
-            link = ('<a class="styleGuide-navLink" href="#{id}">'
-                    '{title}</a></li>').format(id=section.id,
-                                               title=section.title)
-            self.toc_parts.append(link)
+            # Handle a section that we render with PyKSS
+            section = StyleGuideSectionPyKSS(self.pykss_parser.sections[section_data])
+        self.sections[section.id] = section
+
+        url = reverse('styleguide:section', args=(section.id,))
+        link = Link(section.title, url, class_='styleGuide-navLink')
+        link.section_id = section.id
+        return link

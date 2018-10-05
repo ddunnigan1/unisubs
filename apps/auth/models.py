@@ -27,16 +27,16 @@ import string
 import urllib
 import uuid
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import UserManager, User as BaseUser
 from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import IntegrityError
 from django.db import models
 from django.db import transaction
 from django.db.models import Max
-from django.db.models.loading import get_model
 from django.db.models.signals import post_save
 from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
@@ -130,6 +130,12 @@ class CustomUserManager(UserManager):
         else:
             return self.none()
 
+    '''
+    Gets all users except for the amara-bot
+    '''
+    def real_users(self):
+        return self.all().exclude(username=settings.ANONYMOUS_DEFAULT_USERNAME)
+
 def get_amara_anonymous_user():
     user, created = CustomUser.objects.get_or_create(
         pk=settings.ANONYMOUS_USER_ID,
@@ -172,7 +178,7 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
     autoplay_preferences = models.IntegerField(
         choices=AUTOPLAY_CHOICES, default=AUTOPLAY_ON_BROWSER)
     award_points = models.IntegerField(default=0)
-    last_ip = models.IPAddressField(blank=True, null=True)
+    last_ip = models.GenericIPAddressField(blank=True, null=True)
     # videos witch are related to user. this is for quicker queries
     videos = models.ManyToManyField('videos.Video', blank=True)
     # for some login backends we end up with a full name but not
@@ -243,6 +249,19 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
             return self.username
         else:
             return ugettext('Retired user')
+
+    @property
+    def username_with_fullname(self):
+        if self.is_active:
+            return self.username + ("" if unicode(self) == self.username 
+                                       else " ({})".format(unicode(self)))
+        else:
+            return ugettext('Retired user')
+
+    # Returns a dictionary in the select2 data format
+    def get_select2_format(self):
+        return { 'id' : self.username,
+                 'text': self.username_with_fullname }
 
     def sent_message(self):
         """
@@ -480,12 +499,11 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
 
     def set_languages(self, languages):
         with transaction.atomic():
-            self.userlanguage_set.all().delete()
-            self.userlanguage_set = [
-                UserLanguage(language=l["language"],
-                             priority=l["priority"])
+            self.userlanguage_set.set([
+                UserLanguage.objects.create(
+                    user=self, language=l["language"], priority=l["priority"])
                 for l in languages
-            ]
+            ])
         self.cache.invalidate()
         signals.user_profile_changed.send(self)
 
@@ -643,7 +661,7 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
         except:
             from thirdpartyaccounts import get_thirdpartyaccount_types
             for thirdpartyaccount_type in get_thirdpartyaccount_types():
-                m = get_model(thirdpartyaccount_type[0], thirdpartyaccount_type[1])
+                m = apps.get_model(thirdpartyaccount_type[0], thirdpartyaccount_type[1])
                 if (m is not None) and (len(m.objects.for_user(self)) > 0):
                     return True
         return False
@@ -663,7 +681,7 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
     def unlink_external(self):
         from thirdpartyaccounts import get_thirdpartyaccount_types
         for thirdpartyaccount_type in get_thirdpartyaccount_types():
-            m = get_model(thirdpartyaccount_type[0], thirdpartyaccount_type[1])
+            m = apps.get_model(thirdpartyaccount_type[0], thirdpartyaccount_type[1])
             if m is not None:
                 m.objects.for_user(self).delete()
         try:
@@ -870,7 +888,7 @@ class EmailConfirmationManager(models.Manager):
                                       settings.HOSTNAME)
         }
         subject = u'Please confirm your email address for Amara'
-        send_templated_email_async(user, subject, "messages/email/email-confirmation.html", context)
+        send_templated_email_async.delay(user, subject, "messages/email/email-confirmation.html", context)
         return self.create(
             user=user,
             sent=datetime.now(),

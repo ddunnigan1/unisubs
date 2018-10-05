@@ -23,6 +23,8 @@ from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe, SafeUnicode
 from django.utils.translation import ugettext_lazy as _
 from django import forms
+from django.forms import fields as django_fields
+from django.forms import widgets as django_widgets
 
 from utils import translation
 from ui.forms import widgets
@@ -207,8 +209,93 @@ class SearchField(forms.CharField):
 class UploadOrPasteField(forms.Field):
     widget = widgets.UploadOrPasteWidget
 
+'''
+By default, when validation of this field fails, the selected options are not retained.
+This can be remedied by retrieving the POST data from the form and using it with 
+_set_initial_selections() method to set pre-selected values
+'''
+class MultipleAutoCompleteField(AmaraMultipleChoiceField):
+    widget = django_widgets.SelectMultiple
+
+    def __init__(self, *args, **kwargs):
+        super(MultipleAutoCompleteField, self).__init__(*args, **kwargs)
+
+        # We set the classname for the JS script that's responsible for handling the initial data
+        widget_classes = self.widget.attrs['class']
+        self.widget.attrs['class'] = widget_classes + " multipleAutoCompleteSelect"
+        
+        self.valid_queryset = None
+
+    def set_valid_queryset(self, queryset):
+        self.valid_queryset = queryset
+
+    def set_ajax_autocomplete_url(self, url):
+        self.set_select_data('ajax', url)
+
+    '''
+    <selections> must be a list of JSON objects in the format select2 library expects:
+        'id' - the value of the selected option
+        'text' - the display text of the selected option
+
+    Use this method if you want the form to have pre-loaded selections
+    -- useful if you want to retain the value of this field after a failed validation
+       (see teams.forms:InviteForm::usernames field for an example)
+    '''
+    def _set_initial_selections(self, selections):
+        self.set_select_data('initial-selections', selections)
+
+    '''
+    This is not really a useful validation approach, override this to 
+    be more specific on what is actually being validated
+    '''
+    def clean(self, values):
+        if self.valid_queryset is not None:
+            qs = self.valid_queryset.filter(username__in=values)
+            if len(qs) != len(values):
+                raise forms.validationError(_('Not all users are part of the valid search space!'))
+        
+        return values
+
+class AmaraImageField(forms.ImageField):
+    widget = widgets.AmaraImageInput
+
+    def __init__(self, preview_size=None, **kwargs):
+        self.preview_size = preview_size
+        super(AmaraImageField, self).__init__(**kwargs)
+        self.widget.preview_size = preview_size
+
+class DependentBooleanField(forms.MultiValueField):
+    """
+    Displays a several checkboxes, each one depending on the previous.
+
+    See the multiField styleguide entry for how we use this
+    """
+
+    def __init__(self, choices, **kwargs):
+        self.choices = choices
+        fields = [
+            django_fields.BooleanField(required=False)
+            for c in choices
+        ]
+        widget = widgets.DependentCheckboxes(choices)
+        super(DependentBooleanField, self).__init__(
+            widget=widget, fields=fields, require_all_fields=False, **kwargs)
+
+    def compress(self, data_list):
+        for choice, checked in reversed(zip(self.choices, data_list)):
+            if checked:
+                return choice[0]
+        if self.required:
+            # required fields make the first choice always checked and
+            # disabled.  That means we won't see it in the POST data, but
+            # we should return it here.
+            return self.choices[0][0]
+        return None
+
 __all__ = [
     'AmaraChoiceField', 'AmaraMultipleChoiceField', 'LanguageField',
     'MultipleLanguageField', 'SearchField', 'HelpTextList',
-    'UploadOrPasteField',
+    'UploadOrPasteField', 'AmaraImageField', 'MultipleAutoCompleteField',
+    'DependentBooleanField',
 ]
+

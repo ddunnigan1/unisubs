@@ -48,10 +48,6 @@ def uuid_hack():
     import uuid
     uuid._uuid_generate_random = None
 
-def setup_celery_loader():
-    os.environ.setdefault("CELERY_LOADER",
-                          "amaracelery.loaders.AmaraCeleryLoader")
-
 def setup_django():
     """For all django apps, try to run the startup module.  """
 
@@ -66,5 +62,4 @@ def startup():
     setup_ca()
     uuid_hack()
     setup_monkeypatches()
-    setup_celery_loader()
     setup_django()

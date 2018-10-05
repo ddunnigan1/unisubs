@@ -20,7 +20,7 @@
 from datetime import datetime
 
 import babelsubs
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 from nose.tools import *
 

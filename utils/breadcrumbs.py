@@ -16,7 +16,7 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 class BreadCrumb(object):
     def __init__(self, label, view_name=None, *args, **kwargs):

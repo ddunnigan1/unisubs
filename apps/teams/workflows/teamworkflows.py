@@ -42,7 +42,7 @@ Team workflows are responsible for:
 
 from collections import namedtuple
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
 from django.utils.translation import ungettext
@@ -138,7 +138,7 @@ class TeamWorkflow(object):
         """
         return []
 
-    def management_page_extra_tabs(self, request):
+    def management_page_extra_tabs(self, request, *args, **kwargs):
         """Add extra sub tabs to the team management page.
 
         These appear near the top of the page.

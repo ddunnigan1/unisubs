@@ -15,20 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
-import base64, hashlib, hmac, json, datetime, requests
+import base64, hashlib, hmac, json, datetime, requests, urlparse
 from urllib2 import URLError
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login
 from django.core.files.base import ContentFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import redirect
 from django.utils.http import urlquote
 from oauth import oauth
+from requests_oauthlib import OAuth1
 from auth.models import CustomUser as User
-from thirdpartyaccounts.lib import oauthtwitter2 as oauthtwitter
+from thirdpartyaccounts.lib.oauth_twitter import TwitterOAuth1
 from utils.http import get_url_host
 from thirdpartyaccounts.auth_backends import FacebookAccount, FacebookAuthBackend, TwitterAuthBackend, TwitterAccount
 
@@ -48,49 +49,60 @@ def twitter_login(request, next=None, confirmed=True, email=''):
              reverse(callback_view),
               urlquote(next),
               urlquote(email))
-    twitter = oauthtwitter.TwitterOAuthClient(settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET)
+
+    twitter = TwitterOAuth1(settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET)
+
     try:
-        request_token = twitter.fetch_request_token(callback_url)
-    except URLError:
+        credentials = twitter.fetch_request_token(callback_url=callback_url)
+    except:
         messages.error(request, 'Problem connecting to Twitter. Try again.')
         return redirect('auth:login')
-    request.session['request_token'] = request_token.to_string()
-    signin_url = twitter.authorize_token_url(request_token)
-    return HttpResponseRedirect(signin_url)
+
+    resource_owner_key = credentials.get('oauth_token')[0]
+    resource_owner_secret = credentials.get('oauth_token_secret')[0]
+
+    request.session['resource_owner_key'] = resource_owner_key
+    request.session['resource_owner_secret'] = resource_owner_secret
+
+    authorize_url = twitter.authorize_token_url(resource_owner_key)
+    return HttpResponseRedirect(authorize_url)
 
 def twitter_login_done(request, confirmed=True):
-    request_token = request.session.get('request_token', None)
-    oauth_verifier = request.GET.get("oauth_verifier", None)
 
-    # If there is no request_token for session,
-    # Means we didn't redirect user to twitter
-    if not request_token:
-        # Redirect the user to the login page,
-        # So the user can click on the sign-in with twitter button
-        return HttpResponse("We didn't redirect you to twitter...")
+    resource_owner_key = request.session.get('resource_owner_key', None)
+    resource_owner_secret = request.session.get('resource_owner_secret', None)
+    verifier = request.GET.get("oauth_verifier", None)
 
-    token = oauth.OAuthToken.from_string(request_token)
+    # If there is no token for session, it means we didn't redirect user to twitter
+    if not resource_owner_key and resource_owner_secret:
+        messages.error(request, "We didn't redirect you to twitter...")
+        return redirect('auth:login')
 
-    # If the token from session and token from twitter does not match
-    #   means something bad happened to tokens
-    if token.key != request.GET.get('oauth_token', 'no-token'):
-        del request.session['request_token']
+    # If the tokens from the session and twitter don't match, something bad happened to tokens
+    if resource_owner_key != request.GET.get('oauth_token', 'no-token'):
+        del request.session['resource_owner_key']
+        del request.session['resource_owner_secret']
 
         if request.GET.get('denied', None) is not None:
             messages.info(request, "Twitter authorization cancelled.")
             return redirect('profiles:account')
 
         messages.error(request, "Something wrong! Tokens do not match...")
-
-        # Redirect the user to the login page
         return redirect('auth:login')
 
-    twitter = oauthtwitter.TwitterOAuthClient(settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_SECRET)
+    twitter = TwitterOAuth1(settings.TWITTER_CONSUMER_KEY,
+                            settings.TWITTER_CONSUMER_SECRET,
+                            owner_key=resource_owner_key,
+                            owner_secret=resource_owner_secret,
+                            verifier=verifier)
     try:
-        access_token = twitter.fetch_access_token(token, oauth_verifier)
+        credentials = twitter.fetch_access_token()
     except URLError:
         messages.error(request, 'Problem connecting to Twitter. Try again.')
         return redirect('auth:login')
+
+    twitter.owner_key = credentials.get('oauth_token')[0]
+    twitter.owner_secret = credentials.get('oauth_token_secret')[0]
 
     if request.session.get('no-login', False):
         if not request.user.is_authenticated():
@@ -98,37 +110,36 @@ def twitter_login_done(request, confirmed=True):
             return redirect('auth:login')
 
         try:
-            from thirdpartyaccounts.lib.oauthtwitter import OAuthApi
-            twitter = OAuthApi(settings.TWITTER_CONSUMER_KEY,
-                                settings.TWITTER_CONSUMER_SECRET, access_token)
-            userinfo = twitter.GetUserInfo()
-        except Exception, e:
-            # TODO: Raise something more useful here
-            raise e
-
-        username = userinfo.screen_name
-
-        try:
-            account = TwitterAccount.objects.get(username=username)
+            account = twitter.get_or_create_twitter_account(request.user)
             if request.user.pk != account.user.pk:
                 messages.error(request, 'Account already linked')
                 return redirect('profiles:account')
-
-        except TwitterAccount.DoesNotExist:
-            TwitterAccount.objects.create(user=request.user,
-                    username=username, access_token=access_token.to_string())
+        except Exception, e:
+            # TODO: Raise something more useful here
+            raise e
 
         del request.session['no-login']
         messages.info(request, 'Successfully linked a Twitter account')
         return redirect('profiles:account')
 
-    request.session['access_token'] = access_token.to_string()
     if not confirmed:
-        (existing, email) = TwitterAuthBackend.pre_authenticate(access_token)
-        if not existing:
-            return redirect('auth:confirm_create_user', 'twitter', email)
-    email = request.GET.get('email', None)
-    user = authenticate(access_token=access_token, email=email)
+        try:
+            user_info = twitter.get_user_info()
+            username = user_info.get('screen_name')
+        except Exception, e:
+            # TODO: Raise something more useful here
+            raise e
+
+        if not username:
+            return redirect('auth:confirm_create_user', 'twitter')
+
+    user_info = twitter.get_user_info()
+    username, email = user_info.get('screen_name'), user_info.get('email', None)
+
+    # make sure there's a twitter account associated with the user before logging in
+    twitter.create_user_from_twitter()
+    user = authenticate(username=username)
+
     # if user is authenticated then login user
     if user:
         auth_login(request, user)

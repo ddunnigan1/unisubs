@@ -16,11 +16,12 @@
 # along with this program.  If not, see 
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import *
-from search.views import rpc_router
+from django.conf.urls import url
 
-urlpatterns = patterns('search.views',
-    url(r'^$', 'index', name='index'),
-    url(r'^router/$', rpc_router, name='rpc_router'),
-    url(r'^router/api/$', rpc_router.api, name='rpc_api'),      
-)
+from search import views
+
+urlpatterns = [
+    url(r'^$', views.index, name='index'),
+    url(r'^router/$', views.rpc_router, name='rpc_router'),
+    url(r'^router/api/$', views.rpc_router.api, name='rpc_api'),
+]

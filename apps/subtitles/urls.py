@@ -16,16 +16,20 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import url, patterns
-from subtitles.views import SubtitleEditor
+from django.conf.urls import url
 
-urlpatterns = patterns('subtitles.views',
-    url(r'^old-editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/$', 'old_editor', name='old-editor'),
-    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/$', SubtitleEditor.as_view(), name='subtitle-editor'),
-    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/regain', 'regain_lock', name='regain_lock'),
-    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/release', 'release_lock', name='release_lock'),
-    url(r'^editor/tutorial_shown', 'tutorial_shown', name='tutorial_shown'),
-    url(r'^editor/set_playback_mode', 'set_playback_mode', name='set_playback_mode'),
-    url(r'^(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)(?:/(?P<version_number>[\d]+))?/download/(?P<filename>.+)\.(?P<format>[\w]+)', 'download', name='download'),
-    url(r'^(?P<video_id>[\w]+)/download/(?P<filename>.+)\.dfxp', 'download_all', name='download_all'),
-)
+from subtitles import views
+
+urlpatterns = [
+    url(r'^old-editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/$', views.old_editor, name='old-editor'),
+    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/$', views.SubtitleEditor.as_view(), name='subtitle-editor'),
+    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/regain',
+        views.regain_lock, name='regain_lock'),
+    url(r'^editor/(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)/release',
+        views.release_lock, name='release_lock'),
+    url(r'^editor/tutorial_shown', views.tutorial_shown, name='tutorial_shown'),
+    url(r'^editor/set_playback_mode', views.set_playback_mode, name='set_playback_mode'),
+    url(r'^(?P<video_id>[\w]+)/(?P<language_code>[\w-]+)(?:/(?P<version_number>[\d]+))?/download/(?P<filename>.+)\.(?P<format>[\w]+)',
+        views.download, name='download'),
+    url(r'^(?P<video_id>[\w]+)/download/(?P<filename>.+)\.dfxp', views.download_all, name='download_all'),
+]

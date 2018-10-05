@@ -29,20 +29,20 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import MultipleObjectsReturned
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q, Count
 from django.http import (
     Http404, HttpResponseForbidden, HttpResponseRedirect, HttpResponse,
     HttpResponseBadRequest, HttpResponseServerError
 )
-from django.shortcuts import (get_object_or_404, redirect, render_to_response,
-                              render)
+from django.shortcuts import (get_object_or_404, redirect, render)
 from django.template import RequestContext
 from django.utils.translation import ugettext_lazy as _, ungettext
 from django.utils.encoding import iri_to_uri, force_unicode
 from django.core.cache import cache
 
 import widget
+from activity.models import ActivityRecord
 from auth.models import UserLanguage, CustomUser as User
 from videos.templatetags.paginator import paginate
 from messages import tasks as notifier
@@ -54,9 +54,10 @@ from teams.forms import (
     MoveTeamVideoForm, TaskUploadForm, make_billing_report_form,
     TaskCreateSubtitlesForm, TeamMultiVideoCreateSubtitlesForm,
     OldMoveVideosForm, AddVideoToTeamForm, GuidelinesLangMessagesForm,
-    ProjectField,
+    ProjectField, ActivityFiltersForm,
 )
-from teams.oldforms import DeleteLanguageForm, AddTeamVideoForm
+from teams.oldforms import (DeleteLanguageForm, AddTeamVideoForm,
+                            OldActivityFiltersForm)
 from teams.models import (
     Team, TeamMember, Invite, Application, TeamVideo, Task, Project, Workflow,
     Setting, TeamLanguagePreference, InviteExpiredException, BillingReport,
@@ -77,10 +78,12 @@ from teams.tasks import (
     invalidate_video_visibility_caches, process_billing_report
 )
 from videos.tasks import video_changed_tasks
-from utils import render_to, render_to_json, DEFAULT_PROTOCOL
+from utils import (render_to, render_to_json, DEFAULT_PROTOCOL,
+                   post_or_get_value)
 from utils.decorators import staff_member_required
 from utils.forms import flatten_errorlists
 from utils.objectlist import object_list
+from utils.pagination import AmaraPaginator
 from utils.panslugify import pan_slugify
 from utils.searching import get_terms
 from utils.text import fmt
@@ -115,6 +118,7 @@ ACTIONS_ON_PAGE = getattr(settings, 'ACTIONS_ON_PAGE', 20)
 DEV = getattr(settings, 'DEV', False)
 DEV_OR_STAGING = DEV or getattr(settings, 'STAGING', False)
 BILLING_CUTOFF = getattr(settings, 'BILLING_CUTOFF', None)
+ACTIONS_PER_PAGE = 20
 
 def get_team_for_view(slug, user):
     if isinstance(slug, Team):
@@ -140,7 +144,7 @@ def settings_page(view_func):
 
 # Management
 def index(request, my_teams=False):
-    q = request.REQUEST.get('q')
+    q = post_or_get_value(request, 'q')
 
     if my_teams:
         if request.user.is_authenticated():
@@ -998,7 +1002,7 @@ class TableCell():
 # Members
 @render_to('teams/members-list.html')
 def detail_members(request, slug, role=None):
-    q = request.REQUEST.get('q')
+    q = post_or_get_value(request, 'q')
     lang = request.GET.get('lang')
     sort = request.GET.get('sort', 'joined')
     filtered = False
@@ -1270,9 +1274,9 @@ def accept_invite(request, invite_pk, accept=True):
             invite.deny()
             return redirect(request.META.get('HTTP_REFERER', '/'))
     except InviteExpiredException:
-        return HttpResponseServerError(render_to_response("generic-error.html", {
+        return HttpResponseServerError(render(request, "generic-error.html", {
             "error_msg": _("This invite is no longer valid"),
-        }, RequestContext(request)))
+        }))
 
 def _check_can_leave(team, user):
     """Return an error message if the member cannot leave the team, otherwise None."""
@@ -1967,10 +1971,10 @@ def download_draft(request, slug, task_pk, type="srt"):
 def project_list(request, slug):
     team = get_object_or_404(Team, slug=slug)
     projects = Project.objects.for_team(team)
-    return render_to_response("teams/project_list.html", {
+    return render(request, "teams/project_list.html", {
         "team":team,
         "projects": projects
-    }, RequestContext(request))
+    })
 
 @render_to('teams/settings-projects-add.html')
 @login_required
@@ -2370,10 +2374,10 @@ def delete_language(request, slug, lang_id):
     else:
         form = DeleteLanguageForm(request.user, team, language)
 
-    return render_to_response('teams/delete-language.html', {
+    return render(request, 'teams/delete-language.html', {
         'form': form,
         'language': language,
-    }, RequestContext(request))
+    })
 
 @login_required
 def auto_captions_status(request, slug):
@@ -2427,11 +2431,11 @@ def billing(request):
     # We only get reports started less than a year ago, and prefetch teams
     reports = BillingReport.objects.filter(start_date__gte=datetime.now()-timedelta(days=61)).prefetch_related('teams').order_by('-pk')
 
-    return render_to_response('teams/billing/reports.html', {
+    return render(request, 'teams/billing/reports.html', {
         'form': form,
         'reports': reports,
         'cutoff': BILLING_CUTOFF
-    }, RequestContext(request))
+    })
 
 @render_to('teams/feeds.html')
 @settings_page
@@ -2471,3 +2475,29 @@ def video_feed(request, team, feed_id):
     }
     context.update(pagination_info)
     return context
+
+def activity(request, team):
+    filters_form = OldActivityFiltersForm(team, request.GET)
+    paginator = AmaraPaginator(filters_form.get_queryset(), ACTIONS_PER_PAGE)
+    page = paginator.get_page(request)
+
+    action_choices = ActivityRecord.type_choices()
+
+
+    context = {
+        'paginator': paginator,
+        'page': page,
+        'filters_form': filters_form,
+        'filtered': filters_form.is_bound,
+        'team': team,
+        'tab': 'activity',
+        'user': request.user,
+    }
+    if page.has_next():
+        next_page_query = request.GET.copy()
+        next_page_query['page'] = page.next_page_number()
+        context['next_page_query'] = next_page_query.urlencode()
+    # tells the template to use get_old_message instead
+    context['use_old_messages'] = True
+
+    return render(request, 'teams/activity.html', context)

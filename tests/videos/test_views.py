@@ -25,7 +25,7 @@ from BeautifulSoup import BeautifulSoup
 from babelsubs.storage import SubtitleSet, diff
 from django.core import mail
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import ObjectDoesNotExist
 from django.test import TestCase
 
@@ -101,8 +101,7 @@ class TestViews(WebUseTest):
         except Video.DoesNotExist:
             self.fail()
 
-        self.assertEqual(response['Location'], 'http://testserver' +
-                                               video.get_absolute_url())
+        self.assertEqual(response['Location'], video.get_absolute_url())
 
     def test_video_url_remove(self):
         test_utils.invalidate_widget_video_cache.run_original_for_test()

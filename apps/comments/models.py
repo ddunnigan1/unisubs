@@ -18,8 +18,8 @@
 
 from django.db import models
 from django.template.loader import render_to_string
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 from auth.models import CustomUser as User, Awards
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -34,7 +34,7 @@ class Comment(models.Model):
     content_type = models.ForeignKey(ContentType,
             related_name="content_type_set_for_%(class)s")
     object_pk = models.TextField('object ID')
-    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    content_object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
     user = models.ForeignKey(User)
     reply_to = models.ForeignKey('self', blank=True, null=True)
     content = models.TextField('comment', max_length=COMMENT_MAX_LENGTH)

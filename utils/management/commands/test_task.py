@@ -1,4 +1,3 @@
-# Amara, universalsubtitles.org
 #
 # Copyright (C) 2017 Participatory Culture Foundation
 #
@@ -22,15 +21,19 @@ from django.core.management.base import BaseCommand
 
 from utils import tasks
 
-
 class Command(BaseCommand):
     help = u'Run a test task'
-    option_list = BaseCommand.option_list + (
-        make_option('-n', '--number', default=1,
-                    type=int, help='Number of tasks to run'),
-        make_option('-q', '--queue', dest='queue', default='default',
-                    help='Choose queue to run it in'),
-    )
+
+    def add_arguments(self, parser):
+        parser.add_argument('-n', '--number', default=1,
+                    type=int, help='Number of tasks to run')
+        parser.add_argument('-d', '--delay', default=None,
+                    type=int, help='Seconds to delay the execution')
+
     def handle(self, **options):
         for i in range(options['number']):
-            tasks.test.apply_async(queue=options['queue'])
+            if options['delay'] is None:
+                job = tasks.test.delay()
+            else:
+                job = tasks.test.enqueue_in(options['delay'])
+            print 'Job: {}'.format(job.id)

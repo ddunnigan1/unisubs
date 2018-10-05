@@ -27,9 +27,8 @@ the user has allowed email notifications
 """
 import logging
 
-from celery.task import task
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django.template.loader import render_to_string
 from django.contrib.contenttypes.models import ContentType
@@ -40,6 +39,7 @@ from teams.moderation_const import REVIEWED_AND_PUBLISHED, \
      REVIEWED_AND_PENDING_APPROVAL, REVIEWED_AND_SENT_BACK
 from messages.models import Message, SYSTEM_NOTIFICATION
 from utils import send_templated_email
+from utils.taskqueue import job
 from utils.text import fmt
 from utils.translation import get_language_label
 
@@ -53,12 +53,12 @@ def team_sends_notification(team, notification_setting_name):
     from teams.models import Setting
     return not team.settings.filter(key=Setting.KEY_IDS[notification_setting_name]).exists()
 
-@task()
+@job
 def send_new_messages_notifications(message_ids):
     for message_id in message_ids:
         send_new_message_notification(message_id)
 
-@task()
+@job
 def send_new_message_notification(message_id):
     from messages.models import Message
     try:
@@ -92,7 +92,7 @@ def send_new_message_notification(message_id):
     subject = fmt(subject, author=message.author, subject=message.subject)
     send_templated_email(user, subject, template_name, context)
 
-@task()
+@job
 def team_invitation_sent(invite_pk):
     from messages.models import Message
     from teams.models import Invite, Setting, TeamMember
@@ -140,7 +140,7 @@ def team_invitation_sent(invite_pk):
     template_name = 'messages/email/team-you-have-been-invited.html'
     return send_templated_email(invite.user, title, template_name, context)
 
-@task()
+@job
 def application_sent(application_pk):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
@@ -179,7 +179,7 @@ def application_sent(application_pk):
     return True
 
 
-@task()
+@job
 def team_application_denied(application_pk):
 
     if getattr(settings, "MESSAGES_DISABLED", False):
@@ -210,7 +210,7 @@ def team_application_denied(application_pk):
         msg.save()
     send_templated_email(application.user, subject, template_name, context)
 
-@task()
+@job
 def team_member_new(member_pk):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
@@ -288,7 +288,7 @@ def team_member_new(member_pk):
     template_name = "messages/email/team-welcome.html"
     send_templated_email(msg.user, msg.subject, template_name, context)
 
-@task()
+@job
 def team_member_leave(team_pk, user_pk):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
@@ -344,7 +344,7 @@ def team_member_leave(team_pk, user_pk):
     template_name = "messages/email/team-member-you-have-left.html"
     send_templated_email(user, subject, template_name, context)
 
-@task()
+@job
 def team_member_promoted(team_pk, user_pk, new_role):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
@@ -388,7 +388,7 @@ def team_member_promoted(team_pk, user_pk, new_role):
         template_name = 'messages/email/team-member-promoted.html'
         send_templated_email(user, title, template_name, context)
 
-@task()
+@job
 def email_confirmed(user_pk):
     from messages.models import Message
     user = User.objects.get(pk=user_pk)
@@ -407,7 +407,7 @@ def email_confirmed(user_pk):
     send_templated_email(user, subject, template_name, context )
     return True
 
-@task()
+@job
 def videos_imported_message(user_pk, imported_videos):
     from messages.models import Message
     user = User.objects.get(pk=user_pk)
@@ -432,7 +432,7 @@ def videos_imported_message(user_pk, imported_videos):
     template_name = "messages/email/videos-imported.html"
     send_templated_email(user, subject, template_name, context)
 
-@task()
+@job
 def team_task_assigned(task_pk):
     from teams.models import Task
     from messages.models import Message
@@ -568,19 +568,19 @@ def _reviewed_notification(task_pk, status):
 
     return msg, email_res
 
-@task
+@job
 def reviewed_and_published(task_pk):
     return _reviewed_notification(task_pk, REVIEWED_AND_PUBLISHED)
 
-@task
+@job
 def reviewed_and_pending_approval(task_pk):
     return _reviewed_notification(task_pk, REVIEWED_AND_PENDING_APPROVAL)
 
-@task
+@job
 def reviewed_and_sent_back(task_pk):
     return _reviewed_notification(task_pk, REVIEWED_AND_SENT_BACK)
 
-@task
+@job
 def approved_notification(task_pk, published=False):
     """
     On approval, it can be sent back (published=False) or
@@ -666,7 +666,7 @@ def approved_notification(task_pk, published=False):
 
             email_res =  send_templated_email(user, subject, template_html, context)
 
-@task
+@job
 def send_reject_notification(task_pk, sent_back):
     raise NotImplementedError()
     from teams.models import Task
@@ -729,7 +729,7 @@ def send_reject_notification(task_pk, sent_back):
     return msg, email_res
 
 COMMENT_MAX_LENGTH = getattr(settings,'COMMENT_MAX_LENGTH', 3000)
-@task
+@job
 def send_video_comment_notification(comment_pk_or_instance, version_pk=None):
     """
     Comments can be attached to a video (appear in the videos:video (info)) page) OR

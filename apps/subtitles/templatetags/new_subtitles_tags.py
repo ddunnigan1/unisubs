@@ -19,7 +19,7 @@
 import string
 
 from django import template
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
@@ -107,7 +107,7 @@ def render_subtitles(subtitle_version):
     parts.append(u'</ul>')
     return mark_safe(u"\n".join(parts))
 
-@register.simple_tag
+@register.assignment_tag
 def subtitle_download_url(version, format_name):
     filename = '.'.join([
         version.video.get_download_filename(),

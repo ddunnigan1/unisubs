@@ -181,8 +181,8 @@ def get_label_for_value(form, name):
     return value
 
 class Dropdown(forms.Select):
-    def build_attrs(self, extra_attrs=None, **kwargs):
-        attrs = super(Dropdown, self).build_attrs(extra_attrs, **kwargs)
+    def build_attrs(self, *args, **kwargs):
+        attrs = super(Dropdown, self).build_attrs(*args, **kwargs)
         if 'class' in attrs:
             attrs['class'] += ' select'
         else:

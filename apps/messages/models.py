@@ -22,13 +22,14 @@ from django.db import models
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext, ugettext_lazy as _
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 from django.conf import settings
 from django.db.models.signals import post_save
-from django.core.urlresolvers import reverse
-from django.utils.html import escape, urlize
+from django.urls import reverse
+from django.utils.html import escape
 from django.db.models import Q
+import bleach
 
 from auth.models import CustomUser as User
 MESSAGE_MAX_LENGTH = getattr(settings,'MESSAGE_MAX_LENGTH', 1000)
@@ -112,7 +113,7 @@ class Message(models.Model):
     content_type = models.ForeignKey(ContentType, blank=True, null=True,
             related_name="content_type_set_for_%(class)s")
     object_pk = models.TextField('object ID', blank=True, null=True)
-    object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
     objects = MessageManager()
     thread = models.PositiveIntegerField(blank=True, null=True, db_index=True)
@@ -189,12 +190,7 @@ class Message(models.Model):
                 escaped_content = self.content
             else:
                 escaped_content = escape(self.content)
-            try:
-                my_content_with_links = urlize(escaped_content)
-            except ValueError:
-                # urlize() throws a value error on some input.  In that case,
-                # just skip the call.  See #2162
-                my_content_with_links = escaped_content
+            my_content_with_links = bleach.linkify(escaped_content)
             content.append(my_content_with_links.replace('\n', '<br />'))
             content.append('\n')
 

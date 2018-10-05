@@ -12,13 +12,12 @@ workers = ${WORKERS}
 harakiri = 45
 max-requests = 5000
 memory-report
-http-socket = 0.0.0.0:8000
+http11-socket = 0.0.0.0:8000
 add-header = Node: $HOSTNAME
 die-on-term = true
 enable-threads = true
 enable-metrics
 buffer-size = 32768
-reload-on-as = 512
 no-orphans = true
 vacuum = true
 disable-logging

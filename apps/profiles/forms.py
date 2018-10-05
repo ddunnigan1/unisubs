@@ -66,25 +66,6 @@ class SelectLanguageForm(forms.Form):
             else:
                 return map(languages.sort(key=lambda x: x["priority"]), lambda x: x["language"])
 
-class UserLanguageForm(forms.ModelForm):
-
-    class Meta:
-        model = UserLanguage
-
-    def __init__(self, *args, **kwrags):
-        super(UserLanguageForm, self).__init__(*args, **kwrags)
-        self.fields['language'].choices = get_language_choices(True)
-
-class UserLanguagelineFormSet(BaseInlineFormSet):
-
-    def _construct_form(self, i, **kwargs):
-        try:
-            return super(UserLanguagelineFormSet, self)._construct_form(i, **kwargs)
-        except (IndexError, ValueError):
-            return BaseFormSet._construct_form(self, i, **kwargs)
-
-UserLanguageFormset = inlineformset_factory(User, UserLanguage, UserLanguageForm, UserLanguagelineFormSet, extra=1)
-
 class SendMessageForm(forms.Form):
     email = forms.EmailField()
     message = forms.CharField()

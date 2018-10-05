@@ -6,7 +6,7 @@
         {% endif %}
     {% endfor %}
     <div>
-        {% if not is_authnticated %}
+        {% if not is_authenticated %}
         <div class="login-for-comment">
             <a href="{% url "auth:login" %}?next={{ next_page }}">Login to post a comment</a> 
         </div>
@@ -21,7 +21,7 @@
 </form>
 <script type="text/javascript">
 jQuery(document).ready(function($){
-    var IS_AUTHENTICATED = '{{ is_authnticated }}' == 'True';
+    var IS_AUTHENTICATED = {% if is_authenticated %}true{% else %}false{% endif %};
     
     function login_callback(){
         $('.login-for-comment').show();

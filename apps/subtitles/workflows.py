@@ -358,6 +358,14 @@ class VideoWorkflow(object):
         """
         raise NotImplementedError()
 
+    def user_can_create_new_subtitles(self, user):
+        """Check if a user can add a new SubtitleLanguage to the video
+
+        Returns:
+            True/False
+        """
+        raise NotImplementedError()
+
     def get_add_language_mode(self, user):
         """Control the add new language section of the video page
 
@@ -955,6 +963,9 @@ class DefaultVideoWorkflow(VideoWorkflow):
         return True
 
     def user_can_edit_video(self, user):
+        return True
+
+    def user_can_create_new_subtitles(self, user):
         return True
 
     def get_default_language_workflow(self, language_code):

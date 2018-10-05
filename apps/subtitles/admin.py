@@ -20,7 +20,7 @@
 
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from subtitles.models import (get_lineage, SubtitleLanguage,
                                    SubtitleVersion)
 

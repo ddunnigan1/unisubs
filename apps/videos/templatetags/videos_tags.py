@@ -18,8 +18,9 @@
 import functools
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.template.loader import render_to_string
+from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from django.utils.translation import get_language
@@ -41,7 +42,7 @@ def cached_by_video(cache_prefix):
             cache_key = '{}-{}'.format(cache_prefix, get_language())
             cached = video.cache.get(cache_key)
             if cached:
-                return cached
+                return mark_safe(cached)
             computed = func(video, *args, **kwargs)
             video.cache.set(cache_key, computed)
             return computed
@@ -206,38 +207,38 @@ def multi_video_create_subtitles_data_attrs(video):
 def language_list(video):
     video.prefetch_languages(with_public_tips=True,
                              with_private_tips=True)
-    return render_to_string('videos/_language-list.html', {
+    return mark_safe(render_to_string('videos/_language-list.html', {
         'video': video,
         'language_list': LanguageList(video),
         'STATIC_URL': utils.static_url(),
-    })
+    }))
 
 @register.simple_tag(name='embedder-code')
 @cached_by_video('embedder-code')
 def embedder_code(video):
     video.prefetch_languages(with_public_tips=True,
                              with_private_tips=True)
-    return render_to_string('videos/_embed_link.html', {
+    return mark_safe(render_to_string('videos/_embed_link.html', {
         'video_url': video.get_video_url(),
         'team': video.get_team(),
         'height': video_size["large"]["height"],
         'width': video_size["large"]["width"],
-    })
+    }))
 
 @register.simple_tag(name='video-metadata', takes_context=True)
 def video_metadata(context, video):
     request = context['request']
     metadata = video.get_metadata_for_locale(request.LANGUAGE_CODE)
-    return "\n".join(
-        u'<h4>{0}: {1}</h4>'.format(field['label'], field['content'])
+    return format_html_join(u'\n', u'<h4>{0}: {1}</h4>', [
+        (field['label'], field['content'])
         for field in metadata.convert_for_display()
-    )
+    ])
 
 @register.simple_tag(name='sharing-widget-for-video')
 @cached_by_video('sharing-widget')
 def sharing_widget_for_video(video):
     context = share_utils.share_panel_context_for_video(video)
-    content = render_to_string('_sharing_widget.html', context)
+    content = mark_safe(render_to_string('_sharing_widget.html', context))
     return content
 
 @register.filter

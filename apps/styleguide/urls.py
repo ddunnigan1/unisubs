@@ -16,10 +16,15 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import *
+from __future__ import absolute_import
 
-urlpatterns = patterns(
-    'styleguide.views',
-    url(r'^$', 'styleguide', name='styleguide'),
-    url(r'^member-search$', 'member_search', name='member_search'),
-)
+from django.conf.urls import url
+
+from styleguide import views
+
+urlpatterns = [
+    url(r'^$', views.home, name='styleguide'),
+    url(r'^member-search$', views.member_search, name='member_search'),
+    url(r'^filter-box$', views.filter_box, name='filter-box'),
+    url(r'^(?P<section_id>[\w-]+)$', views.section, name='section'),
+]

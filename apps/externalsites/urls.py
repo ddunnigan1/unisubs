@@ -16,16 +16,18 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
-urlpatterns = patterns('externalsites.views',
-    url(r'^resync/(?P<video_url_id>\d+)/(?P<language_code>[\w-]+)/$', 'resync', name='resync'),
-    url(r'^youtube-add-account/', 'youtube_add_account',
+from externalsites import views
+
+urlpatterns = [
+    url(r'^resync/(?P<video_url_id>\d+)/(?P<language_code>[\w-]+)/$', views.resync, name='resync'),
+    url(r'^youtube-add-account/', views.youtube_add_account,
         name='youtube-add-account'),
-    url(r'^vimeo-add-account/', 'vimeo_add_account',
+    url(r'^vimeo-add-account/', views.vimeo_add_account,
         name='vimeo-add-account'),
-    url(r'^vimeo-login-done/', 'vimeo_login_done', name='vimeo-login-done'),
-    url(r'^google-callback/', 'google_callback', name='google-callback'),
-    url(r'^google-login/', 'google_login', name='google-login'),
-    url(r'^google-login-confirm/', 'google_login', {'confirmed': False}, name='google-login-confirm'),
-)
+    url(r'^vimeo-login-done/', views.vimeo_login_done, name='vimeo-login-done'),
+    url(r'^google-callback/', views.google_callback, name='google-callback'),
+    url(r'^google-login/', views.google_login, name='google-login'),
+    url(r'^google-login-confirm/', views.google_login, {'confirmed': False}, name='google-login-confirm'),
+]

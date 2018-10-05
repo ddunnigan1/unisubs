@@ -207,6 +207,7 @@ class EmailInviteFormTest(TestCase):
         self.form.cleaned_data = {}
         self.form.cleaned_data['role'] = TeamMember.ROLE_CONTRIBUTOR
         self.form.cleaned_data['message'] = ''
+        self.form.cleaned_data['username'] = ''
 
     '''
     Test for when an email invite is sent to an email address
@@ -215,13 +216,41 @@ class EmailInviteFormTest(TestCase):
     def test_email_recipient_is_already_registered(self):
         user = UserFactory()
         self.form.cleaned_data['email'] = user.email
-        self.form.process_emails()        
-        assert_true(user.team_invitations.filter(pk=self.team.pk).exists())
+        self.form.process_email_invite(user.email)        
+        assert_true(user.team_invitations.filter(team=self.team).exists())
 
     def test_email_receipient_has_no_account(self):
         user = UserFactory()
         email = user.email
         user.delete()
         self.form.cleaned_data['email'] = email
-        self.form.process_emails()
+        self.form.process_email_invite(self.form.cleaned_data['email'])
         assert_true(EmailInvite.objects.filter(email=email).exists())
+
+    def test_multiple_email_recipients_are_already_registered(self):
+        user1 = UserFactory()
+        user2 = UserFactory()
+        user3 = UserFactory()
+        emails = [ user1.email, user2.email, user3.email ]
+        self.form.emails = emails
+        self.form.save()
+
+        assert_true(user1.team_invitations.filter(team=self.team).exists())
+        assert_true(user2.team_invitations.filter(team=self.team).exists())
+        assert_true(user3.team_invitations.filter(team=self.team).exists())
+
+    def test_multiple_email_recipients_no_account(self):
+        user1 = UserFactory()
+        user2 = UserFactory()
+        user3 = UserFactory()
+        user1.delete()
+        user2.delete()
+        user3.delete()
+        emails = [ user1.email, user2.email, user3.email ]
+        self.form.emails = emails
+        self.form.save()
+
+        assert_true(EmailInvite.objects.filter(email=user1.email).exists())
+        assert_true(EmailInvite.objects.filter(email=user2.email).exists())
+        assert_true(EmailInvite.objects.filter(email=user3.email).exists())
+        

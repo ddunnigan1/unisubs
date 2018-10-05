@@ -456,8 +456,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
             qs = video.activity.original()
         else:
             qs = ActivityRecord.objects.for_api_user(self.request.user)
-        return qs.select_related(
-                'video', 'user', 'language', 'language__video')
+        return qs.select_related('video', 'user', 'team')
 
     def filter_queryset(self, queryset):
         params = self.request.query_params

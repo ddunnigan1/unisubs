@@ -31,9 +31,9 @@ from django.db import migrations
 
 class ConvertLegacyIndexTogether(migrations.AlterIndexTogether):
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
-        new_apps = to_state.render()
+        new_apps = to_state.apps
         new_model = new_apps.get_model(app_label, self.name)
-        if not self.allowed_to_migrate(schema_editor.connection.alias, new_model):
+        if not self.allow_migrate_model(schema_editor.connection.alias, new_model):
             return
 
         migrated_indexes = []
@@ -87,7 +87,7 @@ class ConvertLegacyIndexTogether(migrations.AlterIndexTogether):
         return True
 
     def field_to_column(self, model, field):
-        return model._meta.get_field_by_name(field)[0].column
+        return model._meta.get_field(field).column
 
     def rename_index(self, schema_editor, model, old_name, new_name):
         schema_editor.execute("ALTER TABLE {} RENAME INDEX {} to {}".format(

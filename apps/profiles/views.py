@@ -24,10 +24,10 @@ from itertools import groupby
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import  reverse
 from django.db.models import Q
 from django.http import Http404, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import force_unicode
 
@@ -175,7 +175,7 @@ def videos(request, user_id):
     qs = Video.objects.filter(user=user).order_by('-edited')
     if not (request.user == user or request.user.is_superuser):
         qs = qs.filter(is_public=True)
-    q = request.REQUEST.get('q')
+    q = request.GET.get('q')
 
     if q:
         qs = qs.filter(Q(title__icontains=q)|Q(description__icontains=q))
@@ -185,7 +185,7 @@ def videos(request, user_id):
         'query': q
     }
 
-    qs = qs._clone(OptimizedQuerySet)
+    qs = qs._clone()
 
     return object_list(request, queryset=qs,
                        paginate_by=VIDEOS_ON_PAGE,

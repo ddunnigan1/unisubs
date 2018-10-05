@@ -22,15 +22,17 @@
 #  link context.  For usage documentation see:
 #
 #     http://www.tummy.com/Community/Articles/django-pagination/
-from django.conf.urls import patterns, url
-from messages.views import rpc_router
 
-urlpatterns = patterns('messages.views',
-    url(r'^$', 'inbox', name='inbox'),
-    url(r'^sent/$', 'sent', name='sent'),
-    url(r'^new/$', 'new', name='new'),
-    url(r'^message/(?P<message_id>[\w-]+)$', 'message', name='message'),
-    url(r'^router/$', rpc_router, name='rpc_router'),
-    url(r'^router/api/$', rpc_router.api, name='rpc_api'),    
-    url(r'^users/search/$', 'search_users', name='search_users'),
-)
+from django.conf.urls import url
+
+from messages import views
+
+urlpatterns = [
+    url(r'^$', views.inbox, name='inbox'),
+    url(r'^sent/$', views.sent, name='sent'),
+    url(r'^new/$', views.new, name='new'),
+    url(r'^message/(?P<message_id>[\w-]+)$', views.message, name='message'),
+    url(r'^router/$', views.rpc_router, name='rpc_router'),
+    url(r'^router/api/$', views.rpc_router.api, name='rpc_api'),    
+    url(r'^users/search/$', views.search_users, name='search_users'),
+]

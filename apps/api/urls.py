@@ -17,7 +17,7 @@
 
 from __future__ import absolute_import
 
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url
 from rest_framework import routers
 
 from . import views
@@ -46,7 +46,7 @@ router.register(r'users', views.users.UserViewSet, base_name='users')
 router.register(r'activity', views.activity.ActivityViewSet,
                 base_name='activity')
 
-urlpatterns = router.urls + patterns('',
+urlpatterns = router.urls + [
     url(r'^$', views.index.index, name='index'),
     url(r'videos/(?P<video_id>[\w\d]+)/activity/$',
         views.activity.VideoActivityView.as_view(), name='video-activity'),
@@ -80,4 +80,4 @@ urlpatterns = router.urls + patterns('',
         views.activity.UserActivityView.as_view(), name='user-activity'),
     url(r'teams/(?P<slug>[\w\d-]+)/activity/$',
         views.activity.TeamActivityView.as_view(), name='team-activity'),
-)
+]

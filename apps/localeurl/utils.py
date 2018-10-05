@@ -2,8 +2,8 @@
 # Licensed under the terms of the MIT License (see LICENSE.txt)
 
 import re
+from django import urls
 from django.conf import settings
-from django.core import urlresolvers
 import localeurl.settings
 
 SUPPORTED_LOCALES = dict(settings.LANGUAGES)
@@ -108,7 +108,7 @@ def locale_url(path, locale=''):
     the locale is empty settings.LANGUAGE_CODE is used.
     """
     path = locale_path(path, locale)
-    return ''.join([urlresolvers.get_script_prefix(), path[1:]])
+    return ''.join([urls.get_script_prefix(), path[1:]])
 
 
 def universal_url(*args, **kwargs):
@@ -122,7 +122,7 @@ def universal_url(*args, **kwargs):
     else:
         protocol = DEFAULT_PROTOCOL
     try:
-        original = urlresolvers.reverse(*args, **kwargs)
+        original = urls.reverse(*args, **kwargs)
     except Exception :
         logger.exception("Failed to resolve universal url") 
         return

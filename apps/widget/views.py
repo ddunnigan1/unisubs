@@ -24,10 +24,10 @@ import babelsubs
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import ObjectDoesNotExist
 from django.http import HttpResponse, Http404, HttpResponseServerError, HttpResponseRedirect
-from django.shortcuts import (render, render_to_response, redirect,
+from django.shortcuts import (render, render, redirect,
                               get_object_or_404)
 from django.template import RequestContext
 from django.template.defaultfilters import urlize, linebreaks, force_escape
@@ -70,10 +70,9 @@ def embed(request, version_no=''):
 
     if bool(version_no) is False:
         version_no = ""
-    return render_to_response(
+    return render(request,
         'widget/embed{0}.js'.format(version_no),
         context,
-        context_instance=RequestContext(request),
         content_type='text/javascript')
 
 @csrf_exempt
@@ -117,11 +116,10 @@ def widgetizerbootloader(request):
         "gatekeeper": "UnisubsWidgetizerLoaded",
         "script_src": widget.full_path("js/widgetizer/dowidgetize.js")
         }
-    return render_to_response(
+    return render(request,
         "widget/widgetizerbootloader.js",
         context,
-        content_type='text/javascript',
-        context_instance=RequestContext(request))
+        content_type='text/javascript')
 
 def onsite_widget(request):
     """Used for subtitle dialog"""
@@ -179,9 +177,7 @@ def onsite_widget(request):
     general_settings = {}
     add_general_settings(request, general_settings)
     context['general_settings'] = json.dumps(general_settings)
-    response = render_to_response('widget/onsite_widget.html',
-                              context,
-                              context_instance=RequestContext(request))
+    response = render(request, 'widget/onsite_widget.html', context)
     response['X-XSS-Protection'] = '0'
     return response
 
@@ -205,16 +201,12 @@ def onsite_widget_resume(request):
     general_settings = {}
     add_general_settings(request, general_settings)
     context['general_settings'] = json.dumps(general_settings)
-    return render_to_response('widget/onsite_widget_resume.html',
-                              context,
-                              context_instance=RequestContext(request))
+    return render(request, 'widget/onsite_widget_resume.html', context)
 
 @staff_member_required
 def save_emailed_translations(request):
     if request.method == "GET":
-        return render_to_response(
-            'widget/save_emailed_translations.html',
-            context_instance=RequestContext(request))
+        return render(request, 'widget/save_emailed_translations.html')
     else:
         session = SubtitlingSession.objects.get(pk=request.POST['session_pk'])
         user = CustomUser.objects.get(pk=request.POST['user_pk'])
@@ -360,9 +352,8 @@ def xd_rpc(request, method_name, null=False):
         'request_id' : request.POST['xdpe:request-id'],
         'dummy_uri' : request.POST['xdpe:dummy-uri'],
         'response_json' : json.dumps(result) }
-    return render_to_response('widget/xd_rpc_response.html',
-                              widget.add_offsite_js_files(params),
-                              context_instance = RequestContext(request))
+    return render(request, 'widget/xd_rpc_response.html',
+                  widget.add_offsite_js_files(params))
 
 def jsonp(request, method_name, null=False):
     callback = request.GET.get('callback', 'callback')

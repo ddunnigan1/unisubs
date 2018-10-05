@@ -4,13 +4,13 @@ from time import time
 from uuid import uuid4
 import os
 
-from boto.s3.connection import S3Connection
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models.fields.files import FieldFile
 from easy_thumbnails.processors import scale_and_crop
 from PIL import Image
+from storages.backends.s3boto3 import S3Boto3Storage
 
 THUMB_SIZES = getattr(settings, 'THUMBNAILS_SIZE', ())
 
@@ -23,7 +23,10 @@ class S3ImageFieldFile(FieldFile):
         name = self._get_thumbnail_name(size)
 
         if not settings.USE_AMAZON_S3 and not self.storage.exists(name):
-            self._create_thumbnail(self._open_image(), size)
+            try:
+                self._create_thumbnail(self._open_image(), size)
+            except IOError:
+                pass
         return self.storage.url(name)
 
     def _open_image(self):
@@ -112,7 +115,7 @@ class S3ImageFieldFile(FieldFile):
         self._size = len(content)
         self._committed = True
 
-        content.seek(0)
+        content = self.storage.open(self.name)
         self._create_all_thumbnails(Image.open(content))
 
         # Save the object because it has changed, unless save is False
@@ -151,44 +154,25 @@ class S3EnabledImageField(models.ImageField):
     def __init__(self, bucket=settings.AWS_USER_DATA_BUCKET_NAME,
                  thumb_sizes=THUMB_SIZES, verbose_name=None, name=None,
                  width_field=None, height_field=None, legacy_filenames=True,
-                 **kwargs):
+                 acl='public-read', **kwargs):
         self.thumb_sizes = thumb_sizes
         self.bucket_name = bucket
         self.legacy_filenames = legacy_filenames
 
         if settings.USE_AMAZON_S3:
-            self.connection = S3Connection(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
-
-            if self.bucket_name == settings.AWS_USER_DATA_BUCKET_NAME:
-                from utils.amazon import default_s3_store
-                storage = default_s3_store
-                self.bucket = storage.bucket
-            else:
-                from utils.amazon import S3Storage
-                if not self.connection.lookup(bucket):
-                    self.connection.create_bucket(bucket)
-                self.bucket = self.connection.get_bucket(bucket)
-                storage = S3Storage(self.bucket)
-
-            kwargs['storage'] = storage
+            kwargs['storage'] = S3Boto3Storage(bucket_name=self.bucket_name,
+                                               default_acl=acl,
+                                               querystring_auth=False)
         super(S3EnabledImageField, self).__init__(verbose_name, name, width_field, height_field, **kwargs)
 
 class S3EnabledFileField(models.FileField):
-    def __init__(self, bucket=settings.AWS_USER_DATA_BUCKET_NAME, verbose_name=None, name=None, upload_to='', storage=None, **kwargs):
+    def __init__(self, bucket=settings.AWS_USER_DATA_BUCKET_NAME,
+                 verbose_name=None, name=None, upload_to='', storage=None,
+                 acl='public-read', **kwargs):
         self.bucket_name = bucket
 
         if settings.USE_AMAZON_S3:
-            self.connection = S3Connection(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
-
-            if self.bucket_name == settings.AWS_USER_DATA_BUCKET_NAME:
-                from utils.amazon import default_s3_store
-                storage = default_s3_store
-                self.bucket = storage.bucket
-            else:
-                from utils.amazon import S3Storage
-
-                if not self.connection.lookup(bucket):
-                    self.connection.create_bucket(bucket)
-                self.bucket = self.connection.get_bucket(bucket)
-                storage = S3Storage(self.bucket)
+            storage = S3Boto3Storage(bucket_name=self.bucket_name,
+                                     default_acl=acl,
+                                     querystring_auth=False)
         super(S3EnabledFileField, self).__init__(verbose_name, name, upload_to, storage, **kwargs)

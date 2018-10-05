@@ -38,6 +38,7 @@ the kind of activity and customizes the message we display for it.
 from __future__ import absolute_import
 
 from django.db import models
+from django.core import exceptions
 
 class Code(object):
     """A possible code for a CodeField"""
@@ -67,8 +68,6 @@ class CodeField(models.PositiveSmallIntegerField):
       - foo_obj: instance of the Code subclass
     """
 
-    __metaclass__ = models.SubfieldBase
-
     # DB Storage:
     #  We have a small int field, which means we can store values 0-65535.  We
     #  use the first two decimal digits to for the ext_id, then the next 3
@@ -83,6 +82,7 @@ class CodeField(models.PositiveSmallIntegerField):
         self.slug_to_value = {} # map slugs to DB values
         self.current_ext_ids = set()
         self.code_list = []
+        self._choices = []
         if choices is not None:
             self._validate_choices(choices)
             self._add_choices(0, choices)
@@ -164,11 +164,9 @@ class CodeField(models.PositiveSmallIntegerField):
         setattr(cls, code_attr_name, get_code_value)
         setattr(cls, obj_attr_name, get_code_obj)
 
-    def to_python(self, value):
+    def from_db_value(self, value, expression, connection, context):
         if value is None:
             return None
-        if isinstance(value, basestring):
-            return value
         try:
             return self.value_to_code[value].slug
         except KeyError:
@@ -178,6 +176,17 @@ class CodeField(models.PositiveSmallIntegerField):
             if isinstance(value, (int, long)):
                 return value
             return 'unknown-code-{}'.format(value)
+
+    def to_python(self, value):
+        if value is None:
+            return None
+        elif isinstance(value, (int, long)):
+            return self.value_to_code[value].slug
+        elif isinstance(value, basestring):
+            return value
+        else:
+            raise exceptions.ValidationError(
+                'Bad type for CodeField: {}'.format(value))
 
     def get_prep_value(self, value):
         if value is None:

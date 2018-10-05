@@ -27,7 +27,7 @@ app does is serve up an index page that links to pages created by other apps.
 
 import collections
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 StaffLink = collections.namedtuple('StaffLink', 'section title index_view')

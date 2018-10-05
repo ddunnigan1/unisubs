@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from auth.models import CustomUser as User
 from utils.graphing import plot
 from utils import DEFAULT_PROTOCOL

@@ -27,26 +27,25 @@ import time
 
 class Command(BaseCommand):
     help = "Recreate thumbnails for videos"
-    option_list = BaseCommand.option_list + (
-        make_option('-a', '--all', dest='all', default=False,
-                    action='store_true'),
-    )
 
-    def handle(self, *args, **options):
-        for video in self.lookup_videos(args, options):
+    def add_arguments(self, parser):
+        parser.add_argument('target', help='Team, Video ID, or "all"')
+
+    def handle(self, **options):
+        for video in self.lookup_videos(options['target']):
             try:
                 video.s3_thumbnail.recreate_all_thumbnails()
                 print video.title_display()
             except:
                 print '* {}'.format(video.title_display())
 
-    def lookup_videos(self, args, options):
-        if options['all']:
+    def lookup_videos(self, target):
+        if target == 'all':
             return Video.objects.all()
         try:
             # First try looking up videos by team slug
-            team = Team.objects.get(slug=args[0])
+            team = Team.objects.get(slug=target)
             return team.videos.all()
         except Team.DoesNotExist:
             # Fall back to Video ID
-            return Video.objects.filter(video_id=args[0])
+            return Video.objects.filter(video_id=target)

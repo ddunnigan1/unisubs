@@ -20,8 +20,9 @@ from __future__ import absolute_import
 
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import to_locale
 from utils.translation import get_language_label
 
@@ -36,22 +37,22 @@ def media_bundle(context, bundle_name):
                                                        'editor.css'):
         return experimental_editor_tag(bundle_name)
     bundle = bundles.get_bundle(bundle_name)
-    return bundle.get_html()
+    return mark_safe(bundle.get_html())
 
 def experimental_editor_tag(bundle_name):
     # somewhat hacky code to handle the experimental editor
-    if not settings.STATIC_MEDIA_USES_S3:
-        raise AssertionError("Can't use the experimental editor "
-                             "without STATIC_MEDIA_USES_S3 set")
     if bundle_name == 'editor.js':
-        url = "{}experimental/js/editor.js".format(utils.static_url())
+        url = "https://s3.amazonaws.com/{}/experimental/js/editor.js".format(
+            settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET)
         return format_html('<script src="{}"></script>', url)
     elif bundle_name == 'editor.css':
-        url = "{}experimental/css/editor.css".format(utils.static_url())
-        return '<link href="{}" rel="stylesheet" type="text/css" />'.format(
-            url)
+        url = "https://s3.amazonaws.com/{}/experimental/css/editor.css".format(
+            settings.STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET)
+        return format_html(
+            '<link href="{}" rel="stylesheet" type="text/css" />', url)
     else:
         raise ValueError("Unkown bundle name: {}").format(bundle_name)
+
 
 @register.simple_tag
 def url_for(bundle_name):
@@ -68,7 +69,7 @@ def js_i18n_catalog(context):
         src = utils.static_url() + 'jsi18catalog/{}.js'.format(locale)
     else:
         src = reverse('staticmedia:js_i18n_catalog', args=(locale,))
-    return '<script type="text/javascript" src="{}"></script>'.format(src)
+    return format_html('<script type="text/javascript" src="{}"></script>', src)
 
 @register.simple_tag(takes_context=True)
 def js_language_data(context):
@@ -77,7 +78,7 @@ def js_language_data(context):
         src = utils.static_url() + 'jslanguagedata/{}.js'.format(locale)
     else:
         src = reverse('staticmedia:js_language_data', args=(locale,))
-    return '<script type="text/javascript" src="{}"></script>'.format(src)
+    return format_html('<script type="text/javascript" src="{}"></script>', src)
 
 @register.simple_tag(takes_context=True)
 def current_language_name(context):

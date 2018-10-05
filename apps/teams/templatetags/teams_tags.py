@@ -26,12 +26,10 @@ from videos.models import Video
 from widget import video_cache
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _, ngettext
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.http import urlencode, urlquote
 from widget.views import base_widget_params
 
-from templatetag_sugar.register import tag
-from templatetag_sugar.parser import Name, Variable, Constant
 from teams.models import Application
 from utils.text import fmt
 
@@ -198,20 +196,6 @@ def team_metrics(team, member, projects):
         'metrics': metrics,
     }
 
-@tag(register, [])
-def share_panel_email_url(context):
-    project = context.get('project')
-    team = context.get('team')
-
-    if not project:
-        message = 'Check out the "%s" team on Amara: %s' % (team.name, team.get_site_url())
-        share_panel_email_url = "%s?%s" % (share_panel_email_url, urlencode({'text': message}))
-    else:
-        message = 'Check out the "%s" project on Amara: %s' % (project.name, project.get_site_url())
-        share_panel_email_url = "%s?%s" % (share_panel_email_url, urlencode({'text': message}))
-
-    return share_panel_email_url
-
 @register.inclusion_tag('teams/_team_move_video_select.html', takes_context=True)
 def team_move_video_select(context):
     user = context['user']
@@ -294,8 +278,8 @@ def team_video_in_progress_list(team_video_search_record):
         'languages': langs
         }
 
-@tag(register, [Variable(), Constant("as"), Name()])
-def team_projects(context, team, varname):
+@register.simple_tag(takes_context=True)
+def team_projects(context, team):
     """
     Sets the project list on the context, but only the non default
     hidden projects.
@@ -318,15 +302,12 @@ def team_projects(context, team, varname):
     project_video_counts = team.get_project_video_counts()
     for p in projects:
         p.set_videos_count_cache(project_video_counts.get(p.id, 0))
-    context[varname] = projects
-    return ""
+    return projects
 
-@tag(register, [Variable(), Constant("as"), Name()])
+@register.simple_tag
 def member_projects(context, member, varname):
     narrowings = member.narrowings.filter(project__isnull=False)
-    context[varname] = [n.project for n in narrowings]
-    return ""
-
+    return [n.project for n in narrowings]
 
 @register.filter
 def can_view_settings_tab(team, user):
@@ -431,7 +412,7 @@ def can_leave_team(team, user):
 
     return True
 
-@tag(register, [Variable(), Variable()])
+@register.simple_tag(takes_context=True)
 def can_create_any_task_for_teamvideo(context, team_video, user):
     workflows = context.get('team_workflows')
 

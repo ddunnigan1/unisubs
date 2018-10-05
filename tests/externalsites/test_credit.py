@@ -202,7 +202,7 @@ class AddCreditTaskTest(TestCase):
         video_url = video.get_primary_videourl_obj()
         account = YouTubeAccountFactory(
             user=user, channel_id=test_utils.test_video_info.channel_id)
-        tasks.add_amara_credit.apply(args=(video_url.id,))
+        tasks.add_amara_credit(video_url.id)
         # add_amara_credit should get a new access token, then call
         # add_credit_to_video_url()
         self.mock_add_credit_to_video_url.assert_called_with(
@@ -213,7 +213,7 @@ class AddCreditTaskTest(TestCase):
         # (maybe it was deleted after it was scheduled)
         video = YouTubeVideoFactory()
         video_url = video.get_primary_videourl_obj()
-        tasks.add_amara_credit.apply(args=(video_url.id,))
+        tasks.add_amara_credit(video_url.id)
         # add_amara_credit should get a new access token, then call
         # add_credit_to_video_url()
         self.assertEqual(self.mock_add_credit_to_video_url.call_count, 0)

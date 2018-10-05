@@ -22,7 +22,6 @@ import string
 from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.contrib.sites.models import Site
 from urlparse import urlparse
 
 logger = logging.getLogger(__name__)

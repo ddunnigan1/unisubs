@@ -28,19 +28,16 @@ ADMINS = (
 if INSTALLATION == DEV:
     REDIS_DB = "3"
     EMAIL_SUBJECT_PREFIX = '[usubs-dev]'
-    CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)
     GOOGLE_TAG_MANAGER_ID = 'GTM-WDHD7XK'
 elif INSTALLATION == STAGING:
     REDIS_DB = "2"
     SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
     EMAIL_SUBJECT_PREFIX = '[usubs-staging]'
-    CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)
     GOOGLE_TAG_MANAGER_ID = 'GTM-WDHD7XK'
 elif INSTALLATION == PRODUCTION:
     REDIS_DB = "1"
     SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
     EMAIL_SUBJECT_PREFIX = '[usubs-production]'
-    COMPRESS_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     # only send actual email on the production server
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     GOOGLE_ANALYTICS_NUMBER = 'UA-163840-22'
@@ -54,13 +51,8 @@ elif INSTALLATION == DEMO:
 
 if INSTALLATION == STAGING or INSTALLATION == PRODUCTION or INSTALLATION == LOCAL:
     AWS_STORAGE_BUCKET_NAME = DEFAULT_BUCKET
-    COMPRESS_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
 
 TEMPLATE_DEBUG = DEBUG
-
-CELERYD_LOG_LEVEL = 'INFO'
-CELERY_REDIRECT_STDOUTS = True
-CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'
 
 RECAPTCHA_PUBLIC = '6LftU8USAAAAADia-hmK1RTJyqXjFf_T5QzqLE9o'
 
@@ -95,3 +87,9 @@ COMPRESS_MEDIA = not DEBUG
 #  the keyd cache apps need this:
 CACHE_TIMEOUT  = 60
 CACHE_PREFIX  = "unisubscache"
+
+# Grab the SENTRY_DSN for django_rq if we can
+try:
+    SENTRY_DSN = RAVEN_CONFIG['dsn']
+except KeyError, AttributeError:
+    pass

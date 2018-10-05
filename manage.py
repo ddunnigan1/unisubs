@@ -23,17 +23,6 @@ import sys
 import startup
 
 if __name__ == "__main__":
-    # handle the --settings and --python-path options so that django.conf is
-    # setup before we import localeurl.
-    from django.core.management.base import (handle_default_options,
-                                             BaseCommand)
-    from django.core.management import LaxOptionParser, get_version
-    parser = LaxOptionParser(usage="%prog subcommand [options] [args]",
-                             version=get_version(),
-                             option_list=BaseCommand.option_list)
-    options, args = parser.parse_args(sys.argv)
-    handle_default_options(options)
-
     startup.startup()
 
     # start the management command

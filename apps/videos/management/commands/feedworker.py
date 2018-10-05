@@ -41,10 +41,9 @@ class Command(BaseCommand):
     Long-running process that updates our video feeds
     """
 
-    option_list = BaseCommand.option_list + (
-        make_option('-w', '--workers', default=4,
-                    type=int),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('-w', '--workers', default=4, type=int)
+
     def handle(self, *args, **options):
         self.pool = multiprocessing.Pool(options['workers'], init_worker)
         signal.signal(signal.SIGINT, self.terminate)

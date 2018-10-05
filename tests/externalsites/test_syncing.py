@@ -155,16 +155,16 @@ class SubtitleTaskTest(TestCase):
         return rv
 
     def run_update_subtitles(self, language):
-        args = ('K', self.account.id, self.video_url.id, language.id)
-        test_utils.update_subtitles.original_func.apply(args=args)
+        test_utils.update_subtitles.original_func(
+            'K', self.account.id, self.video_url.id, language.id)
 
     def run_delete_subtitles(self, language):
-        args = ('K', self.account.id, self.video_url.id, language.id)
-        test_utils.delete_subtitles.original_func.apply(args=args)
+        test_utils.delete_subtitles.original_func(
+            'K', self.account.id, self.video_url.id, language.id)
 
     def run_update_all_subtitles(self):
-        args = ('K', self.account.id)
-        test_utils.update_all_subtitles.original_func.apply(args=args)
+        test_utils.update_all_subtitles.original_func(
+            'K', self.account.id)
 
     def check_synced_version(self, language, version):
         synced_version = SyncedSubtitleVersion.objects.get(

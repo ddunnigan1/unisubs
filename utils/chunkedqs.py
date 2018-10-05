@@ -20,6 +20,10 @@ def chunkedqs(queryset, size=1000):
     """
     iterate through a queryset one chunk at a time
 
+    Please take note that this yields in order by primary key so 
+    the result might be different from what you expect when you pass in
+    a queryset that is ordered_by something other than the pk
+
     Adapted from https://djangosnippets.org/snippets/1949/
     """
     last_pk = -1
@@ -31,3 +35,27 @@ def chunkedqs(queryset, size=1000):
                 last_pk = obj.pk
         else:
             return
+
+def batch_qs(qs, batch_size=1000):
+    """
+    Iterate through a queryset in batches (similar to chunkedqs)
+    The difference of this with chunkedqs is that this should
+     work properly with ordered querysets
+
+    Please be careful when using this:
+
+    Note that you'll want to order the queryset, as ordering is not guaranteed by the 
+    database and you might end up iterating over some items twice, and some not at all. 
+    Also, if your database is being written to in between the time you start and finish 
+    your script, you might miss some items or process them twice.
+
+    Don't use this for sensitive transactions, i.e. don't use this when you will
+    be modifying results from the queryset
+
+    Slight modification of https://djangosnippets.org/snippets/1170/
+
+    """
+    total = qs.count()
+    for start in range(0, total, batch_size):
+        end = min(start + batch_size, total)
+        yield qs[start:end]

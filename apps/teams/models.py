@@ -21,11 +21,12 @@ from math import ceil
 import csv
 import datetime
 import logging
+from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.files import File
 from django.core.signing import Signer
 from django.db import connection
@@ -50,8 +51,10 @@ from teams.permissions_const import (
     TEAM_PERMISSIONS, PROJECT_PERMISSIONS, ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER,
     ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
+from teams import stats
 from teams import tasks
 from teams import workflows
+from teams import behaviors
 from teams.exceptions import ApplicationInvalidException
 from teams.notifications import BaseNotification
 from teams.signals import (member_leave, api_subtitles_approved,
@@ -76,7 +79,6 @@ from subtitles import pipeline
 from functools import partial
 
 logger = logging.getLogger(__name__)
-celery_logger = logging.getLogger('celery.task')
 
 BILLING_CUTOFF = getattr(settings, 'BILLING_CUTOFF', None)
 
@@ -239,7 +241,7 @@ class Team(models.Model):
     team_visibility = enum.EnumField(enum=TeamVisibility,
                                      default=TeamVisibility.PRIVATE)
     video_visibility = enum.EnumField(enum=VideoVisibility,
-                                       default=VideoVisibility.PRIVATE)
+                                      default=VideoVisibility.PRIVATE)
     sync_metadata = models.BooleanField(_(u'Sync metadata when available (Youtube)?'), default=False)
     videos = models.ManyToManyField(Video, through='TeamVideo',  verbose_name=_('videos'))
     users = models.ManyToManyField(User, through='TeamMember', related_name='teams', verbose_name=_('users'))
@@ -680,14 +682,17 @@ class Team(models.Model):
             - "login" -- user needs to login first
             - None -- user can't join the team
         """
-        if not user.is_authenticated():
-            return 'login'
+        
+        join_mode = behaviors.get_team_join_mode(self, user)
+
+        if self.is_by_invitation():
+            return 'invitation'
+        elif join_mode:
+            return join_mode
         elif self.user_is_member(user):
             return 'already-joined'
         elif self.is_open():
             return 'open'
-        elif self.is_by_invitation():
-            return 'invitation'
         elif self.is_by_application():
             try:
                 application = self.applications.get(user=user)
@@ -737,9 +742,31 @@ class Team(models.Model):
         pending_invites = (Invite.objects
                            .pending_for(team=self)
                            .values_list('user_id'))
-        return (User.objects
+        return (User.objects.real_users()
                 .exclude(team_members__team=self)
-                .exclude(id__in=pending_invites))
+                .exclude(id__in=pending_invites)
+                .exclude(is_active=False))
+
+    def search_invitable_users(self, query):
+        qs = self.invitable_users()
+        valid_term = False
+        for term in [term.strip() for term in query.split()]:
+            if term:
+                valid_term = True
+                try:
+                    sql = """(LOWER(first_name) LIKE %s
+                OR LOWER(last_name) LIKE %s
+                OR LOWER(email) LIKE %s
+                OR LOWER(username) LIKE %s
+                OR LOWER(biography) LIKE %s)"""
+                    term = '%' + term.lower() + '%'
+                    qs = qs.extra(where=[sql], params=[term, term, term, term, term])
+                except Exception as e:
+                    logger.error(e)
+        if valid_term:
+            return qs
+        else:
+            return self.none()
 
     def potential_language_managers(self, language_code):
         member_qs = (TeamMember.objects
@@ -992,7 +1019,7 @@ class Team(models.Model):
     def get_writable_langs(self):
         """Return a list of language code strings that are writable for this team.
 
-        This value may come from memcache.
+        This value may come from the cache.
 
         """
         return TeamLanguagePreference.objects.get_writable(self)
@@ -1000,7 +1027,7 @@ class Team(models.Model):
     def get_readable_langs(self):
         """Return a list of language code strings that are readable for this team.
 
-        This value may come from memcache.
+        This value may come from the cache.
 
         """
         return TeamLanguagePreference.objects.get_readable(self)
@@ -1309,6 +1336,9 @@ class TeamVideo(models.Model):
                                                old_team=__old_team,
                                                video=self.video)
 
+        if not within_team:
+            stats.increment(self.team, 'videos-added')
+
     def is_checked_out(self, ignore_user=None):
         '''Return whether this video is checked out in a task.
 
@@ -1604,8 +1634,11 @@ class TeamMember(models.Model):
         return u'%s' % self.user
 
     def save(self, *args, **kwargs):
+        creating = self.pk is None
         super(TeamMember, self).save(*args, **kwargs)
         Team.cache.invalidate_by_pk(self.team_id)
+        if creating:
+            stats.increment(self.team, 'members-added')
 
     def delete(self):
         super(TeamMember, self).delete()
@@ -3131,7 +3164,7 @@ class Setting(models.Model):
         if name.endswith('localized')
     ]
     MESSAGE_DEFAULTS = {
-        'pagetext_welcome_heading': _("Help %(team)s reach a world audience"),
+        'pagetext_welcome_heading': '',
     }
     FEATURE_KEYS = [
         key for key, name in KEY_CHOICES
@@ -3205,7 +3238,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_readable(self, team):
         """Return the set of language codes that are readable for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_readable_langs
@@ -3214,7 +3247,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_writable(self, team):
         """Return the set of language codes that are writeable for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_writable_langs
@@ -3223,7 +3256,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_blacklisted(self, team):
         """Return the set of blacklisted language codes.
 
-        Note: we don't use memcache like the other functions, mostly because I
+        Note: we don't use the cache like the other functions, mostly because I
         want to avoid touching that code (BDK).
         """
         qs = self.for_team(team).filter(preferred=False, allow_reads=False,
@@ -3233,7 +3266,7 @@ class TeamLanguagePreferenceManager(models.Manager):
     def get_preferred(self, team):
         """Return the set of language codes that are preferred for this team.
 
-        This value may come from memcache if possible.
+        This value may come from the cache if possible.
 
         """
         from teams.cache import get_preferred_langs
@@ -3606,23 +3639,23 @@ class BillingReport(models.Model):
             rows = self.generate_rows()
         except StandardError:
             logger.error("Error generating billing report: (id: %s)", self.id)
-            self.csv_file = None
         else:
-            self.csv_file = self.make_csv_file(rows)
+            self.make_csv_file(rows)
         self.processed = datetime.datetime.utcnow()
         self.save()
 
     def make_csv_file(self, rows):
         rows = self.convert_unicode_to_utf8(rows)
-        fn = '/tmp/bill-%s-teams-%s-%s-%s-%s.csv' % (
+
+        csv_file = StringIO()
+        writer = csv.writer(csv_file)
+        writer.writerows(rows)
+
+        name = 'bill-%s-teams-%s-%s-%s-%s.csv' % (
             self.teams.all().count(),
             self.start_str, self.end_str,
             self.get_type_display(), self.pk)
-        with open(fn, 'w') as f:
-            writer = csv.writer(f)
-            writer.writerows(rows)
-
-        return File(open(fn, 'r'))
+        self.csv_file.save(name, csv_file)
 
     @property
     def start_str(self):
@@ -3775,22 +3808,22 @@ class BillingRecordManager(models.Manager):
         """
         from teams.models import BillingRecord
 
-        celery_logger.debug('insert billing record')
+        logger.debug('insert billing record')
 
         language = version.subtitle_language
         video = language.video
         tv = video.get_team_video()
 
         if not tv:
-            celery_logger.debug('not a team video')
+            logger.debug('not a team video')
             return
 
         if tv.team.deleted:
-            celery_logger.debug('Cannot create billing record for deleted team')
+            logger.debug('Cannot create billing record for deleted team')
             return
 
         if not language.is_complete_and_synced(public=False):
-            celery_logger.debug('language not complete')
+            logger.debug('language not complete')
             return
 
 
@@ -3799,7 +3832,7 @@ class BillingRecordManager(models.Manager):
             previous_record = BillingRecord.objects.get(video=video,
                             new_subtitle_language=language)
             # make sure we update it
-            celery_logger.debug('a billing record for this language exists')
+            logger.debug('a billing record for this language exists')
             previous_record.is_original = \
                 video.primary_audio_language_code == language.language_code
             previous_record.save()
@@ -3812,7 +3845,7 @@ class BillingRecordManager(models.Manager):
                 subtitle_language=language,
                 created__lt=BILLING_CUTOFF).exclude(
                 pk=version.pk).exists():
-            celery_logger.debug('an older version exists')
+            logger.debug('an older version exists')
             return
 
         is_original = language.is_primary_audio_language()
@@ -3930,7 +3963,7 @@ class Partner(models.Model):
     # The `admins` field specifies users who can do just about anything within
     # the partner realm.
     admins = models.ManyToManyField('amara_auth.CustomUser',
-            related_name='managed_partners', blank=True, null=True)
+            related_name='managed_partners', blank=True)
 
     def __unicode__(self):
         return self.name

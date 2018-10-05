@@ -1,5 +1,5 @@
 {% extends "future/base.html" %}
-{% load i18n new_subtitles_tags ui query_string videos_tags %}
+{% load i18n new_subtitles_tags ui dropdown query_string videos_tags %}
 
 {% block head-extra %}
 {% include "future/videos/embed-script.html" %}
@@ -15,13 +15,13 @@
         <div class="content">
           <p><a href="{{video.get_absolute_url}}{% query_string %}">{% trans "Return to Video" %}</a></p>
           {% include "future/videos/embed.html" with width=848 subtitle_language=subtitle_language %}
-          <h2>{% if subtitle_version and subtitle_language and subtitle_language.get_title %}
-            {% if subtitle_language.is_rtl %} class="is-rtl"{% endif %}>
+          {% if subtitle_version and subtitle_language and subtitle_language.get_title %}
+          <h2{% if subtitle_language.is_rtl %} class="is-rtl"{% endif %}>
             <bdi>{{ subtitle_language.title_display }}</bdi>
-          {% else %}
-            {{video.title_display}}
-          {% endif %}
           </h2>
+          {% else %}
+          <h2>{{ video.title_display }}</h2>
+          {% endif %}
           <ul class="nav nav-tabs">
             <li class="active"><a href="#subtitles_list" data-toggle="tab" aria-expanded="true">{% trans "Subtitles" %}</a></li>
             <li><a href="#subtitles_info" data-toggle="tab" aria-expanded="false">{% trans "Subtitles info" %}</a></li>
@@ -47,11 +47,13 @@
                 <span>{% trans "Follow" %}</span>
                 <form action="{% url "api:language-follow" video.video_id subtitle_language.language_code %}" class="ajaxForm updateOnChange" method="post">
                   {% csrf_token %}
-                  <label class="switch switchFollow">
-                    <input name="follow" type="checkbox" {% if subtitle_language|is_follower:user %}checked{% endif %}>
-                    <div class="slider round">
-                      <span class="switchText on">{% trans "ON" %}</span>
-                      <span class="switchText off">{% trans "OFF" %}</span>
+                  <label class="switch inline switchFollow">
+                    <input class="switch-input" name="follow" type="checkbox" {% if subtitle_language|is_follower:user %}checked{% endif %}>
+                    <div class="switch-container inline">
+                      <div class="switch-slider inline">
+                        <span class="switch-onText inline">{% trans "ON" %}</span>
+                        <span class="switch-offText inline">{% trans "OFF" %}</span>
+                      </div>
                     </div>
                   </label>
                 </form>
@@ -94,12 +96,13 @@
               <h1>{% blocktrans with language=subtitle_language.get_language_code_display %}{{ language }} subtitles{% endblocktrans %}</h1>
               {% if subtitle_version and subtitle_version.has_subtitles %}
               <div class="header-actions dropdown small">
-                <button id="download-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{% trans "Download" %}<span class="caret"></span></button>
-                <ul class="dropdown-menu" aria-labeledby="download-button">
-                  {% for format_name in downloadable_formats %}
-                  <li><a href="{% subtitle_download_url subtitle_version format_name %}">{{format_name|upper}}</a></li>
-                  {% endfor %}
-                </ul>
+                {% dropdown-button "download-button" "" %}{% trans "Download" %}<span class="caret"></span>{% end-dropdown-button %}
+                {% dropdown "download-button" %}
+                {% for format_name in downloadable_formats %}
+                {% subtitle_download_url subtitle_version format_name as download_url %}
+                {% dropdown-item format_name|upper download_url raw_url=True %}
+                {% endfor %}
+                {% enddropdown %}
               </div>
               {% endif %}
             </header>

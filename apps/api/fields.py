@@ -26,6 +26,7 @@ import pytz
 from api import userlookup
 from auth.models import CustomUser as User
 from teams.models import Team
+from utils.enum import EnumMember
 
 class LanguageCodeField(CharField):
     def to_internal_value(self, language_code):
@@ -102,4 +103,7 @@ class EnumField(CharField):
             raise serializers.ValidationError("invalid slug: {}".format(slug))
 
     def to_representation(self, value):
-        return value.slug
+        if isinstance(value, EnumMember):
+            return value.slug
+        else:
+            return value

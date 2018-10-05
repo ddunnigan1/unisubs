@@ -40,7 +40,7 @@ import os
 import sys
 
 from django import apps
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 
 project_root = os.path.abspath(os.path.dirname(__file__))
 
@@ -100,7 +100,7 @@ def get_urlpatterns():
         url patterns containing urls for our optional apps to add to our root
         urlpatterns
     """
-    urlpatterns = patterns('')
+    urlpatterns = []
 
     for app_name in get_apps():
         try:
@@ -113,8 +113,8 @@ def get_urlpatterns():
         except AttributeError:
             prefix = ''
         urls_module = '{0}.urls'.format(app_name)
-        urlpatterns += patterns('', url(prefix, include(urls_module,
-                                                        namespace=app_name)))
+        urlpatterns.append(
+            url(prefix, include(urls_module, namespace=app_name)))
 
     return urlpatterns
 

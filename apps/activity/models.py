@@ -17,7 +17,7 @@
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models
 from django.db import transaction
 from django.db.models import Q
@@ -874,7 +874,7 @@ class TeamSettingsChanged(ActivityType):
         data = ActivityMessageDict(record)
         change_info = record.get_related_obj()
         return format_html(
-            mark_safe(_('<strong>{user}</strong> changed team settings: {settings}')),
+            mark_safe(_('<strong>{user}</strong> changed team settings: {changes}')),
             user=data.user,
             changes=', '.join(change_info.format_changes()))
 

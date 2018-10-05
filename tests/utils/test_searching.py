@@ -40,3 +40,8 @@ class GetTermsTest(TestCase):
 
     def test_non_ascii(self):
         assert_equal(get_terms(u'Bren\xe9 Brown'), [u'Bren\xe9', u'Brown'])
+
+    def test_angle_brackets(self):
+        # angle brackets can cause issues in the search (#3426).  We should
+        # remove them.
+        assert_equal(get_terms(u'<alert>'), [u'alert'])

@@ -73,7 +73,6 @@ METADATA_LANGUAGES = (
 
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -138,10 +137,33 @@ PCF_LOGO_URL = "https://s3.amazonaws.com/amara/assets/PCFLogo.png"
 ASSETS_S3_PREFIX = 'assets/'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader'
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            rel('templates'),
+        ],
+        'OPTIONS': {
+            'context_processors': (
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'utils.context_processors.current_site',
+                'utils.context_processors.current_commit',
+                'utils.context_processors.custom',
+                'utils.context_processors.user_languages',
+                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.i18n',
+                'staticmedia.context_processors.staticmedia',
+            ),
+            'loaders': (
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader'
+            ),
+        }
+
+    },
+]
 
 
 MIDDLEWARE_CLASSES = (
@@ -155,6 +177,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'auth.middleware.AmaraAuthenticationMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'openid_consumer.middleware.OpenIDMiddleware',
     'middleware.P3PHeaderMiddleware',
@@ -165,26 +188,6 @@ MIDDLEWARE_CLASSES = (
 HOMEPAGE_VIEW = 'views.home'
 ROOT_URLCONF = 'urls'
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-   rel('templates'),
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.request',
-    'utils.context_processors.current_site',
-    'utils.context_processors.current_commit',
-    'utils.context_processors.custom',
-    'utils.context_processors.user_languages',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.i18n',
-    'staticmedia.context_processors.staticmedia',
-)
-
 INSTALLED_APPS = (
     # this needs to be first, yay for app model loading mess
     'auth',
@@ -193,18 +196,17 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.webdesign',
     # third party apps
-    'djcelery',
     'rest_framework',
+    'django_rq',
     # third party apps forked on our repo
     'localeurl',
     'openid_consumer',
     # our apps
     'accountlinker',
     'activity',
+    'amara',
     'amaradotorg',
-    'amaracelery',
     'api',
     'caching',
     'codefield',
@@ -236,20 +238,19 @@ STARTUP_MODULES = [
     'externalsites.signalhandlers',
 ]
 
-# Celery settings
-
-# import djcelery
-# djcelery.setup_loader()
-
-# For running worker use: python manage.py celeryd -E --concurrency=10 -n worker1.localhost
-# Run event cather for monitoring workers: python manage.py celerycam --frequency=5.0
-# This allow know are workers online or not: python manage.py celerybeat
-
-CELERY_IGNORE_RESULT = True
-CELERY_SEND_EVENTS = False
-CELERY_SEND_TASK_ERROR_EMAILS = True
-CELERYD_HIJACK_ROOT_LOGGER = False
-BROKER_POOL_LIMIT = 10
+# Queue settings
+RQ_QUEUES = {
+    'default': {
+        'USE_REDIS_CACHE': 'default',
+    },
+    'high': {
+        'USE_REDIS_CACHE': 'default',
+    },
+    'low': {
+        'USE_REDIS_CACHE': 'default',
+    }
+}
+RUN_JOBS_EAGERLY = False
 
 # feedworker management command setup
 FEEDWORKER_PASS_DURATION=3600
@@ -297,6 +298,8 @@ LOCALE_INDEPENDENT_PATHS = [
     re.compile('^/jstest/'),
     re.compile('^/externalsites/youtube-callback'),
     re.compile('^/auth/set-hidden-message-id/'),
+    re.compile('^/auth/twitter_login_done'),
+    re.compile('^/auth/twitter_login_done_confirm'),
     re.compile('^/crossdomain.xml'),
     re.compile('^/embedder-widget-iframe/'),
     re.compile('^/__debug__/'),
@@ -395,6 +398,9 @@ STATIC_MEDIA_USES_S3 = USE_AMAZON_S3 = False
 STATIC_MEDIA_COMPRESSED = True
 STATIC_MEDIA_EXPERIMENTAL_EDITOR_BUCKET = 's3.staging.amara.org'
 
+# django-storages
+AWS_DEFAULT_ACL = None
+
 AVATAR_MAX_SIZE = 500*1024
 THUMBNAILS_SIZE = (
     (100, 100),
@@ -406,7 +412,19 @@ THUMBNAILS_SIZE = (
 
 EMAIL_BCC_LIST = []
 
-CACHE_BACKEND = 'locmem://'
+CACHES = {
+    'default': {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://{}:{}/{}".format(
+            os.environ.get('REDIS_HOST', 'redis'),
+            os.environ.get('REDIS_PORT', 6379),
+            0),
+        "OPTIONS": {
+            "PARSER_CLASS": "redis.connection.HiredisParser",
+        },
+    }
+}
+
 
 #for unisubs.example.com
 RECAPTCHA_PUBLIC = '6LdoScUSAAAAANmmrD7ALuV6Gqncu0iJk7ks7jZ0'
@@ -741,7 +759,7 @@ def log_handler_info():
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'root': {
         'level': 'INFO',
         'handlers': ['main'],
@@ -752,15 +770,11 @@ LOGGING = {
         },
     },
     'handlers': {
-        'null': {
-            'level':'DEBUG',
-            'class':'django.utils.log.NullHandler',
-        },
         'main': log_handler_info(),
     },
     'loggers': {
-        'celery': {
-            'level': 'WARNING',
+        "rq.worker": {
+            "level": "INFO"
         },
         'requests.packages.urllib3.connectionpool': {
             'level': 'WARNING',

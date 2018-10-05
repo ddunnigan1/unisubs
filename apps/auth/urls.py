@@ -16,18 +16,20 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
-urlpatterns = patterns('auth.views',
-    url(r'^login/$', 'login', name='login'),
-    url(r'^confirm_create/(?P<account_type>\w+)/(?P<email>[^\/]+)/$', 'confirm_create_user', name='confirm_create_user'),
-    url(r'^create/$', 'create_user', name='create_user'),
-    url(r'^delete/$', 'delete_user', name='delete_user'),
-    url(r'^login_post/$', 'login_post', name='login_post'),
-    url(r'confirm_email/(?P<confirmation_key>\w+)/$', 'confirm_email', name='confirm_email'),
-    url(r'auto-login/(?P<token>[\w]{40})/$', 'token_login', name='token-login'),
-    url(r'resend_confirmation_email/$', 'resend_confirmation_email', name='resend_confirmation_email'),
-    url(r'login-trap/$', 'login_trap', name='login_trap'),
-    url(r'set-hidden-message-id/$', 'set_hidden_message_id',
+from auth import views
+
+urlpatterns = [
+    url(r'^login/$', views.login, name='login'),
+    url(r'^confirm_create/(?P<account_type>\w+)/(?P<email>[^\/]+)/$', views.confirm_create_user, name='confirm_create_user'),
+    url(r'^create/$', views.create_user, name='create_user'),
+    url(r'^delete/$', views.delete_user, name='delete_user'),
+    url(r'^login_post/$', views.login_post, name='login_post'),
+    url(r'confirm_email/(?P<confirmation_key>\w+)/$', views.confirm_email, name='confirm_email'),
+    url(r'auto-login/(?P<token>[\w]{40})/$', views.token_login, name='token-login'),
+    url(r'resend_confirmation_email/$', views.resend_confirmation_email, name='resend_confirmation_email'),
+    url(r'login-trap/$', views.login_trap, name='login_trap'),
+    url(r'set-hidden-message-id/$', views.set_hidden_message_id,
         name='set-hidden-message-id'),
-)
+]

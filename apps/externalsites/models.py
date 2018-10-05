@@ -1077,7 +1077,7 @@ class CreditedVideoUrl(models.Model):
     we've added our amara credit to it and we shouldn't try to add it again.
     """
 
-    video_url = models.ForeignKey(VideoUrl, primary_key=True)
+    video_url = models.OneToOneField(VideoUrl, primary_key=True)
 
 class OpenIDConnectLink(models.Model):
     """Link a user to an OpenID Connect ID."""

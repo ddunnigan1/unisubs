@@ -42,11 +42,11 @@ class FiltersForm(forms.Form):
     def calc_data(self, get_data):
         if get_data is None:
             return None
-        data = {
-            name: get_data[name]
-            for name in self.base_fields.keys()
-            if name in get_data
-        }
+        data = get_data.copy()
+        keys_to_keep = set(self.base_fields.keys())
+        for key in list(data.keys()):
+            if key not in keys_to_keep:
+                del data[key]
         return data if data else None
 
     def get_queryset(self):

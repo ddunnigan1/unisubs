@@ -21,12 +21,21 @@ from settings import *
 import logging
 import os
 
+ALLOWED_HOSTS = ['unisubs.example.com']
 HOSTNAME = 'unisubs.example.com:8000'
 
 INSTALLED_APPS += (
     'sslserver',
 )
-if not env_flag_set('DISABLE_DEBUG_TOOLBAR'):
+
+def should_enable_debug_toolbar():
+    try:
+        import debug_toolbar
+    except ImportError:
+        return False
+    return not env_flag_set('DISABLE_DEBUG_TOOLBAR')
+
+if should_enable_debug_toolbar():
     INSTALLED_APPS += ('debug_toolbar',)
     MIDDLEWARE_CLASSES = (
             'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -55,13 +64,6 @@ DATABASES = {
     }
 }
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': 'cache:11211',
-    }
-}
-
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'a9yr_yzp2vmj-2q1zq)d2+b^w(7fqu2o&jh18u9dozjbd@-$0!'
 
@@ -78,23 +80,9 @@ OAUTH_CALLBACK_PROTOCOL = 'http'
 # allow devs to use insecure passwords on local instances
 MINIMUM_PASSWORD_SCORE = 0
 
-# Celery
-CELERY_ALWAYS_EAGER = False
-CELERY_TASK_RESULT_EXPIRES = timedelta(days=7)
-
 DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': lambda request: not request.is_ajax()
 }
-
-# Or you can use redis as backend
-#BROKER_BACKEND = 'redis'
-#BROKER_HOST = "localhost"
-#BROKER_VHOST = "/"
-
-# 1. Run Redis
-# 2. >>> python manage.py celeryd -E --concurrency=10 -n worker1.localhost
-# 3. >>> ./dev-runserver
-# 4. >>> python manage.py celerycam #this is optional. It allow see in admin-interface tasks running
 
 CACHE_PREFIX = 'unisubsdevsettings'
 CACHE_TIMEOUT = 0

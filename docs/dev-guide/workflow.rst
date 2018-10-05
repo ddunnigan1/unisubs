@@ -123,6 +123,16 @@ As an example, here is a function that logs exceptions:
         except Exception:
             logger.error("General exception in foo()", exc_info=True)
 
+Code Review
+-----------
+
+When a developer makes a pull request, they move the issue to ``Needs Review`` and finds another developer to review their pull request. The
+reviewing developer needs to make sure that the code doesn't introduce any new bugs
+or security vulnerabilities, and uses existing naming and style conventions. If
+everything looks good, the reviewer approves the pull requests and merges, and
+moves the issue to ``Dev``. If not, they comment or request
+changes on the branch.
+
 .. _workflow:
 
 Workflow
@@ -137,13 +147,14 @@ current status of work on the issue.  We use the following pipelines:
 
   - ``Icebox`` -- Issues that have been deprioritized, or are inside an Epic to be scheduled later
   - ``Discovery`` -- Issues that need to be triaged further and/or prioritized
-  - ``Waiting for Design`` -- Issues that need design decisions, mockups, or css before back-end implementation
-  - ``To Do`` -- Scheduled issues that a developer hasn't started yet
+  - ``Backlog`` -- Prioritized issues waiting to be assigned for a sprint
+  - ``To Do`` -- Issues assigned to a developer and a specific sprint (usually the current one), that a developer hasn't started yet
   - ``In Progress`` -- Issues that a developer is currently working on
   - ``Testing`` -- Issue that a developer believes to be handled and needs
     testing to verify the fix
-  - ``Waiting for Deploy`` -- Issue that has been fixed in the staging branch
-    and we need to deploy the change to production
+  - ``Needs PR`` -- Issue that has been verified by tester, waiting for developer to make PR
+  - ``Needs Review`` -- Issues with pull requests made that need to be reviewed by another developer
+  - ``Dev`` -- issues that have been merged to the dev.amara.org branch 
 
 Here's the workflow for a typical issue:
 
@@ -151,9 +162,7 @@ Here's the workflow for a typical issue:
 
     - Someone creates a github issue that captures the bug/feature and puts it
       in the ``Discovery`` pipeline
-    - The issue is prioritized and scheduled into a sprint
-    - Developer reviews issue Friday before the sprint begins, adds story points
-      to the issue
+    - The issue is prioritized in the ``Backlog`` pipeline
 
   - **Initial development**
 
@@ -166,14 +175,14 @@ Here's the workflow for a typical issue:
       these branches.
     - Once development on the issue is complete, developer moves the issue
       to the ``Testing`` pipeline and adds any relevant notes for testing to
-      the issue.
+      the issue. The developer also makes sure the requirements are updated on the issue description, and leaves any additional notes there that should be considered for Changelog entries on the blog.
 
   - **Testing**
 
     - Tester tests the changes.
     - If there are problems, tester notes them on the issue and moves it back to ``In progress``.
     - Developer fixes the problems, adds a note to the issue, moves it back to ``Testing``, and we start testing again
-    - Finally, tester approves the changes, then hands it back to developer to do a pull request
+    - Finally, tester approves the changes, and moves issue to ``Needs PR`` for developer to make a pull request
 
   - **Review**
 
@@ -182,16 +191,14 @@ Here's the workflow for a typical issue:
     - A second developer reviews the code
     - If there are issues, the developer #2 adds comments to the PR and works
       with developer #1 to resolve them
-    - Once developer #2 thinks the code is ready, they merge the PR
+    - Once developer #2 thinks the code is ready, they merge the PR and move the issue to ``Dev``
     - If the code touches our submodule repositories (amara-entperprise,
       amara-assets, etc), then developer #1 should merge the changes back to master
-    - Once we decide that staging is ready to be deployed to production, we will
-      merge the staging branch to production then deploy andnd moves the issue
-      to the ``Waiting for deploy`` pipeline
+    - Once we decide that dev is ready to be deployed to production, we will
+      merge the dev branch to the staging branch, then staging to production and deploy
 
   - **Deploy**
-    - At some point we will deploy the code.
-    - Usually this happens on a monday.
-    - We first deploy staging, do a check to see if things are okay, then deploy production
-    - Once production is deployed, tester closes all issues in ``Waiting for deploy``
+    - We try to deploy new code every week. Usually this happens on a Wednesday.
+    - We first deploy dev, tester does a check to see if things are okay, then deploy to staging and then production
+    - Once production is deployed, tester closes all issues in ``Dev``
 
