@@ -175,11 +175,16 @@ def unlink_external_sync_accounts(owner):
     YouTubeAccount.objects.for_owner(owner).delete()
     VimeoSyncAccount.objects.for_owner(owner).delete()
 
+'''
+We pass the access token directly instead of an ExternalAccount instance
+because the ExternalAccount instance might have been deleted already by the 
+time this job starts
+'''
 @job
 def remove_credit_to_video_url(video_url, access_token):
     try:
         video_id = video_url.videoid
-        current_description = google.get_video_info(video_id).description
+        current_description = google._get_video_info(video_id, access_token).description
 
         new_description = current_description.replace(credit.YOUTUBE_AMARA_CREDIT_TEXT + "\n\n", '')
 
