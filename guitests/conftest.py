@@ -26,31 +26,15 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 @pytest.fixture(scope="session")
 def driver(request):
     driver = webdriver.Remote(command_executor='http://selenium:4444/wd/hub',
-                              desired_capabilities=DesiredCapabilities.FIREFOX)
+                              desired_capabilities=DesiredCapabilities.CHROME)
     request.node.driver = driver
-    return driver
-
-# Uncomment to create screenshots for failed tests.  Also make sure to chmod
-# 777 guitests/screenshots
-#
-# @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-# def pytest_runtest_makereport(item, call):
-#     # execute all other hooks to obtain the report object
-#     outcome = yield
-#     rep = outcome.get_result()
-#
-#     if (rep.when == "call" and rep.failed):
-#         basename = item.nodeid.replace('/', '__')
-#         path = '{}/guitests/screenshots/{}.png'.format(
-#             settings.PROJECT_ROOT, basename)
-#         png_data = item.session.driver.get_screenshot_as_png()
-#         with open(path, 'w') as f:
-#             f.write(png_data)
+    yield driver
+    driver.quit()
 
 @pytest.fixture(scope="session")
 def base_url():
     return 'http://{}/'.format(os.environ.get('GUITEST_HOSTNAME'))
 
-def pytest_sessionfinish(session, exitstatus):
-    if hasattr(session, 'driver'):
-        session.driver.quit()
+__all__ = [
+    'driver', 'base_url'
+]

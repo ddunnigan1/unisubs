@@ -248,7 +248,7 @@ class Up(Command):
             cwd = 'guitests'
             cmdline = ['docker-compose', '-f', 'docker-compose.yml', '-f',
                        'docker-compose.expose-ports.yml', 'up', 'app',
-                       'worker']
+                       'worker', 'varnish']
         else:
             cwd = None
             cmdline = ['docker-compose', 'up', 'app', 'worker',

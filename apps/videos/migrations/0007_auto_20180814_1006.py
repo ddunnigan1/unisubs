@@ -21,11 +21,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
+        migrations.RunSQL([
             'ALTER TABLE videos_videourl ADD INDEX url_prefix (url(255))'
-        ),
+        ]),
         migrations.RunPython(add_fulltext_index),
-        migrations.RunSQL(
+        migrations.RunSQL([
             'ALTER TABLE videos_videoindex MODIFY text LONGTEXT '
-            'CHARACTER SET utf8 COLLATE utf8_unicode_ci')
+            'CHARACTER SET utf8 COLLATE utf8_unicode_ci',
+        ]),
     ]

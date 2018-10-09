@@ -16,7 +16,7 @@ RUN (cd $CLOSURE_PATH && git checkout adbcc8ef6530ea16bac9f877901fe6b32995c5ff)
 RUN pip install --upgrade urllib3[secure]
 RUN mkdir -p /opt/extras/pictures
 RUN mkdir -p /opt/extras/videos
-RUN mkdir -p /var/run/amara && mkdir -p /var/run/amara/tests
+RUN mkdir -p /var/run/amara
 RUN useradd --home /var/run/amara --shell /bin/bash amara
 RUN mkdir /var/run/amara/test-output/
 RUN chown -R amara:amara /var/run/amara
