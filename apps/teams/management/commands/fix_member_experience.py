@@ -16,13 +16,24 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from django.apps import AppConfig
+from django.core.management.base import BaseCommand
+from django.db import connection
 
-class TeamsConfig(AppConfig):
-    name = 'teams'
+SQL_STATEMENT = """\
+INSERT INTO teams_teamsubtitlescompleted (video_id, member_id, language_code)
+SELECT video.id, member.id, version.language_code
+FROM subtitles_subtitleversion AS version
+JOIN videos_video AS video ON video.id=version.video_id
+JOIN teams_teammember AS member ON member.user_id=version.author_id
+ON DUPLICATE KEY UPDATE teams_teamsubtitlescompleted.language_code=teams_teamsubtitlescompleted.language_code
+"""
 
-    def ready(self):
-        # load startup modules
-        import teams.signalhandlers
-        import teams.workflows.startup
-        import teams.experience
+class Command(BaseCommand):
+    """
+    Add missing member experience
+    """
+
+    def handle(self, **options):
+        with connection.cursor() as cursor:
+            cursor.execute(SQL_STATEMENT)
+

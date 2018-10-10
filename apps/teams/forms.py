@@ -42,6 +42,7 @@ from django.utils.translation import ungettext
 from auth.forms import UserField
 from auth.models import CustomUser as User
 from activity.models import ActivityRecord
+from collab.models import CollaborationSettings
 from messages.models import Message, SYSTEM_NOTIFICATION
 from messages.tasks import send_new_messages_notifications
 from subtitles.forms import SubtitlesUploadForm
@@ -66,13 +67,14 @@ from teams.workflows import TeamWorkflow
 from ui.forms import (FiltersForm, ManagementForm, AmaraChoiceField,
                       AmaraMultipleChoiceField, AmaraRadioSelect, SearchField,
                       AmaraClearableFileInput, AmaraFileInput, HelpTextList,
-                      MultipleLanguageField, AmaraImageField)
+                      MultipleLanguageField, AmaraImageField, SwitchInput, DependentBooleanField,
+                      ContentHeaderSearchBar)
 from ui.forms import LanguageField as NewLanguageField
 from utils.html import clean_html
-from utils import send_templated_email
+from utils import send_templated_email, enum
 from utils.forms import (ErrorableModelForm, get_label_for_value,
                          UserAutocompleteField, LanguageField,
-                         LanguageDropdown, Dropdown )
+                         LanguageDropdown, Dropdown)
 from utils.panslugify import pan_slugify
 from utils.translation import get_language_choices, get_language_label
 from utils.text import fmt
@@ -860,26 +862,84 @@ class LegacyRenameableSettingsForm(LegacySettingsForm):
     class Meta(LegacySettingsForm.Meta):
             fields = LegacySettingsForm.Meta.fields + ('name',)
 
-class GeneralSettingsForm(forms.ModelForm):
-    logo = forms.ImageField(
-        validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
-        help_text=_('Max size: 940px x 235px. Over-sized images will be clipped at the center'),
-        widget=AmaraClearableFileInput,
-        required=False)
-    square_logo = forms.ImageField(
-        validators=[MaxFileSizeValidator(settings.AVATAR_MAX_SIZE)],
-        help_text=_('Recommended size: 100 x 100'),
-        widget=AmaraClearableFileInput,
-        required=False)
-    is_visible = forms.BooleanField(required=False)
-    team_visibility = forms.ChoiceField(
+class GeneralSettingsForm(forms.ModelForm): 
+    BY_INVITATION = 0
+
+    ADMISSION_CHOICES = [
+        (BY_INVITATION, _(u'Invitation')),
+        (Team.APPLICATION, _(u'Application')),
+        (Team.OPEN, _(u'Open admission')),
+    ]
+
+    ADMISSION_CHOICES_HELP_TEXT = [
+        (BY_INVITATION, ugettext(u'The selected roles below can invite new users from the Member Directory page.')),
+        (Team.APPLICATION, ugettext(u'Admins can review and approve team member applications from the Member Directory page.')),
+        (Team.OPEN, ugettext(u'Users can join the team from the team landing page, and any team member can invite new members from the Member Directory.')),
+    ]
+
+    ADMISSION_BY_INVITATION_CHOICES = [
+        (Team.INVITATION_BY_ADMIN, _('Admin')),
+        (Team.INVITATION_BY_MANAGER, _('Manager')),
+        (Team.INVITATION_BY_ALL, _('Contributor'))
+    ]
+
+    TeamVisibilityHelpText = enum.Enum('TeamVisibilityHelpText', [
+        ('PUBLIC', ugettext(u'The team will be listed in the public team directory.')),
+        ('UNLISTED', ugettext(u'The team landing page can be seen by anyone with the team link.')),
+        ('PRIVATE', ugettext(u'The team can only be viewed and accessed by members.')),
+    ])
+
+    VideoVisibilityHelpText = enum.Enum('VideoVisibilityHelpText', [
+        ('PUBLIC', ugettext(u'Videos on this team will be available in the public video library.')),
+        ('UNLISTED', ugettext(u'Videos on this team can be seen by anyone with the link.')),
+        ('PRIVATE', ugettext(u'Videos on this team can only be viewed and accessed by members.')),
+    ])
+
+    square_logo = AmaraImageField(label=_('Team Logo'),
+                                  preview_size=(90, 90),
+                                  help_text=_('Recommended size 100 x 100 px'),
+                                  required=False)
+    logo = AmaraImageField(label=_('Team Banner Image'),
+                           preview_size=(160, 90),
+                           help_text=_('Recommended size 940 x 235 px'),
+                           required=False)
+    
+    # need to use a different field name because the choices are a little bit
+    # different compared to teams.model.Teams.membership_policy field
+    #
+    # we also set required=False to force this field to just use custom validation
+    # (things get funky with the help text when there is an error in this field)
+    admission = AmaraChoiceField(
+        required=False,
+        label=_('Team Admission'), 
+        choices=ADMISSION_CHOICES,
+        widget=AmaraRadioSelect(inline=True, 
+                                attrs={'class': 'teamMembershipSetting'},
+                                dynamic_choice_help_text=ADMISSION_CHOICES_HELP_TEXT)
+    )
+
+    # checkboxes for multi-field when Invitation radio choice is selected
+    inviter_roles = DependentBooleanField(
+        label=_('Role'),
+        initial=Team.INVITATION_BY_ADMIN,
+        choices=ADMISSION_BY_INVITATION_CHOICES)
+
+    # switches for multi-field for subtitle visibility
+    subtitles_public = forms.BooleanField(
+        label=_('Completed subtitles'), required=False,
+        widget=SwitchInput('Public', 'Private'))
+    drafts_public = forms.BooleanField(
+        label=_('Draft subtitles'), required=False,
+        widget=SwitchInput('Public', 'Private'))
+
+    team_visibility = AmaraChoiceField(
         choices=TeamVisibility.choices(),
         label=_('Team visibility'),
-        help_text=_("Can non-members view your team?"))
-    video_visibility = forms.ChoiceField(
+        dynamic_choice_help_text=TeamVisibilityHelpText.choices())
+    video_visibility = AmaraChoiceField(
         choices=VideoVisibility.choices(),
         label=_('Video visibility'),
-        help_text=_("Can non-members view your team videos?"))
+        dynamic_choice_help_text=VideoVisibilityHelpText.choices())
     prevent_duplicate_public_videos = forms.BooleanField(
         label=_('Prevent duplicate copies of your team videos in '
                 'the Amara public area.'), required=False, 
@@ -894,8 +954,70 @@ class GeneralSettingsForm(forms.ModelForm):
         super(GeneralSettingsForm, self).__init__(*args, **kwargs)
         self.initial_settings = self.instance.get_settings()
         self.initial_video_visibility = self.instance.video_visibility
+
+        self.fields['subtitles_public'].label_additional_classes = " subtitleVisibilityLabel"
+        self.fields['drafts_public'].label_additional_classes = " subtitleVisibilityLabel"
+        self.fields['subtitles_public'].additional_classes = " subtitleVisibilityInput"
+        self.fields['drafts_public'].additional_classes = " subtitleVisibilityInput"
+
+        # we dont render this field in the page but still save it in this form
+        self.fields['membership_policy'].required = False
+
+        self._calc_subtitle_visibility()
+
+        # calc the stuff according to POST data if it exists
+        if self.data:
+
+            if (self.data.get('admission', None)):
+                admission = int(self.data['admission'])
+                self._calc_admission(admission)
+                if self.errors.get('admission', None) is not None and admission == self.BY_INVITATION:
+                    self.fields['admission'].widget.dynamic_choice_help_text_initial = 'Please select a role below.'
+            else:
+                self.fields['admission'].widget.dynamic_choice_help_text_initial = 'Please select a team admission policy.'
+            
+            self._calc_team_visibility_help_text(self.data['team_visibility'])
+            self._calc_video_visibility_help_text(self.data['video_visibility'])
+
+        else:
+            self._calc_admission(self.instance.membership_policy)   
+            self._calc_team_visibility_help_text(self.instance.team_visibility.number)
+            self._calc_video_visibility_help_text(self.instance.video_visibility.number)
+
         if not allow_rename:
             del self.fields['name']
+
+    # determines which role checkboxes are ticked based on the team's membership_policy
+    def _calc_admission(self, membership_policy):
+        membership_policy = int(membership_policy)
+        if membership_policy in [Team.INVITATION_BY_ALL, Team.INVITATION_BY_MANAGER, Team.INVITATION_BY_ADMIN]:
+            self.initial['admission'] = GeneralSettingsForm.BY_INVITATION
+            self.fields['admission'].widget.dynamic_choice_help_text_initial = dict(self.ADMISSION_CHOICES_HELP_TEXT)[self.BY_INVITATION]
+
+            self.initial['inviter_roles'] = membership_policy
+        else:
+            self.initial['admission'] = membership_policy
+            self.fields['admission'].widget.dynamic_choice_help_text_initial = dict(self.ADMISSION_CHOICES_HELP_TEXT)[membership_policy]
+
+    # subtitle visibility setting are for collab teams only
+    def _calc_subtitle_visibility(self):
+        if self.instance.is_collab_team():
+            if self.instance.collaboration_settings.subtitle_visibility == CollaborationSettings.SUBTITLES_PUBLIC:
+                self.initial['subtitles_public'] = True
+                self.initial['drafts_public'] = True
+            elif self.instance.collaboration_settings.subtitle_visibility == CollaborationSettings.SUBTITLES_PRIVATE_UNTIL_COMPLETE:
+                self.initial['subtitles_public'] = True
+        else:
+            del self.fields['subtitles_public']
+            del self.fields['drafts_public']
+
+    def _calc_team_visibility_help_text(self, team_visibility):
+        team_visibility = int(team_visibility)
+        self.fields['team_visibility'].help_text = self.TeamVisibilityHelpText.lookup_number(team_visibility)
+
+    def _calc_video_visibility_help_text(self, video_visibility):
+        video_visibility = int(video_visibility)
+        self.fields['video_visibility'].help_text = self.VideoVisibilityHelpText.lookup_number(video_visibility)
 
     def prevent_duplicate_public_videos_set(self):
         if self.is_bound:
@@ -903,9 +1025,44 @@ class GeneralSettingsForm(forms.ModelForm):
         else:
             return self.instance.prevent_duplicate_public_videos
 
+    def clean(self):
+        cleaned_data = super(GeneralSettingsForm, self).clean()
+
+        admission = cleaned_data.get('admission', None)
+
+        if admission:
+            if int(cleaned_data['admission']) == GeneralSettingsForm.BY_INVITATION:
+                membership_policy = cleaned_data['inviter_roles']
+            else:
+                membership_policy = cleaned_data['admission']
+
+            cleaned_data['membership_policy'] = membership_policy
+        else:
+            '''
+            hack to add error to the team admission field but not display an error message
+            this is to avoid the help text getting funky when there is an error in this particular field
+            '''
+            self.add_error('admission', '')
+
+        return cleaned_data        
+
     def save(self, user):
         with transaction.atomic():
             team = super(GeneralSettingsForm, self).save()
+
+            # for some reason the form does not save membership_policy after upgrading to django 1.11
+            team.membership_policy = self.cleaned_data['membership_policy']
+            team.save()
+
+            if self.instance.is_collab_team():
+                if self.cleaned_data['drafts_public']:
+                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PUBLIC
+                elif self.cleaned_data['subtitles_public']:
+                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PRIVATE_UNTIL_COMPLETE
+                else:
+                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PRIVATE
+                self.instance.collaboration_settings.save()
+
             self.instance.handle_settings_changes(user, self.initial_settings)
         if team.video_visibility != self.initial_video_visibility:
             tasks.update_video_public_field.delay(team.id)
@@ -914,9 +1071,19 @@ class GeneralSettingsForm(forms.ModelForm):
 
     class Meta:
         model = Team
-        fields = ('name', 'description', 'logo', 'square_logo',
+        fields = ('name', 'description', 'logo', 'square_logo', 'membership_policy',
                   'team_visibility', 'video_visibility', 'sync_metadata',
                   'prevent_duplicate_public_videos')
+        labels = {
+            'name': _('Team Name'),
+            'description': _('Team Description'),
+        }
+        help_texts = {
+            'description': '',
+        }
+        widgets = {
+          'description': forms.Textarea(attrs={'rows':5}),
+        }
 
 
 class WorkflowForm(forms.ModelForm):
@@ -1602,9 +1769,10 @@ class MemberFiltersForm(forms.Form):
         ('any', _('Any language')),
     ] + get_language_choices()
 
-    q = SearchField(label=_('Search'), required=False)
+    q = SearchField(label=_('Search'), required=False,
+                    widget=ContentHeaderSearchBar)
 
-    role = AmaraChoiceField(choices=[
+    role = AmaraChoiceField(label=_('Select role'), choices=[
         ('any', _('All roles')),
         (TeamMember.ROLE_ADMIN, _('Admins')),
         (TeamMember.ROLE_MANAGER, _('Managers')),
@@ -1612,11 +1780,11 @@ class MemberFiltersForm(forms.Form):
         (TeamMember.ROLE_CONTRIBUTOR, _('Contributors')),        
     ], initial='any', required=False, filter=True)
     language = AmaraChoiceField(choices=LANGUAGE_CHOICES,
-                                 label=_('Language spoken'),
+                                 label=_('Select language'),
                                  initial='any', required=False, filter=True)
-    sort = AmaraChoiceField(label="", choices=[
-        ('recent', _('Date joined, most recent')),
-        ('oldest', _('Date joined, oldest')),
+    sort = AmaraChoiceField(label=_('Change sort'), choices=[
+        ('recent', _('Newest joined')),
+        ('oldest', _('Oldest joined')),
     ], initial='recent', required=False)
 
     def __init__(self, get_data=None):
@@ -1845,25 +2013,6 @@ class ChangeMemberRoleForm(ManagementForm):
             team_owners = member.team.members.owners()
             return (len(team_owners) <= 1)
 
-    def update_proj_lang_management(self, member):
-        # TODO make this work for making previous pm/lm's to be a pm/lm of a
-        # different set of projects/languages
-
-        # crude implementation is to delete all pm/lm permissions and then 
-        # create the permissions specified in the modal
-        # for optimization
-        member.remove_as_proj_lang_manager()
-
-        projects = self.cleaned_data['projects']
-        languages = self.cleaned_data['languages']
-
-        if projects:
-            for project in projects:
-                member.make_project_manager(project)
-        if languages:
-            for language in languages:
-                member.make_language_manager(language)       
-
     def perform_submit(self, members):
         self.error_count = 0
         self.only_owner_count = 0
@@ -1883,11 +2032,12 @@ class ChangeMemberRoleForm(ManagementForm):
                 else:
                     try:
                         if role == TeamMember.ROLE_PROJ_LANG_MANAGER:
-                            member.change_role(TeamMember.ROLE_CONTRIBUTOR)
-                            self.update_proj_lang_management(member)
+                            member.change_role(
+                                self.user, TeamMember.ROLE_CONTRIBUTOR,
+                                self.cleaned_data.get('projects'),
+                                self.cleaned_data.get('languages'))
                         else:
-                            member.remove_as_proj_lang_manager()
-                            member.change_role(role)
+                            member.change_role(self.user, role)
                         self.changed_count += 1
                     except Exception as e:
                         logger.error(e, exc_info=True)

@@ -83,7 +83,7 @@ class Enum(object):
     have the following attributes:
 
         name: variable name of the enum.
-        number: 1-based index for the member
+        number: interger value for the member
         label: human-readable string to display
         slug: machine-friendly string to use for API values, JSON
             representations, etc.
@@ -114,17 +114,51 @@ class Enum(object):
         Flavors.CHOCOLATE
         >>> Flavors.lookup_slug('rocky-road').label
         u'Rocky road'
+
+
+    Extensions:
+
+    Enums can be extended by code in places other then where it was created
+    with the extend() method.  The main use case for this is extending enums
+    from amara-enterprise and other optional repositories.
+
+    Assigning numbers for members:
+
+    We want to be able to store Enums using a PositiveSmallIntegerField, which
+    means we can store values 0-65535.  We use the first two decimal digits to
+    for the ext_id, then the next 3 digits for the choice itself with a
+    1-based index.  This allows us to safely store up to 64 extensions with
+    999 choices a piece.
     """
+
     def __init__(self, enum_name, members):
         self.enum_name = enum_name
         self.members = []
         self.slug_map = {}
         self.number_map = {}
-        for name, label in members:
-            self.add_member(name, label)
+        self.extend(0, members)
 
-    def add_member(self, name, label):
-        number = len(self.members) + 1
+    def extend(self, ext_id, members):
+        """
+        Extend the enum
+
+        Args:
+            ext_id: integer value that identifies the extension.  If multiple
+                apps call extend, each must use a unique value here
+            members: list of (slug, label) tuples
+        """
+        if len(members) > 999:
+            raise ValueError('Too many members')
+
+        start_number = ext_id * 1000 + 1
+
+        if start_number in self.number_map:
+            raise ValueError("ext_id {} already taken".format(ext_id))
+
+        for i, (name, label) in enumerate(members):
+            self.add_member(start_number + i, name, label)
+
+    def add_member(self, number, name, label):
         member = EnumMember(self.enum_name, name, label, number)
         setattr(self, name, member)
         self.slug_map[member.slug] = member

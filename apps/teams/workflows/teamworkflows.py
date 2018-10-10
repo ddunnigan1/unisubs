@@ -45,9 +45,10 @@ from collections import namedtuple
 from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from django.utils.translation import ungettext
+from django.utils.translation import ungettext, ugettext as _
 
 from subtitles.models import SubtitleLanguage
+from teams import experience
 from utils.behaviors import DONT_OVERRIDE
 from utils.text import fmt
 
@@ -138,7 +139,7 @@ class TeamWorkflow(object):
         """
         return []
 
-    def management_page_extra_tabs(self, request, *args, **kwargs):
+    def management_page_extra_tabs(self, user, *args, **kwargs):
         """Add extra sub tabs to the team management page.
 
         These appear near the top of the page.
@@ -154,8 +155,8 @@ class TeamWorkflow(object):
                 'slug': self.team.slug,
             })
 
-    def management_page_default(self, request):
-        extra_tabs = self.management_page_extra_tabs(request)
+    def management_page_default(self, user):
+        extra_tabs = self.management_page_extra_tabs(user)
         if extra_tabs:
             return extra_tabs[0].url
         else:
@@ -245,6 +246,27 @@ class TeamWorkflow(object):
         page_data['videos']= qs[:5]
         return render(request, 'new-teams/language-page.html', page_data)
 
+    def get_exerience_column_label(self):
+        """
+        Team members page label for the experience coluumn.
+        """
+        return _('Subtitles completed')
+
+    def add_experience_to_members(self, page):
+        """
+        Add experience attributes to a list of members
+
+        We call this for the team members page to populate the experience
+        column (usually subtitles completed).  This method should:
+
+          - Set the experience attribute to each member to a TeamExperience object
+          - Optionally, set the experience_extra attribute, which is a list of
+            extra experience to show in the expanded view.
+        """
+        subtitles_completed = experience.get_subtitles_completed(page)
+        for member, count in zip(page, subtitles_completed):
+            member.experience = TeamExperience(_('Subtitles completed'), count)
+
     # map type codes to subclasses
     _type_code_map = {}
     # map API codes to type codes
@@ -310,4 +332,11 @@ Attributes:
         the _teams/tabs.html template
     title: human friendly tab title
     url: URL for the page
+"""
+
+TeamExperience = namedtuple('TeamExperience', 'label count')
+"""Used to list experience counts on the members directory
+
+By default, we show subtitles completed, but other workflows might want to
+display different things, like assignments completed, etc.
 """

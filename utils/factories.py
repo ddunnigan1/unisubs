@@ -256,7 +256,7 @@ class TeamFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: 'Team %s' % n)
     slug = factory.LazyAttribute(lambda t: slugify(t.name))
-    membership_policy = teams.models.Team.OPEN
+    membership_policy = teams.models.Team.INVITATION_BY_ADMIN
     workflow_type = 'O'
 
     @classmethod

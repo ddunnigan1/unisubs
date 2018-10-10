@@ -46,3 +46,14 @@ def strip_script_prefix(url):
             "URL does not start with SCRIPT_PREFIX: %s" % url
     pos = len(get_script_prefix()) - 1
     return url[:pos], url[pos:]
+
+# Define 2 ways to create universal URLs.  The tag version inputs a view name
+# plus arguments and creates the URL using reverse().  The filter version
+# inputs an existing URL and converts it to a universal URL
+@register.simple_tag
+def universal_url(view_name, *args, **kwargs):
+    return utils.universal_url(view_name, args=args, kwargs=kwargs)
+
+@register.filter
+def universal_url(url):
+    return utils.make_universal(url)

@@ -166,6 +166,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from utils import codes
+from caching.utils import get_or_calc, get_or_calc_many
 
 def get_commit_id():
     return settings.LAST_COMMIT_GUID
@@ -227,6 +228,7 @@ class CacheGroup(object):
     .. automethod:: set
     .. automethod:: set_many
     .. automethod:: get_or_calc
+    .. automethod:: get_or_calc_many
     .. automethod:: get_model
     .. automethod:: set_model
     .. automethod:: invalidate
@@ -320,24 +322,13 @@ class CacheGroup(object):
         )
         self.cache_wrapper.set_many(values_to_set, timeout)
 
-    def get_or_calc(self, key, work_func, *args, **kwargs):
-        """Shortcut for the typical cache usage pattern
+    def get_or_calc(self, key, work_func):
+        """See utils.get_or_calc """
+        return get_or_calc(key, work_func, cache=self)
 
-        get_or_calc() is used when a cache value stores the result of a
-        function.  The steps are:
-
-        - Try self.get(key)
-        - If there is a cache miss then
-
-          - call work_func() to calculate the value
-          - store it in the cache
-        """
-        cached_value = self.get(key)
-        if cached_value is not None:
-            return cached_value
-        calculated_value = work_func(*args, **kwargs)
-        self.set(key, calculated_value)
-        return calculated_value
+    def get_or_calc_many(self, keys, work_func):
+        """See utils.get_or_calc_many """
+        return get_or_calc_many(keys, work_func, cache=self)
 
     def get_model(self, ModelClass, key):
         """Get a model stored with set_model()

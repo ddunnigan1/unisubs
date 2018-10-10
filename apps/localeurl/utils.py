@@ -11,7 +11,6 @@ LOCALES_RE = '|'.join(SUPPORTED_LOCALES)
 PATH_RE = re.compile(r'^/(?P<locale>%s)(?=/)(?P<path>.*)$' % LOCALES_RE)
 DOMAIN_RE = re.compile(r'^(?P<locale>%s)(?=/)\.(?P<domain>.*)$' % LOCALES_RE)
 DOMAIN_MAP = dict(localeurl.settings.DOMAINS)
-DEFAULT_PROTOCOL = getattr(settings, "DEFAULT_PROTOCOL", 'https')
 
 import logging
 logger = logging.getLogger("localeurl")
@@ -120,11 +119,23 @@ def universal_url(*args, **kwargs):
     if 'protocol_override' in kwargs:
         protocol = kwargs.pop('protocol_override')
     else:
-        protocol = DEFAULT_PROTOCOL
+        protocol = None
     try:
         original = urls.reverse(*args, **kwargs)
     except Exception :
         logger.exception("Failed to resolve universal url") 
         return
+    return make_universal(original, protocol)
+
+def make_universal(url, protocol=None):
+    """
+    Convert a relative URL, possibly with a locale in it to a universal URL
+
+    Universal URLS are absolute and don't contain the URL.  They are used when
+    we need to use a URL outside of a webpage, for example an email
+    """
+    if protocol is None:
+        protocol = getattr(settings, "DEFAULT_PROTOCOL", 'https')
+
     return "%s://%s%s" % (protocol, settings.HOSTNAME,
-                          strip_path(original)[1])
+                          strip_path(url)[1])

@@ -94,32 +94,6 @@ class CacheGroupTest(TestCase):
         self.check_cache_miss('key1')
         self.check_cache_miss('key2')
 
-    def test_get_or_calc(self):
-        # test calling get_or_calc without any data stored.  We should call
-        # our function, then store the data
-        func = mock.Mock(return_value=self.CACHE_VALUE)
-        cache_group = make_cache_group()
-        result = cache_group.get_or_calc('key', func)
-        assert_equal(result, self.CACHE_VALUE)
-        self.check_cache_hit('key')
-
-    def test_get_or_calc_function_args(self):
-        # test calling get_or_calc passes function arguments correctly
-        func = mock.Mock(return_value=self.CACHE_VALUE)
-        cache_group = make_cache_group()
-        cache_group.get_or_calc('key', func, 'foo', bar='baz')
-        assert_equal(func.call_args, mock.call('foo', bar='baz'))
-
-    def test_get_or_calc_cache_hit(self):
-        # test get_or_calc with a cache hit.  We should avoid calling the
-        # function in this case
-        func = mock.Mock(return_value=self.CACHE_VALUE)
-        self.populate_key('key')
-        cache_group = make_cache_group()
-        result = cache_group.get_or_calc('key', func, 'foo', bar='baz')
-        assert_equal(result, self.CACHE_VALUE)
-        assert_equal(func.call_count, 0)
-
     def patch_get_commit_id(self):
         return mock.patch('caching.cachegroup.get_commit_id')
 

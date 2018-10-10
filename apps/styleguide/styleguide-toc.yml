@@ -55,6 +55,8 @@
   - buttonField
   - searchbar
   - selects
+  - id: dynamic-help-text
+    title: Dynamic Help Text
 
 - - Modals / Dialogs
   - id: modals
@@ -78,6 +80,8 @@
   - actionBar
   - id: content-header
     title: Content header
+  - id: content-footer
+    title: Content footer
   - selectList
   - pagination
   - hangingLink
