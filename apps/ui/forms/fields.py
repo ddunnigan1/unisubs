@@ -42,18 +42,37 @@ class HelpTextList(SafeUnicode):
         return SafeUnicode.__new__(cls, u''.join(output))
 
 class AmaraChoiceFieldMixin(object):
+    """
+    choice_help_text is a dictionary of value:help_text entries
+    -- can be used for example if you want all choices of a radio button group
+       to have help texts individually
+
+    dynamic_choice_help_text is also a dictionary of value:help_text entries
+    -- use this is if you want a selector's help text to change depending on which 
+       option is selected
+    """
     def __init__(self, allow_search=True, filter=False, max_choices=None,
-                 choice_help_text=None, *args, **kwargs):
+                 choice_help_text=None, dynamic_choice_help_text=None,
+                 *args, **kwargs):
         self.filter = filter
         if choice_help_text:
             self.choice_help_text = dict(choice_help_text)
         else:
             self.choice_help_text = {}
+
+        if dynamic_choice_help_text:
+            self.dynamic_choice_help_text = dict(dynamic_choice_help_text)
+        else:
+            self.dynamic_choice_help_text = {}
+
         super(AmaraChoiceFieldMixin, self).__init__(*args, **kwargs)
         if not allow_search:
             self.set_select_data('nosearchbox')
         if max_choices:
             self.set_select_data('max-allowed-choices', max_choices)
+
+        if self.dynamic_choice_help_text:
+            self.set_select_data('dynamic-choice-help-texts', self.dynamic_choice_help_text)
 
     def _get_choices(self):
         return self._choices
@@ -96,10 +115,14 @@ class AmaraChoiceFieldMixin(object):
 
     def widget_attrs(self, widget):
         if isinstance(widget, forms.Select):
+            widget_class = 'select'
+            if self.dynamic_choice_help_text:
+                widget_class += ' dynamicHelpText'
+
             if self.filter:
-                return { 'class': 'select selectFilter' }
-            else:
-                return { 'class': 'select' }
+                widget_class += ' selectFilter'
+            
+            return { 'class': widget_class }
         else:
             return {}
 

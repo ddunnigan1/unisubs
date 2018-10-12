@@ -70,12 +70,14 @@ def filter_box_dropdown_button(menu_id, label):
         end_dropdown_button())
 
 @register.simple_tag
-def dropdown(menu_id, labelled_by=None):
+def dropdown(menu_id, css_class=None, labelled_by=None):
     attrs = {
         'class': 'dropdownMenu',
         'role': 'menu',
         'id': menu_id
     }
+    if css_class:
+        attrs['class'] += ' {}'.format(css_class)
     if labelled_by:
         attrs['aria-labelledby'] = labelled_by
 

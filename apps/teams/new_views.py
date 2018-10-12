@@ -221,18 +221,19 @@ def members(request, team):
     page = paginator.get_page(request)
     next_page, prev_page = paginator.make_next_previous_page_links(page, request)
 
+    team.new_workflow.add_experience_to_members(page)
+
     context = {
         'team': team,
         'is_team_admin': is_team_admin,
         'paginator': paginator,
         'page': page,
-        'next': next_page,
-        'previous': prev_page,
         'filters_form': filters_form,
         'team_nav': 'member_directory',
         'show_invite_link': permissions.can_invite(team, request.user),
         'show_add_link': permissions.can_add_members(team, request.user),
         'show_application_link': show_application_link,
+        'experience_column_label': team.new_workflow.get_exerience_column_label(),
     }
 
     if form_name and is_team_admin:

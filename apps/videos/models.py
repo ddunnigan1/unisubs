@@ -979,6 +979,13 @@ class Video(models.Model):
         return self.primary_audio_language_code or None
 
     @property
+    def readable_language(self):
+        if self.primary_audio_language_code:
+            return translation.get_language_label(self.primary_audio_language_code)
+        else:
+            return None
+
+    @property
     def filename(self):
         """Return a filename-safe version of this video's string representation.
 
@@ -1124,6 +1131,12 @@ class Video(models.Model):
     def complete_languages(self):
         return [
             l for l in self.all_subtitle_languages() if l.subtitles_complete
+        ]
+
+    def complete_or_writelocked_language_codes(self):
+        return [
+            l.language_code for l in self.all_subtitle_languages() if l.subtitles_complete 
+                                                                   or l.is_writelocked
         ]
 
     def incomplete_languages_sorted(self):

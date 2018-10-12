@@ -451,7 +451,7 @@ class VideoSerializer(serializers.Serializer):
         return self.team_video.team != self.validated_data['team']
 
     def to_internal_value(self, data):
-        self.fixup_data(data)
+        data = self.fixup_data(data)
         return super(VideoSerializer, self).to_internal_value(data)
 
     def validate(self, data):
@@ -467,6 +467,7 @@ class VideoSerializer(serializers.Serializer):
 
     def fixup_data(self, data):
         """Alter incoming data to support deprecated behavior."""
+        data = data.copy()
         for name, value in data.items():
             if value == '':
                 # Remove any field has the empty string as its value
@@ -475,6 +476,7 @@ class VideoSerializer(serializers.Serializer):
             elif name in ('team', 'project') and value == 'null':
                 # Replace "null" with None for team/project
                 data[name] = None
+        return data
 
     def to_representation(self, video):
         data = super(VideoSerializer, self).to_representation(video)

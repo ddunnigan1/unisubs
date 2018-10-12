@@ -50,6 +50,7 @@ def was_promotion(member, old_member_info):
             ROLES_ORDER.index(member.role)):
         return True
     if (old_member_info.role == ROLE_CONTRIBUTOR and
+            not old_member_info.project_or_language_manager and
             member.is_a_project_or_language_manager()):
         return True
     return False

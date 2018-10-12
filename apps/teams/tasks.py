@@ -85,13 +85,13 @@ def expire_tasks():
             'exception': e,
         })
 
-@job
+@job(timeout=600)
 def add_videos_notification_daily(*args, **kwargs):
     from teams.models import Team
     team_qs = Team.objects.needs_new_video_notification(Team.NOTIFY_DAILY)
     _notify_teams_of_new_videos(team_qs)
 
-@job
+@job(timeout=600)
 def add_videos_notification_hourly(*args, **kwargs):
     from teams.models import Team
     team_qs = Team.objects.needs_new_video_notification(Team.NOTIFY_HOURLY)

@@ -28,9 +28,10 @@ from urllib import urlencode
 
 from collections import namedtuple
 from django.urls import reverse
-from django.utils.html import format_html, html_safe
+from django.utils.html import format_html, format_html_join, html_safe, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from ui.templatetags import dropdown
 from utils.text import fmt
 
 @html_safe
@@ -119,6 +120,102 @@ class CTA(Link):
                 self.icon == other.icon and
                 self.url == other.url)
 
+class SplitCTA(CTA):
+    '''
+    args:
+    menu_id - id of the dropdown menu container. If there are multiple SplitCTA's in a page, each one must have a unique menu_id
+    dropdown_items - an iterable of (label, url) tuples
+    '''
+    def __init__(self, label, view_name, icon=None, block=False,
+                    disabled=False, main_tooltip=None, menu_id='splitCTADropdownMenu',
+                    dropdown_tooltip=None, dropdown_items=[], 
+                    *args, **kwargs):
+        super(SplitCTA, self).__init__(label, icon, view_name, block, disabled, main_tooltip)
+        self.dropdown_tooltip = dropdown_tooltip
+        self.dropdown_items = dropdown_items
+        self.menu_id = menu_id
+
+    def _create_main_button(self):
+        # mark-up variables
+        tooltip_mu = u'<span class="{}" data-toggle="tooltip" data-placement="top" title="{}">{}</span>'
+        cta_mu = u'<a href="{}" class="{}">{}{}</a>'
+        icon_mu = ""
+
+        tooltip_css_class = ""
+        cta_css_class = "button split-button"
+
+        if self.icon:
+            icon_mu = format_html(u'<i class="icon {}"></i>', self.icon)
+
+        if self.disabled:
+            cta_css_class += " disabled"
+        else:
+            cta_css_class += " cta"
+
+        if self.tooltip:
+            if self.block:
+                tooltip_css_class += "width-100"
+
+            # just the cta element
+            cta = format_html(cta_mu, self.url, cta_css_class, icon_mu, self.label)
+
+            # the cta element wrapped in the tooltip span
+            cta = format_html(tooltip_mu, tooltip_css_class, self.tooltip, cta)
+        else:
+            if self.block:
+                cta_css_class += " block"
+            # no need to wrap the cta element in the tooltip span if there's no tooltip
+            cta = format_html(cta_mu, self.url, cta_css_class, icon_mu, self.label)
+
+        return cta
+
+    def _create_dropdown_toggle(self):        
+        tooltip_mu = u'<span data-toggle="tooltip" data-placement="top" title="{}">{}</span>'
+        caret_mu = u'<span class="caret"></span>'
+
+        css_class = "button split-button split-button-dropdown-toggle"
+
+        if self.disabled:
+            css_class += " disabled"
+        else:
+            css_class += " cta"
+
+        dropdown_toggle = (dropdown.dropdown_button(self.menu_id, css_class)
+                           + mark_safe(caret_mu)
+                           + dropdown.end_dropdown_button())
+
+        # wrap the dropdown toggle mark-up around the tooltip mark-up
+        if self.dropdown_tooltip:
+            dropdown_toggle = format_html(tooltip_mu, self.dropdown_tooltip, dropdown_toggle)
+
+        return dropdown_toggle
+
+    def _create_dropdown_menu(self):
+        dropdown_menu = dropdown.dropdown(self.menu_id, css_class='dropdownMenuLeft')
+        dropdown_items = [dropdown.dropdown_item(i[0], i[1], raw_url=True) for i in self.dropdown_items]
+        dropdown_items = mark_safe(''.join(dropdown_items))
+
+        return dropdown_menu + dropdown_items + dropdown.enddropdown()
+
+    def render(self, block=False):
+        container = u'<div class="{}">{}{}{}</div>'
+
+        if self.block:
+            css_class = " split-button-container-full-width"
+        else:
+            css_class = " split-button-container"
+
+        main_cta = self._create_main_button()
+        dropdown_toggle = self._create_dropdown_toggle()
+        dropdown_menu = self._create_dropdown_menu()
+
+        return format_html(container, css_class, main_cta, dropdown_toggle, dropdown_menu)
+
+    def __eq__(self, other):
+        return (super(SplitCTA, self).__eq__(other) and
+                self.dropdown_tooltip == other.dropdown_tooltip and
+                self.dropdown_items == other.dropdown_items)
+
 class Tab(Link):
     def __init__(self, name, label, view_name, *args, **kwargs):
         self.name = name
@@ -182,5 +279,5 @@ class MenuSeparator(object):
 
 __all__ = [
     'Link', 'AjaxLink', 'CTA', 'Tab', 'SectionWithCount', 'ContextMenu',
-    'MenuSeparator',
+    'MenuSeparator', 'SplitCTA'
 ]

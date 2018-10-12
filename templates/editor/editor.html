@@ -43,26 +43,26 @@
 {% include "gtm-body.html" %}
 <aside class="freeze-box" id="loading"><h1>{% trans "Loading subtitle editor&hellip;" %}</h1></aside>
 <aside class="overlay ng-cloak" id="tutorial" ng-cloak>
-  {% include 'editor/tutorial.html' %}
+  {% include './tutorial.html' %}
 </aside>
 <div class="page ng-cloak" ng-cloak>
-    {% include 'editor/header.html' %}
+    {% include './header.html' %}
 
-    {% include 'editor/help.html' %}
-    {% include 'editor/video.html' %}
-    {% include 'editor/workflow.html' %}
+    {% include './help.html' %}
+    {% include './video.html' %}
+    {% include './workflow.html' %}
 
-    {% include 'editor/timeline.html' %}
+    {% include './timeline.html' %}
 
     <div class="subtitle-area edit-area reference">
-        {% include 'editor/reference-subtitles.html' %}
+        {% include './reference-subtitles.html' %}
     </div>
     <div class="subtitle-area edit-area work">
-        {% include 'editor/working-subtitles.html' %}
+        {% include './working-subtitles.html' %}
     </div>
-    {% include 'editor/notes.html' %}
+    {% include './notes.html' %}
 </div>
-{% include 'editor/dialogs.html' %}
+{% include './dialogs.html' %}
 {% media_bundle "editor.js" %}
 </body>
 </html>

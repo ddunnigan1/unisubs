@@ -71,7 +71,7 @@ def do_notify_users(notification, user_ids, subject, message, html_message,
         if should_send_email(user, send_email):
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
                       [user.email], html_message=html_message)
-        else:
+        if user.notify_by_message:
             Message.objects.create(user=user, subject=subject,
                                    message_type=SYSTEM_NOTIFICATION,
                                    content=html_message, html_formatted=True)

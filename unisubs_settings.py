@@ -87,3 +87,9 @@ COMPRESS_MEDIA = not DEBUG
 #  the keyd cache apps need this:
 CACHE_TIMEOUT  = 60
 CACHE_PREFIX  = "unisubscache"
+
+# Grab the SENTRY_DSN for django_rq if we can
+try:
+    SENTRY_DSN = RAVEN_CONFIG['dsn']
+except KeyError, AttributeError:
+    pass

@@ -142,8 +142,12 @@ def fetch_subs_youtube(video_url, user, team):
         subtitles_imported.send(sender=versions[0].subtitle_language, versions=versions)
 
 def find_youtube_account(video_id, possible_accounts):
-    video_info = google.get_video_info(video_id, possible_accounts)
-    for account in possible_accounts:
-        if account.channel_id == video_info.channel_id:
-            return account
-    return None
+    try:
+        video_info = google.get_video_info(video_id, possible_accounts)
+        for account in possible_accounts:
+            if account.channel_id == video_info.channel_id:
+                return account
+        return None
+    except google.APIError as e:
+        logger.warn("find_youtube_account() error for video id {}: {}".format(video_id, e))
+        return None

@@ -22,10 +22,12 @@ from django import forms
 
 from auth.models import get_amara_anonymous_user
 from styleguide.models import StyleguideData
+from utils import enum
 from ui.forms import (
     AmaraImageField, AmaraChoiceField, AmaraMultipleChoiceField, SearchField, SwitchInput,
-    ContentHeaderSearchBar, DependentBooleanField
+    ContentHeaderSearchBar, DependentBooleanField, AmaraRadioSelect
 )
+from ui.utils import SplitCTA
 
 class StyleguideForm(forms.Form):
     def __init__(self, request, **kwargs):
@@ -113,6 +115,63 @@ class ImageUpload(StyleguideForm):
             styleguide_data.thumbnail = self.cleaned_data['thumbnail']
         styleguide_data.save()
 
+class DynamicHelpTextForm(StyleguideForm):
+    EnumChoices = enum.Enum('EnumChoices', [
+        ('CHOICE1', 'First choice'),
+        ('CHOICE2', 'Second choice'),
+        ('CHOICE3', 'Third choice'),
+    ])
+
+    '''need to match the "keys" of the enum members'''
+    EnumChoicesHelpText = enum.Enum('EnumChoicesHelpText', [
+        ('CHOICE1', 'First help text'),
+        ('CHOICE2', 'Second help text'),
+        ('CHOICE3', 'Third help text'),
+    ])
+
+    ListChoices = [ 
+        ('list1', 'First list'),
+        ('list2', 'Second list'),
+        ('list3', 'Third list'),
+    ]
+
+    ListChoicesHelpText = [
+        ('list1', 'First list help text'),
+        ('list2', 'Second list help text'),
+        ('list3', 'Third list help text'),
+    ]
+
+    RadioChoices = [
+        ('radio1', 'First radio'),
+        ('radio2', 'Second radio'),
+        ('radio3', 'Third radio'),
+    ]
+
+    RadioChoicesHelpText = [
+        ('radio1', 'First radio help text'),
+        ('radio2', 'Second radio help text'),
+        ('radio3', 'Third radio help text'),
+    ]
+
+    field_using_enum = AmaraChoiceField(
+        choices=EnumChoices.choices(),
+        label=('Field using enum'),
+        help_text=('1) There needs to be some initial help text for the JS code to replace'),
+        dynamic_choice_help_text=EnumChoicesHelpText.choices())
+
+    field_using_list = AmaraChoiceField(
+        choices=ListChoices,
+        label=('Field using list'),
+        help_text=('2) There needs to be some initial help text for the JS code to replace'),
+        dynamic_choice_help_text=ListChoicesHelpText)
+
+    field_using_radio = AmaraChoiceField(
+        label=('Field using radio buttons'), 
+        choices=RadioChoices,
+        widget=AmaraRadioSelect(dynamic_choice_help_text=RadioChoicesHelpText,
+            dynamic_choice_help_text_initial='3) Radio button groups also need an initial help text. The initial help text is set in the widget')
+    )
+
 class ContentHeader(StyleguideForm):
     search = SearchField(label='Search', required=False,
                          widget=ContentHeaderSearchBar)
@@ -125,3 +184,38 @@ class FilterBox(StyleguideForm):
             ('lime', 'Lime'),
         ))
     shape = forms.CharField(label="Search for shapes")
+
+class SplitButton(StyleguideForm):
+    def setup_form(self):
+        self.split_button_with_tooltip = \
+            SplitCTA('Split button with tooltip', '#',
+            main_tooltip='Main Tooltip 1!',
+            dropdown_tooltip='Dropdown Tooltip 1!',
+            menu_id='splitbutton1',
+            dropdown_items=[('Dropdown Item 1', '#'), ('Dropdown Item 2', '#')])
+
+        self.split_button_no_tooltip = \
+            SplitCTA('Split button no tooltip', '#',
+            menu_id='splitbutton2',
+            dropdown_items=[('Dropdown Item 3', '#'), ('Dropdown Item 4', '#')])
+
+        self.split_button_with_icon = \
+            SplitCTA('Split button with icon', '#',
+            icon='icon-transcribe',
+            menu_id='splitbutton3',
+            dropdown_items=[('Dropdown Item 5', '#'), ('Dropdown Item 6', '#')])
+
+        self.split_button_full_width = \
+            SplitCTA('Split button full width', '#',
+            block=True,
+            icon='icon-transcribe',
+            menu_id='splitbutton4',
+            dropdown_items=[('Dropdown Item 7', '#'), ('Dropdown Item 8', '#')])
+
+        self.split_button_disabled = \
+            SplitCTA('Split button disabled', '#',
+            block=True,
+            disabled=True,
+            icon='icon-transcribe',
+            menu_id='splitbutton5',
+            dropdown_items=[('Dropdown Item 9', '#'), ('Dropdown Item 10', '#')])

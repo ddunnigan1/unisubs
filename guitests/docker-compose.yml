@@ -65,11 +65,14 @@ services:
       default:
         aliases:
           - unisubs.example.com
+    environment:
+      BACKEND_PORT: 8000
+      BACKEND_HOST: app
     depends_on:
       - app
 
   selenium:
-    image: selenium/standalone-firefox:3.12.0-cobalt
+    image: selenium/standalone-chrome:3.14.0
     ports:
       - "4444:4444"
     volumes:

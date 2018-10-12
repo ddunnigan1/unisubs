@@ -161,7 +161,8 @@ class S3EnabledImageField(models.ImageField):
 
         if settings.USE_AMAZON_S3:
             kwargs['storage'] = S3Boto3Storage(bucket_name=self.bucket_name,
-                                               default_acl=acl)
+                                               default_acl=acl,
+                                               querystring_auth=False)
         super(S3EnabledImageField, self).__init__(verbose_name, name, width_field, height_field, **kwargs)
 
 class S3EnabledFileField(models.FileField):
@@ -172,5 +173,6 @@ class S3EnabledFileField(models.FileField):
 
         if settings.USE_AMAZON_S3:
             storage = S3Boto3Storage(bucket_name=self.bucket_name,
-                                     default_acl=acl)
+                                     default_acl=acl,
+                                     querystring_auth=False)
         super(S3EnabledFileField, self).__init__(verbose_name, name, upload_to, storage, **kwargs)

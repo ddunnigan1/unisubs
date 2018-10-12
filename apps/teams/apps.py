@@ -25,3 +25,4 @@ class TeamsConfig(AppConfig):
         # load startup modules
         import teams.signalhandlers
         import teams.workflows.startup
+        import teams.experience

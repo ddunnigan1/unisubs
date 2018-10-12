@@ -47,14 +47,13 @@ def cleanup():
     from django.contrib.sessions.models import Session
     from auth.models import EmailConfirmation
 
-    EmailConfirmation.objects.delete_expired_confirmations()
+    with transaction.atomic():
+        EmailConfirmation.objects.delete_expired_confirmations()
 
-    now = datetime.datetime.now()
-    Session.objects.filter(expire_date__lt=now).delete()
+        now = datetime.datetime.now()
+        Session.objects.filter(expire_date__lt=now).delete()
 
-    transaction.commit_unless_managed()
-
-@job(timeout=20)
+@job(timeout=30)
 def save_thumbnail_in_s3(video_id):
     try:
         video = Video.objects.get(pk=video_id)

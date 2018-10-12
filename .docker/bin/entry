@@ -19,7 +19,7 @@ elif [ "$ACTION" = "worker" ]; then
     exec manage rqworker high default low
 elif [ "$ACTION" = "scheduler" ]; then
     echo "Running scheduler..."
-    exec manage scheduler
+    exec manage rqscheduler -i 5
 elif [ "$ACTION" = "update_translations" ]; then
     echo "Updating translations..."
     exec /usr/local/bin/update_translations $2
@@ -35,16 +35,16 @@ elif [ "$ACTION" = "manage" ]; then
     exec manage "$@"
 elif [ "$ACTION" = "test" ]; then
     source /usr/local/bin/config_env
-    cd /var/run/amara/tests/
+    cd /opt/apps/amara
     export DJANGO_SETTINGS_MODULE=dev_settings_test
     shift
-    exec /opt/apps/amara/bin/test.py tests --rootdir=/run/pytest/ --nomigrations --pyargs "$@"
+    exec /opt/apps/amara/bin/test.py tests --rootdir=/run/pytest/ --nomigrations --disable-warnings --pyargs "$@"
 elif [ "$ACTION" = "guitest" ]; then
     source /usr/local/bin/config_env
-    cd /var/run/amara/tests
+    cd /opt/apps/amara
     export DJANGO_SETTINGS_MODULE=dev_settings_test
     shift
-    exec /opt/apps/amara/bin/test.py guitests --rootdir=/run/pytest/ --pyargs "$@"
+    exec /opt/apps/amara/bin/test.py guitests --rootdir=/run/pytest/ --disable-warnings --pyargs "$@"
 elif [ "$ACTION" = "shell" ]; then
     echo "Running shell..."
     echo "Use the manage script to run django management commands"

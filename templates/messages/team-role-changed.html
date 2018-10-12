@@ -8,7 +8,7 @@
 {% if languages_managed %}
 <p>{% trans "Languages:" %}</p>
 <ul>
-  {% for language in languages_managed %}<li>{{ language }}</li>{% endfor %}
+  {% for language in languages_managed %}<li>{{ language.readable_name }}</li>{% endfor %}
 </ul>
 {% endif %}
 

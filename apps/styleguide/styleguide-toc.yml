@@ -8,11 +8,6 @@
   - palette
   - typography
   - lists
-  - alerts
-  - announcements
-  - progressbars
-  - indicators
-  - tabs
   - id: tables
     title: Tables
   - id: dropdown-menus
@@ -20,18 +15,18 @@
 
 - - Layout
   - generalLayout
-  - textCenter
-  - blockCenter
-
-- - Avatars, Icons, Steps
-  - avatars
-  - icons
-  - stepList
+  - tabs
 
 - - Buttons
   - buttonTags
   - buttonOptions
-  - asyncButton
+  - id: split-button
+    title: Split Buttons
+
+- - Iconography
+  - icons
+  - avatars
+  - stepList
 
 - - Forms
   - forms
@@ -52,6 +47,8 @@
   - buttonField
   - searchbar
   - selects
+  - id: dynamic-help-text
+    title: Dynamic Help Text
 
 - - Modals / Dialogs
   - id: modals
@@ -59,26 +56,37 @@
   - id: language-switcher
     title: Language Switcher
 
-- - Utility Classes
-  - thumbWrapper
+- - Containers
+  - id: content-header
+    title: Content header
+  - id: filter-box
+    title: Filter Box
+  - id: content-footer
+    title: Content footer
+  - id: listview
+    title: List View
 
 - - Elements
+  - alerts
+  - announcements
   - videoCards
   - videoSubtitlesList
   - filterList
-  - id: listview
-    title: List View
   - id: check-all
     title: Check All
-  - id: filter-box
-    title: Filter Box
   - actionBar
-  - id: content-header
-    title: Content header
   - selectList
   - pagination
   - hangingLink
   - constrainContent
   - assignmentHistoryTable
   - zeroState
+  - id: progress-bar
+    title: Progress bars
+
+- - Utility Classes
+  - textCenter
+  - blockCenter
+  - width100
+  - thumbWrapper
 
