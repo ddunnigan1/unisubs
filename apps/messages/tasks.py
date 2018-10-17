@@ -97,7 +97,7 @@ def team_invitation_sent(invite_pk):
     from messages.models import Message
     from teams.models import Invite, Setting, TeamMember
     invite = Invite.objects.get(pk=invite_pk)
-    if not team_sends_notification(invite.team,'block_invitation_sent_message') or not invite.user.is_active:
+    if not invite.user.is_active:
         return False
     # does this team have a custom message for this?
     team_default_message = None
@@ -142,13 +142,9 @@ def team_invitation_sent(invite_pk):
 
 @job
 def application_sent(application_pk):
-    if getattr(settings, "MESSAGES_DISABLED", False):
-        return
     from messages.models import Message
     from teams.models import Application, TeamMember
     application = Application.objects.get(pk=application_pk)
-    if not team_sends_notification(application.team,'block_application_sent_message'):
-        return False
     notifiable = TeamMember.objects.filter(team=application.team, user__is_active=True,
                  role__in=[TeamMember.ROLE_ADMIN, TeamMember.ROLE_OWNER])
     for m in notifiable:
@@ -181,13 +177,12 @@ def application_sent(application_pk):
 
 @job
 def team_application_denied(application_pk):
-
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
     from messages.models import Message
     from teams.models import Application
     application = Application.objects.get(pk=application_pk)
-    if not team_sends_notification(application.team,'block_application_denided_message') or not application.user.is_active:
+    if not team_sends_notification(application.team,'block_application_denied_message') or not application.user.is_active:
         return False
     template_name = "messages/email/team-application-denied.html"
     context = {

@@ -1,4 +1,6 @@
+{% load i18n localeurl_tags %}
 
+{% blocktrans %}
 Hi {{ user }},
 
 {{ inviter }} has invited you to become a {{ role }} for the team {{team.name}} ( {{url_base}}{% url "teams:dashboard" slug=team.slug %} ) on Amara. Lucky you!
@@ -16,3 +18,4 @@ To accept this invitation and join the team:
 
 To decline this invitation :
 {{url_base}}{% url "teams:deny_invite" invite_pk=invite_pk %}
+{% endblocktrans %}
