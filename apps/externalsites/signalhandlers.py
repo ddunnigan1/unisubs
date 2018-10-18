@@ -102,6 +102,16 @@ def remove_credit_in_youtube_videos(sender, instance, **kwargs):
         for video_url in video_urls:
             if credit.should_remove_credit_to_video_url(video_url, instance):
                 tasks.remove_credit_to_video_url.delay(video_url, access_token)
+
+            '''
+            Alternate synchronous implementation to guarantee that the instance 
+            is not yet deleted before all the videos have been processed.
+            Despite this being similar to how externalsites.credit.add_credit_to_video_url,
+            this still fails when there are multiple videos (10+) that need to be processed
+            '''
+            # access_token = google.get_new_access_token(instance.oauth_refresh_token)            
+            # if credit.should_remove_credit_to_video_url(video_url, instance):
+            #     tasks.remove_credit_to_video_url(video_url, access_token)
     except OAuthError as e:
         logger.error("Failed to get OAuth token for {} when attempting to delete video credits".format(sender))
         logger.error(e)   
