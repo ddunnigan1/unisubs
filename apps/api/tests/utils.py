@@ -15,10 +15,15 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program.  If not, see http://www.gnu.org/licenses/agpl-3.0.html.
 
+from __future__ import absolute_import
+
 from django.utils import timezone
-from rest_framework.test import APIRequestFactory
+from rest_framework import status
+from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework.reverse import reverse
 import pytz
+
+from utils.factories import *
 
 def format_datetime_field(datetime):
     if datetime is None:
@@ -43,3 +48,31 @@ def user_field_data(user):
         }
     else:
         return None
+
+class EndpointClient(object):
+    """
+    Like django rest framework's API client, but for a single endpoint
+    """
+    def __init__(self, url):
+        self.url = url
+        self.user = UserFactory(is_superuser=True)
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def get(self, expected_response=status.HTTP_200_OK):
+        return self.check_response(
+            expected_response, self.client.get(self.url))
+
+    def post(self, data, expected_response=status.HTTP_201_CREATED):
+        return self.check_response(
+            expected_response,
+            self.client.post(self.url, data, format='json'))
+
+    def put(self, data, expected_response=status.HTTP_200_OK):
+        return self.check_response(
+            expected_response,
+            self.client.put(self.url, data, format='json'))
+
+    def check_response(self, code, response):
+        assert response.status_code == code, response.content
+        return response

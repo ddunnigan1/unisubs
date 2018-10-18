@@ -79,10 +79,10 @@
             </tr>
         </table>
 	<div class="warning-text">
-	  <p ng-show="showWarning(currentEdit.subtitle, 'lines')">{% trans "Avoid more than 2 lines per subtitle; split the subtitle into two." %}</p>
-	  <p ng-show="showWarning(currentEdit.subtitle, 'timing')">{% trans "Briefly displayed subtitles are hard to read; the duration should be more than 700ms." %}</p>
-	  <p ng-show="showWarning(currentEdit.subtitle, 'characterRate') && !(showWarning(currentEdit.subtitle, 'timing'))">{% trans "Reading rate shouldn't exceed 21 characters / sec; lengthen duration, reduce text or split the subtitle." %}</p>
-	  <p ng-show="showWarning(currentEdit.subtitle, 'longline')">{% trans "Line length shouldn't exceed 42 characters; add a line break if necessary." %}</p>
+          <p ng-show="showWarning(currentEdit.subtitle, 'lines')">[[ warningMessages.lines ]]</p>
+          <p ng-show="showWarning(currentEdit.subtitle, 'timing')">[[ warningMessages.minDuration ]] </p>
+          <p ng-show="showWarning(currentEdit.subtitle, 'characterRate') && !(showWarning(currentEdit.subtitle, 'timing'))">[[ warningMessages.cps ]]</p>
+	  <p ng-show="showWarning(currentEdit.subtitle, 'longline')">[[ warningMessages.cpl ]]</p>
 	</div>
     </div>
 

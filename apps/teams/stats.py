@@ -78,7 +78,7 @@ def increment(team, name):
     """
     Increment a team stat.
     """
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     hash_name = calc_hash_name(team)
     hash_key = calc_hash_key(name, dates.now())
 
@@ -101,7 +101,7 @@ def get_stats(team):
 
     now = dates.now()
     stats = defaultdict(StatSums)
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
 
     all_counts = r.hgetall(calc_hash_name(team))
     for key, count in all_counts.items():
@@ -146,7 +146,7 @@ def cache_timeout(now):
 
 def cleanup_counters():
     now = dates.now()
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     for hash_name in r.sscan_iter(TRACKING_SET_KEY):
         cleanup_counter(r, hash_name, now)
 

@@ -139,7 +139,7 @@ var angular = angular || null;
         $scope.$watch('versionNumber', $scope.versionNumberChanged);
     }]);
 
-    module.controller('WorkingSubtitlesController', ["$scope", "DomWindow", "$filter", "VideoPlayer", function($scope, DomWindow, $filter, VideoPlayer) {
+    module.controller('WorkingSubtitlesController', ["$scope", "DomWindow", "$filter", "VideoPlayer", "SubtitleSoftLimits", function($scope, DomWindow, $filter, VideoPlayer, SubtitleSoftLimits) {
         /**
          * Handles the subtitles the user is working on.
          */
@@ -210,6 +210,8 @@ var angular = angular || null;
 		return subtitle.hasWarning(type, data);
 	    return false;
 	};
+
+        $scope.warningMessages = SubtitleSoftLimits.warningMessages;
 
         $scope.onSubtitleClick = function(evt, subtitle, action) {
             var madeChange = false;

@@ -65,7 +65,10 @@
   {% endif %}
 
 </div>
-{% include "content-footer.html" %}
+<div class="contentFooter">
+  {% if show_application_link %}<div class="contentFooter-extra"><a href="{% url "teams:applications" team.slug %}">{% trans "Review Applications" %}</a></div>{% endif %}
+  {% include "content-footer-paginator.html" %}
+</div>
 
 
 {% if is_team_admin %}

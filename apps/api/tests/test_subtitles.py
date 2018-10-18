@@ -27,8 +27,10 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APIRequestFactory
 import babelsubs
 import mock
+import pytest
 
-from api.tests.utils import format_datetime_field, user_field_data
+from api.tests.utils import (format_datetime_field, user_field_data,
+                             EndpointClient)
 from api.views.subtitles import (SubtitleLanguageSerializer,
                                  SubtitleLanguageViewSet,
                                  SubtitlesSerializer,
@@ -37,6 +39,7 @@ from subtitles import compat
 from subtitles import pipeline
 from subtitles.models import ORIGIN_API, ORIGIN_WEB_EDITOR, ORIGIN_UPLOAD
 from utils import test_utils
+from utils.bunch import Bunch
 from utils.factories import *
 
 class SubtitleLanguageSerializerTest(TestCase):
@@ -721,3 +724,66 @@ class DeleteSubtitleLanguageTest(TestCase):
         assert_false(test_utils.reload_obj(self.version).is_deleted())
         assert_equal(workflow.user_can_delete_subtitles.call_args,
                      mock.call(self.user, self.language_code))
+
+# New pytest style tests
+#
+# TODO: refactor the old tests to use this code.  Also consider changing the
+# old code to test using the APIClient() rather than testing the
+# serializers/views directly.
+
+@pytest.fixture
+def language():
+    video = VideoFactory()
+    return SubtitleLanguageFactory(video=video, language_code='en')
+
+@pytest.fixture
+def language_client(language):
+    return EndpointClient(reverse('api:subtitle-language-detail', kwargs={
+        'video_id': language.video.video_id,
+        'language_code': language.language_code,
+    }))
+
+def test_change_soft_limits(language, language_client):
+    language_client.put({
+        'soft_limit_cps': 30,
+        'soft_limit_lines': None
+    })
+
+    language = test_utils.reload_obj(language)
+    assert language.soft_limit_cps == 30
+    assert language.soft_limit_lines is None
+    assert language.soft_limit_cpl is None
+
+def test_change_soft_limits_permissions(language, language_client,
+                                        patch_for_test):
+    team = TeamFactory()
+    TeamVideoFactory(team=team, video=language.video)
+    can_set_soft_limits = patch_for_test(
+        'teams.permissions.can_set_soft_limits')
+
+    can_set_soft_limits.return_value = False
+    language_client.put({
+        'soft_limit_cps': 30,
+        'soft_limit_lines': None
+    }, expected_response=status.HTTP_403_FORBIDDEN)
+
+    assert can_set_soft_limits.call_args == mock.call(
+        team, language_client.user, language.video, language.language_code)
+
+    can_set_soft_limits.return_value = True
+    language_client.put({
+        'soft_limit_cps': 30,
+        'soft_limit_lines': None
+    }, expected_response=status.HTTP_200_OK)
+
+def test_no_check_if_not_changing_soft_limits(language, language_client,
+                                              patch_for_test):
+    team = TeamFactory()
+    TeamVideoFactory(team=team, video=language.video)
+    can_set_soft_limits = patch_for_test(
+        'teams.permissions.can_set_soft_limits')
+
+    can_set_soft_limits.return_value = False
+    language_client.put({ }, expected_response=status.HTTP_200_OK)
+
+    assert not can_set_soft_limits.called

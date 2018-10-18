@@ -53,7 +53,7 @@ def cleanup():
         now = datetime.datetime.now()
         Session.objects.filter(expire_date__lt=now).delete()
 
-@job(timeout=20)
+@job(timeout=30)
 def save_thumbnail_in_s3(video_id):
     try:
         video = Video.objects.get(pk=video_id)

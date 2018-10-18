@@ -178,6 +178,13 @@ VideoVisibility = enum.Enum('VideoVisibility', [
     ('PRIVATE', _(u'Private')),
 ])
 
+class TeamTag(models.Model):
+    slug = models.SlugField()
+    label = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return u'TeamTag: {}'.format(self.label)
+
 class Team(models.Model):
     APPLICATION = 1
     INVITATION_BY_MANAGER = 2
@@ -307,6 +314,7 @@ class Team(models.Model):
     deleted = models.BooleanField(default=False)
     partner = models.ForeignKey('Partner', null=True, blank=True,
                                 related_name='teams')
+    tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
     objects = TeamManager.from_queryset(TeamQuerySet)()
     all_objects = TeamQuerySet.as_manager()

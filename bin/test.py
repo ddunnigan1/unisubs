@@ -28,6 +28,7 @@ import tempfile
 from django.apps import apps
 from django.conf import settings
 from django_redis import get_redis_connection
+import mock
 import py.path
 import pytest
 
@@ -91,6 +92,7 @@ class AmaraPlugin(object):
     def pytest_runtest_teardown(self, item, nextitem):
         self.patcher.reset_mocks()
         get_redis_connection("default").flushdb()
+        get_redis_connection("storage").flushdb()
 
     def pytest_unconfigure(self, config):
         self.patcher.unpatch_functions()
@@ -107,8 +109,24 @@ class AmaraPlugin(object):
         settings.DEBUG = True
 
     @pytest.fixture
+    def patch_for_test(self):
+        """
+        Call mock.patch to monkeypatch a function, then undo it at the end of
+        the test
+        """
+        patchers = []
+        def func(*args, **kwargs):
+            patcher = mock.patch(*args, **kwargs)
+            obj = patcher.start()
+            patchers.append(patcher)
+            return obj
+        yield func
+        for patcher in patchers:
+            patcher.stop()
+
+    @pytest.fixture
     def redis_connection(self):
-        return get_redis_connection('default')
+        return get_redis_connection('storage')
 
 class AmaraGUITestsPlugin(object):
     def __init__(self):
