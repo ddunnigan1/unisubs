@@ -314,7 +314,7 @@ class Team(models.Model):
     deleted = models.BooleanField(default=False)
     partner = models.ForeignKey('Partner', null=True, blank=True,
                                 related_name='teams')
-    tags = models.ManyToManyField(TeamTag, related_name='teams')
+    tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
     objects = TeamManager.from_queryset(TeamQuerySet)()
     all_objects = TeamQuerySet.as_manager()

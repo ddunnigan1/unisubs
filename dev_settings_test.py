@@ -30,7 +30,8 @@ DATABASES = {
     }
 }
 
-CACHES['default']['OPTIONS']['REDIS_CLIENT_CLASS'] = "mockredis.client.mock_strict_redis_client"
+for key in CACHES.keys():
+    CACHES[key]['OPTIONS']['REDIS_CLIENT_CLASS'] = "mockredis.client.mock_strict_redis_client"
 CACHE_PREFIX = "testcache"
 CACHE_TIMEOUT = 60
 

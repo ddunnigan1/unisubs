@@ -52,8 +52,15 @@ from utils.text import fmt
 from utils import translation
 
 WRITELOCK_EXPIRATION = 30 # 30 seconds
+DEFAULT_SOFT_LIMIT_LINES = 2
+DEFAULT_SOFT_LIMIT_CPL = 42
+DEFAULT_SOFT_LIMIT_CPS = 21
+DEFAULT_SOFT_LIMIT_MIN_DURATION = 700
+DEFAULT_SOFT_LIMIT_MAX_DURATION = 7000
 
 logger = logging.getLogger(__name__)
+
+
 
 # Utility functions -----------------------------------------------------------
 def mapcat(fn, iterable):
@@ -373,6 +380,12 @@ class SubtitleLanguage(models.Model):
     # been changed to be a standalone language.
     is_forked = models.BooleanField(default=False)
 
+    soft_limit_lines = models.IntegerField(null=True, blank=True, default=None)
+    soft_limit_min_duration = models.IntegerField(null=True, blank=True, default=None)
+    soft_limit_max_duration = models.IntegerField(null=True, blank=True, default=None)
+    soft_limit_cps = models.IntegerField(null=True, blank=True, default=None)
+    soft_limit_cpl = models.IntegerField(null=True, blank=True, default=None)
+
     # Writelocking
     writelock_time = models.DateTimeField(null=True, blank=True,
                                           editable=False)
@@ -431,6 +444,26 @@ class SubtitleLanguage(models.Model):
         self._tip_cache = {}
         self._translation_source_version_cache = {}
         self._frozen = False
+
+    def get_soft_limits(self):
+        """
+        Get soft limits for the editor.
+
+        These are things like characters per second (CPS) where we display
+        warnings if the user exceeds them
+        """
+        return {
+            'lines': (self.soft_limit_lines or
+                      DEFAULT_SOFT_LIMIT_LINES),
+            'cpl': (self.soft_limit_cpl or
+                    DEFAULT_SOFT_LIMIT_CPL),
+            'cps': (self.soft_limit_cps or
+                    DEFAULT_SOFT_LIMIT_CPS),
+            'min_duration': (self.soft_limit_min_duration or
+                             DEFAULT_SOFT_LIMIT_MIN_DURATION),
+            'max_duration': (self.soft_limit_max_duration or
+                             DEFAULT_SOFT_LIMIT_MAX_DURATION),
+        }
 
     # Writelocking
     @property

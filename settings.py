@@ -241,13 +241,13 @@ STARTUP_MODULES = [
 # Queue settings
 RQ_QUEUES = {
     'default': {
-        'USE_REDIS_CACHE': 'default',
+        'USE_REDIS_CACHE': 'storage',
     },
     'high': {
-        'USE_REDIS_CACHE': 'default',
+        'USE_REDIS_CACHE': 'storage',
     },
     'low': {
-        'USE_REDIS_CACHE': 'default',
+        'USE_REDIS_CACHE': 'storage',
     }
 }
 RUN_JOBS_EAGERLY = False
@@ -424,7 +424,17 @@ CACHES = {
         "OPTIONS": {
             "PARSER_CLASS": "redis.connection.HiredisParser",
         },
-    }
+    },
+    'storage': {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://{}:{}/{}".format(
+            os.environ.get('REDIS_HOST', 'redis'),
+            os.environ.get('REDIS_PORT', 6379),
+            1),
+        "OPTIONS": {
+            "PARSER_CLASS": "redis.connection.HiredisParser",
+        },
+    },
 }
 
 

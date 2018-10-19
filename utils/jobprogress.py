@@ -51,7 +51,7 @@ def start(key):
         True if we should start the report job
         False if a job is already running and we shouldn't start a new one
     """
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     pipe = r.pipeline()
     pipe.setnx(_make_key(key), _make_value(0, 0))
     r.expire(_make_key(key), TIMEOUT)
@@ -62,14 +62,14 @@ def update(key, current, total):
     """
     Update the progress for a current job
     """
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     r.setex(_make_key(key), TIMEOUT, _make_value(current, total))
 
 def complete(key):
     """
     Indicate that the report job is complete
     """
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     r.delete(_make_key(key))
 
 def get(key):
@@ -80,7 +80,7 @@ def get(key):
         ProgressStatus object or None if no job is running.
     """
 
-    r = get_redis_connection('default')
+    r = get_redis_connection('storage')
     return _parse_value(r.get(_make_key(key)))
 
 def _make_key(key):

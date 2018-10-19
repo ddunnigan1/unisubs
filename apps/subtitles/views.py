@@ -213,6 +213,7 @@ class SubtitleEditorBase(View):
                 'versionNumber': (self.editing_version.version_number
                                   if self.editing_version else None),
             },
+            'softLimits': self.editing_language.get_soft_limits(),
             'baseLanguage': self.base_language,
             'languages': [self.editor_data_for_language(lang)
                           for lang in self.languages],

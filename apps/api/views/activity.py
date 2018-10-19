@@ -311,9 +311,9 @@ class ActivityFilterBackend(filters.BaseFilterBackend):
                     queryset = queryset.filter(**{
                         self.filter_map[name]: value
                     })
-                except ValueError, KeyError:
+                except (ValueError, KeyError):
                     # This happens if you specify an invalid type, date, etc.
-                    return queryset.none()
+                    raise Http404()
         return queryset
 
     def parse_value(self, name, value):

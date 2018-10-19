@@ -7,7 +7,7 @@ RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic main universe multive
 RUN (echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN apt-get update
-RUN apt-get -y install wget python-dev python-setuptools python-pip make gcc libmysqlclient-dev libmemcached-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto icedtea-netx libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass ffmpeg libz-dev tzdata
+RUN apt-get -y install wget python-dev python-setuptools python-pip make gcc libmysqlclient-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto icedtea-netx libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass ffmpeg libz-dev tzdata
 ENV APP_DIR /opt/apps/amara
 ENV CLOSURE_PATH /opt/google-closure
 RUN git clone https://github.com/google/closure-library $CLOSURE_PATH
