@@ -7,7 +7,7 @@ RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic main universe multive
 RUN (echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN (echo "deb-src http://archive.ubuntu.com/ubuntu bionic-updates main universe multiverse" >> /etc/apt/sources.list)
 RUN apt-get update
-RUN apt-get -y install wget python-dev python-setuptools python-pip make gcc libmysqlclient-dev libmemcached-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto icedtea-netx libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass ffmpeg libz-dev tzdata
+RUN apt-get -y install wget python-dev python-setuptools python-pip make gcc libmysqlclient-dev supervisor libxml2-dev libxslt-dev zlib1g-dev swig libffi-dev libssl-dev libyaml-dev git-core python-m2crypto icedtea-netx libjpeg-dev libfreetype6-dev gettext build-essential gcc dialog mysql-client node-uglify ruby-sass ffmpeg libz-dev tzdata
 ENV APP_DIR /opt/apps/amara
 ENV CLOSURE_PATH /opt/google-closure
 RUN git clone https://github.com/google/closure-library $CLOSURE_PATH
@@ -16,7 +16,7 @@ RUN (cd $CLOSURE_PATH && git checkout adbcc8ef6530ea16bac9f877901fe6b32995c5ff)
 RUN pip install --upgrade urllib3[secure]
 RUN mkdir -p /opt/extras/pictures
 RUN mkdir -p /opt/extras/videos
-RUN mkdir -p /var/run/amara && mkdir -p /var/run/amara/tests
+RUN mkdir -p /var/run/amara
 RUN useradd --home /var/run/amara --shell /bin/bash amara
 RUN mkdir /var/run/amara/test-output/
 RUN chown -R amara:amara /var/run/amara

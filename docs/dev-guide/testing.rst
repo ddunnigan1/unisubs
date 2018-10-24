@@ -63,11 +63,14 @@ When writing GUI tests:
   - Note which TestLodge case the test is for.  Try to keep the TestLodge case
     up-to-date with the automated test.
 
-There's a couple tools to help debug failing tests:
+Strategies for dealing with failing tests:
 
-  - To see the webserver output run ``dev guitestlogs``.
-  - To see browser screenshots for failing tests, use the ``--take-screenshots``
-    flag, then check in the ``guitests/screenshots`` directory after running the tests.
+  - To see the webserver output run ``dev guitestlogs``.  Check for an exception printout there.
+  - Use `dev guitest --pdb` to pause and enter the Python debugger on test
+    failure.  From that command prompt you can execute selenium code.  You can
+    also take that oppertunity to open the selenium console at
+    http://localhost:4444/wd/hub/static/resource/hub.html, find the open
+    session and look at a screenshot from the browser.
   - To start up the test webserver run ``dev up --guitests``.  This is useful
     if you want to manually step through a failing test.
   - You can also use ``dev manage --guitests``` to run management commands in

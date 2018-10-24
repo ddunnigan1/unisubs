@@ -12,11 +12,11 @@
     {% dropdown-js-item _('Sort') 'sort' separator=True %}
     {% enddropdown %}
     <div class="filterBox-fields">
-      {% render_field filters_form.type %}
-      {% render_field filters_form.video %}
-      {% render_field filters_form.video_language %}
-      {% render_field filters_form.subtitle_language %}
-      {% render_field filters_form.sort %}
+      {% render_filter_field filters_form.type %}
+      {% render_filter_field filters_form.video %}
+      {% render_filter_field filters_form.video_language %}
+      {% render_filter_field filters_form.subtitle_language %}
+      {% render_filter_field filters_form.sort %}
     </div>
   </div>
 

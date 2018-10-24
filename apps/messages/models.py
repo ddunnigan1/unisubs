@@ -104,6 +104,7 @@ class Message(models.Model):
     user = models.ForeignKey(User)
     subject = models.CharField(max_length=100, blank=True)
     content = models.TextField(blank=True, max_length=MESSAGE_MAX_LENGTH)
+    html_formatted = models.BooleanField(default=False)
     author = models.ForeignKey(User, blank=True, null=True, related_name='sent_messages')
     read = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -183,6 +184,9 @@ class Message(models.Model):
         return json.dumps(data)
 
     def get_content(self):
+        if self.html_formatted:
+            return self.content
+
         content = []
 
         if self.content:

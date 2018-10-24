@@ -550,10 +550,9 @@ def team_video_page_extra_tabs(team, request):
     return team.new_workflow.team_video_page_extra_tabs(request)
 
 @register.filter
-def management_page_default(team, request):
-    return team.new_workflow.management_page_default(request)
+def management_page_default(team, user):
+    return team.new_workflow.management_page_default(user)
 
 @register.filter
-def management_page_extra_tabs(team, request):
-    return team.new_workflow.management_page_extra_tabs(request)
-  
+def management_page_extra_tabs(team, user):
+    return team.new_workflow.management_page_extra_tabs(user)

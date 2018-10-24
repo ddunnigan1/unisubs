@@ -277,7 +277,8 @@ class SimpleVideoPageCustomization(VideoPageCustomization):
 
 class SimpleSubtitlesPageCustomization(SubtitlesPageCustomization):
     def __init__(self, request, video, subtitle_language, team):
-        super(SimpleSubtitlesPageCustomization, self).__init__(request.user, video, subtitle_language)
+        super(SimpleSubtitlesPageCustomization, self).__init__(
+            request.user, video, subtitle_language, team.slug)
         self.request = request
         self.team = team
         self.setup_header()

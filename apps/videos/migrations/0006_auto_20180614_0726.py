@@ -12,6 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql="alter table videos_videoindex engine=InnoDB;",
-            reverse_sql="alter table videos_videoindex engine=MyISAM;")
+            sql=["alter table videos_videoindex engine=InnoDB;"],
+            reverse_sql=["alter table videos_videoindex engine=MyISAM;"])
     ]

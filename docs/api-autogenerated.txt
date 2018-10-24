@@ -295,6 +295,17 @@ Creating subtitle languages
     :<json boolean is_original: Alias for is_primary_audio_language
         **(deprecated)**
     :<json boolean is_complete: Alias for subtitles_complete  **(deprecated)**
+    :<json integer soft_limit_lines: Controls the max number of lines per
+        subtitle.  A warning is shown in the editor if this limit is exceeded.
+    :<json integer soft_limit_min_duration: Controls min duration of subtitles
+        in milliseconds.  A warning is shown in the editor if this limit is
+        exceeded.
+    :<json integer soft_limit_max_duration: Controls max duration of subtitles
+        in milliseconds.  This controls the message in the guidelines dialog.
+    :<json integer soft_limit_cpl: Controls the max characters per line for
+        subtitles.  A warning is shown in the editor if this limit is exceeded.
+    :<json integer soft_limit_cps: Controls the max characters per second for
+        subtitles.  A warning is shown in the editor if this limit is exceeded.
 
 .. _subtitles_resource:
 
@@ -539,7 +550,7 @@ Updating user accounts
 
     :param username username: must match the username of the auth credentials sent
 
-    Inputs the same fields as POST, except `username` and
+    Inputs the same fields as POST, except `username`, `password`, and
     `find_unique_username`.
 
 .. _user_ids:

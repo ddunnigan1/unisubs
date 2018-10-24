@@ -93,54 +93,6 @@ def send_new_message_notification(message_id):
     send_templated_email(user, subject, template_name, context)
 
 @job
-def team_invitation_sent(invite_pk):
-    from messages.models import Message
-    from teams.models import Invite, Setting, TeamMember
-    invite = Invite.objects.get(pk=invite_pk)
-    if not team_sends_notification(invite.team,'block_invitation_sent_message') or not invite.user.is_active:
-        return False
-    # does this team have a custom message for this?
-    team_default_message = None
-    messages = Setting.objects.messages().filter(team=invite.team)
-    if messages.exists():
-        data = {}
-        for m in messages:
-            data[m.get_key_display()] = m.data
-        mapping = {
-            TeamMember.ROLE_ADMIN: data['messages_admin'],
-            TeamMember.ROLE_MANAGER: data['messages_manager'],
-            TeamMember.ROLE_CONTRIBUTOR: data['messages_invite'],
-        }
-        team_default_message = mapping.get(invite.role, None)
-    context = {
-        'invite': invite,
-        'role': invite.role,
-        "user":invite.user,
-        "inviter":invite.author,
-        "team": invite.team,
-        "invite_pk": invite_pk,
-        'note': invite.note,
-        'custom_message': team_default_message,
-        'url_base': get_url_base(),
-    }
-    title = fmt(
-        ugettext(u"You've been invited to team %(team)s on Amara"),
-        team=invite.team.name)
-
-    if invite.user.notify_by_message:
-        body = render_to_string("messages/team-you-have-been-invited.txt", context)
-        msg = Message()
-        msg.message_type = 'S'
-        msg.subject = title
-        msg.user = invite.user
-        msg.object = invite
-        msg.author = invite.author
-        msg.content = body
-        msg.save()
-    template_name = 'messages/email/team-you-have-been-invited.html'
-    return send_templated_email(invite.user, title, template_name, context)
-
-@job
 def application_sent(application_pk):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return

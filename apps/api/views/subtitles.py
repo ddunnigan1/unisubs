@@ -94,6 +94,17 @@ Creating subtitle languages
     :<json boolean is_original: Alias for is_primary_audio_language
         **(deprecated)**
     :<json boolean is_complete: Alias for subtitles_complete  **(deprecated)**
+    :<json integer soft_limit_lines: Controls the max number of lines per
+        subtitle.  A warning is shown in the editor if this limit is exceeded.
+    :<json integer soft_limit_min_duration: Controls min duration of subtitles
+        in milliseconds.  A warning is shown in the editor if this limit is
+        exceeded.
+    :<json integer soft_limit_max_duration: Controls max duration of subtitles
+        in milliseconds.  This controls the message in the guidelines dialog.
+    :<json integer soft_limit_cpl: Controls the max characters per line for
+        subtitles.  A warning is shown in the editor if this limit is exceeded.
+    :<json integer soft_limit_cps: Controls the max characters per second for
+        subtitles.  A warning is shown in the editor if this limit is exceeded.
 
 .. _subtitles_resource:
 
@@ -306,6 +317,7 @@ from babelsubs.storage import SubtitleSet
 from utils.http import data_from_url
 from utils.subtitles import load_subtitles
 import videos.tasks
+import teams.permissions
 
 logger = logging.getLogger(__name__)
 
@@ -358,6 +370,16 @@ class SubtitleLanguageSerializer(serializers.Serializer):
     is_primary_audio_language = serializers.BooleanField(required=False)
     is_rtl = serializers.BooleanField(read_only=True)
     is_translation = serializers.SerializerMethodField()
+    soft_limit_lines = serializers.IntegerField(
+        required=False, min_value=1, allow_null=True)
+    soft_limit_min_duration = serializers.IntegerField(
+        required=False, min_value=1, allow_null=True)
+    soft_limit_max_duration = serializers.IntegerField(
+        required=False, min_value=1, allow_null=True)
+    soft_limit_cps = serializers.IntegerField(
+        required=False, min_value=1, allow_null=True)
+    soft_limit_cpl = serializers.IntegerField(
+        required=False, min_value=1, allow_null=True)
     published = serializers.BooleanField(read_only=True,
                                          source='has_public_version')
     original_language_code = serializers.SerializerMethodField()
@@ -447,7 +469,11 @@ class SubtitleLanguageSerializer(serializers.Serializer):
         language = SubtitleLanguage.objects.create(
             video=self.context['video'],
             language_code=validated_data['language_code'])
-        return self.update(language, validated_data)
+        try:
+            return self.update(language, validated_data)
+        except IntegrityError:
+            self.fail('language-exists',
+                      language_code=language.language_code)
 
     def update(self, language, validated_data):
         subtitles_complete = validated_data.get(
@@ -460,11 +486,15 @@ class SubtitleLanguageSerializer(serializers.Serializer):
         video = self.context['video']
         if subtitles_complete is not None:
             language.subtitles_complete = subtitles_complete
-            try:
-                language.save()
-            except IntegrityError:
-                self.fail('language-exists',
-                          language_code=language.language_code)
+        language.soft_limit_lines = validated_data.get('soft_limit_lines')
+        language.soft_limit_min_duration = validated_data.get(
+            'soft_limit_min_duration')
+        language.soft_limit_max_duration = validated_data.get(
+            'soft_limit_max_duration')
+        language.soft_limit_cpl = validated_data.get('soft_limit_cpl')
+        language.soft_limit_cps = validated_data.get('soft_limit_cps')
+
+        language.save()
         if primary_audio_language is not None:
             video.primary_audio_language_code = language.language_code
             video.save()
@@ -500,6 +530,24 @@ class SubtitleLanguageViewSet(mixins.CreateModelMixin,
         workflow = self.video.get_workflow()
         return workflow.user_can_view_private_subtitles(self.request.user,
                                                         language_code)
+
+    def perform_create(self, serializer):
+        self.check_soft_limit_permissions(serializer)
+        return serializer.save()
+
+    def perform_update(self, serializer):
+        self.check_soft_limit_permissions(serializer)
+        return serializer.save()
+
+    def check_soft_limit_permissions(self, serializer):
+        if not any(key.startswith('soft_limit')
+                   for key in serializer.validated_data):
+            return
+        team = self.video.get_team()
+        if team and not teams.permissions.can_set_soft_limits(
+                team, self.request.user, self.video,
+                self.kwargs['language_code']):
+            raise PermissionDenied()
 
     def get_serializer_context(self):
         return {

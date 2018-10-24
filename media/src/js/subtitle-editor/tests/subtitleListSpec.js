@@ -143,7 +143,7 @@ describe('Test the SubtitleList class', function() {
                 type: 'insert',
                 subtitle: sub,
                 before: null,
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             var sub2 = subtitleList._insertSubtitle(0);
@@ -152,7 +152,7 @@ describe('Test the SubtitleList class', function() {
                 type: 'insert',
                 subtitle: sub2,
                 before: sub
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             subtitleList.updateSubtitleTime(sub, 500, 1500);
@@ -160,7 +160,7 @@ describe('Test the SubtitleList class', function() {
             expect(handler.onChange).toHaveBeenCalledWith([{
                 type: 'update',
                 subtitle: sub,
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             subtitleList.updateSubtitleTime(sub, 500, 1500);
@@ -168,7 +168,7 @@ describe('Test the SubtitleList class', function() {
             expect(handler.onChange).toHaveBeenCalledWith([{
                 type: 'update',
                 subtitle: sub,
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             subtitleList.updateSubtitleContent(sub, 'content');
@@ -176,7 +176,7 @@ describe('Test the SubtitleList class', function() {
             expect(handler.onChange).toHaveBeenCalledWith([{
                 type: 'update',
                 subtitle: sub,
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             subtitleList._removeSubtitle(1);
@@ -184,7 +184,7 @@ describe('Test the SubtitleList class', function() {
             expect(handler.onChange).toHaveBeenCalledWith([{
                 type: 'remove',
                 subtitle: sub,
-            }]);
+            }], jasmine.ANY);
 
             handler.onChange.calls.reset();
             subtitleList.removeChangeCallback(handler.onChange);

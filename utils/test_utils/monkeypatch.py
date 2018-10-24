@@ -211,6 +211,7 @@ class MonkeyPatcher(object):
     def unpatch_functions(self):
         for patch in self.patches:
             patch.stop()
+        self.patches = []
 
     def reset_mocks(self):
         for mock_obj, side_effect in self.initial_side_effects.items():

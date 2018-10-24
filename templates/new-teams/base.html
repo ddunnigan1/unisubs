@@ -26,7 +26,7 @@
     <li><a href="{% url "teams:resources" team.slug %}">{% trans "Resources" %}</a></li>
     {% endif %}
     {% if team|can_view_management_tab:request.user or team|can_view_project_or_language_management_tab:request.user %}
-    <li><a href="{{ team|management_page_default:request }}">{% trans "Management" %}</a></li>
+    <li><a href="{{ team|management_page_default:request.user }}">{% trans "Management" %}</a></li>
     {% endif %}
     {% if team|can_view_settings_tab:user %}
     <li>
@@ -37,6 +37,9 @@
         </li>
         <li>
           <a href="{% url "teams:settings_messages" slug=team.slug %}">{% trans "Messages" %}</a>
+        </li>
+        <li>
+          <a href="{% url "teams:settings_permissions" team.slug %}">{% trans "Permissions" %}</a>
         </li>
         <li>
           <a href="{% url "teams:settings_workflows" slug=team.slug %}">{% trans "Workflow" %}</a>

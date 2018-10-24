@@ -51,10 +51,10 @@ from teams.permissions_const import (
     TEAM_PERMISSIONS, PROJECT_PERMISSIONS, ROLE_OWNER, ROLE_ADMIN, ROLE_MANAGER,
     ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
+from teams import behaviors
+from teams import notifymembers
 from teams import stats
 from teams import tasks
-from teams import workflows
-from teams import behaviors
 from teams.exceptions import ApplicationInvalidException
 from teams.notifications import BaseNotification
 from teams.signals import (member_leave, api_subtitles_approved,
@@ -64,6 +64,7 @@ from utils import DEFAULT_PROTOCOL
 from utils import enum
 from utils import translation, send_templated_email
 from utils.amazon import S3EnabledImageField, S3EnabledFileField
+from utils.bunch import Bunch
 from utils.panslugify import pan_slugify
 from utils.text import fmt
 from utils.translation import get_language_label
@@ -75,6 +76,8 @@ from subtitles.models import (
     SubtitleNoteBase,
 )
 from subtitles import pipeline
+
+from collab.const import TEAM_WORKFLOW_TYPE_COLLAB
 
 from functools import partial
 
@@ -174,6 +177,13 @@ VideoVisibility = enum.Enum('VideoVisibility', [
     ('UNLISTED', _(u'Unlisted')),
     ('PRIVATE', _(u'Private')),
 ])
+
+class TeamTag(models.Model):
+    slug = models.SlugField()
+    label = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return u'TeamTag: {}'.format(self.label)
 
 class Team(models.Model):
     APPLICATION = 1
@@ -280,7 +290,7 @@ class Team(models.Model):
     # Policies and Permissions
     membership_policy = models.IntegerField(_(u'membership policy'),
                                             choices=MEMBERSHIP_POLICY_CHOICES,
-                                            default=OPEN)
+                                            default=INVITATION_BY_ADMIN)
     video_policy = models.IntegerField(_(u'video policy'),
                                        choices=VIDEO_POLICY_CHOICES,
                                        default=VP_MEMBER)
@@ -304,6 +314,7 @@ class Team(models.Model):
     deleted = models.BooleanField(default=False)
     partner = models.ForeignKey('Partner', null=True, blank=True,
                                 related_name='teams')
+    tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
     objects = TeamManager.from_queryset(TeamQuerySet)()
     all_objects = TeamQuerySet.as_manager()
@@ -335,8 +346,12 @@ class Team(models.Model):
     def is_tasks_team(self):
         return self.workflow_enabled
 
+    def is_collab_team(self):
+        return self.workflow_type == TEAM_WORKFLOW_TYPE_COLLAB
+
     @property
     def new_workflow(self):
+        from teams import workflows
         if not hasattr(self, '_new_workflow'):
             self._new_workflow = workflows.TeamWorkflow.get_workflow(self)
         return self._new_workflow
@@ -391,6 +406,23 @@ class Team(models.Model):
             if setting.data:
                 messages[setting.key_name] = setting.data
         return messages
+
+    def get_message(self, name):
+        key = Setting.KEY_IDS[name]
+        try:
+            setting = self.settings.get(key=key)
+            if setting.data:
+                return setting.data
+        except Setting.DoesNotExist:
+            pass
+        return self.get_default_message(name)
+
+    def get_message_for_role(self, role):
+        if role == ROLE_MANAGER:
+            return self.get_message('messages_manager')
+        elif role in (ROLE_ADMIN, ROLE_OWNER):
+            return self.get_message('messages_admin')
+        return None
 
     def render_message(self, msg):
         """Return a string of HTML represention a team header for a notification.
@@ -1628,6 +1660,8 @@ class TeamMember(models.Model):
     projects_managed = models.ManyToManyField(Project,
                                               related_name='managers')
 
+    cache = ModelCacheManager()
+
     objects = TeamMemberManager()
 
     def __unicode__(self):
@@ -1644,18 +1678,79 @@ class TeamMember(models.Model):
         super(TeamMember, self).delete()
         Team.cache.invalidate_by_pk(self.team_id)
 
+    def get_role_summary(self):
+        if self.is_a_language_manager():
+            if self.is_a_project_manager():
+                return _('Project/Language Manager')
+            else:
+                return _('Language Manager')
+        elif self.is_a_project_manager():
+            return _('Project Manager')
+        return self.get_role_display()
+
+    def get_projects_managed_display(self):
+        return fmt(
+            _('Project manager for: %(projects)s'),
+            projects=', '.join(p.name for p in self.get_projects_managed())
+        )
+
+    def get_languages_managed_display(self):
+        return fmt(
+            _('Language manager for: %(languages)s'),
+            languages=', '.join(p.get_code_display() for p in self.get_languages_managed())
+        )
+
     def leave_team(self):
         member_leave.send(sender=self)
         notifier.team_member_leave(self.team_id, self.user_id)
 
-    def change_role(self, new_role):
-        if new_role == self.role:
-            return
-        else:
-            self.role = new_role
-            self.save()
+    def get_role_name(self):
+        if self.role == ROLE_CONTRIBUTOR:
+            if self.is_a_project_manager():
+                if self.is_a_language_manager():
+                    return _('Project/Language Manager')
+                else:
+                    return _('Project Manager')
+            elif self.is_a_language_manager():
+                return _('Language Manager')
+        return self.get_role_display()
+
+    def change_role(self, user, new_role, projects_managed=None,
+                    languages_managed=None):
+        """
+        Change a user's role on the team
+
+        Args:
+            user: user performing the action
+            new_role: new role to set
+            projects_managed: list of projects managed
+            languages_managed: list of languages managed
+        """
+        old_member_info = Bunch(
+            role=self.role,
+            role_name=self.get_role_name(),
+            project_or_language_manager=self.is_a_project_or_language_manager(),
+        )
+        with transaction.atomic():
+            if new_role != self.role:
+                self.role = new_role
+                self.save()
+            if projects_managed:
+                self.projects_managed.set(projects_managed)
+            else:
+                self.projects_managed.clear()
+            if languages_managed:
+                self.set_languages_managed(languages_managed)
+            else:
+                self.languages_managed.all().delete()
+            self.clear_languages_managed_cache()
+            self.clear_projects_managed_cache()
+
+        if self.team.is_old_style():
             if new_role in (ROLE_MANAGER, ROLE_ADMIN):
                 notifier.team_member_promoted(self.team_id, self.user_id, new_role)
+        else:
+            notifymembers.send_role_changed_message(self, old_member_info)
 
     def project_narrowings(self):
         """Return any project narrowings applied to this member."""
@@ -1733,10 +1828,19 @@ class TeamMember(models.Model):
             self._projects_managed_cache = list(self.projects_managed.all())
         return self._projects_managed_cache
 
+    def clear_projects_managed_cache(self):
+        if hasattr(self, '_projects_managed_cache'):
+            del self._projects_managed_cache
+
     def get_languages_managed(self):
         if not hasattr(self, '_languages_managed_cache'):
             self._languages_managed_cache = list(self.languages_managed.all())
         return self._languages_managed_cache
+
+    def clear_languages_managed_cache(self):
+        if hasattr(self, '_languages_managed_cache'):
+            del self._languages_managed_cache
+        self.languages_managed.all()._result_cache = None
 
     def is_project_manager(self, project):
         if isinstance(project, Project):
@@ -1772,6 +1876,15 @@ class TeamMember(models.Model):
     def remove_language_manager(self, language_code):
         self.languages_managed.filter(code=language_code).delete()
 
+    def set_languages_managed(self, language_codes):
+        language_codes = set(language_codes)
+        current_codes = set(l.code for l in self.get_languages_managed())
+        to_remove = current_codes - language_codes
+        to_add = language_codes - current_codes
+        self.languages_managed.filter(code__in=to_remove).delete()
+        for code in to_add:
+            self.make_language_manager(code)
+
     def remove_as_language_manager(self):
         self.languages_managed.all().delete()
 
@@ -1781,6 +1894,9 @@ class TeamMember(models.Model):
     def remove_as_proj_lang_manager(self):
         self.remove_as_language_manager()
         self.remove_as_project_manager()
+
+    def calc_subtitles_completed(self):
+        return TeamSubtitlesCompleted.objects.filter(member=self).count()
 
     class Meta:
         unique_together = (('team', 'user'),)
@@ -3970,3 +4086,22 @@ class Partner(models.Model):
 
     def is_admin(self, user):
         return user in self.admins.all()
+
+class TeamSubtitlesCompleted(models.Model):
+    """
+    Track the number of subtitles completed for a team by team members.
+    """
+    member = models.ForeignKey(TeamMember)
+    video = models.ForeignKey(Video)
+    language_code = models.CharField(max_length=16,
+                                     choices=translation.ALL_LANGUAGE_CHOICES)
+
+    class Meta:
+        unique_together = [
+            ('member', 'video', 'language_code'),
+        ]
+
+    @classmethod
+    def add(cls, member, video, language_code):
+        cls.objects.get_or_create(member=member, video=video,
+                                  language_code=language_code)

@@ -1,8 +1,8 @@
 from .pages.login import LoginPage
 
-def check_user_logged_in(driver, username):
-    user_menu = driver.find_element_by_id('user-menu')
-    assert user_menu.get_attribute('data-username') == username
+def check_user_logged_in(driver, user_name):
+    button = driver.find_element_by_css_selector('button[data-target=user-menu]')
+    assert button.text == user_name
 
 def test_login(driver, base_url):
     """

@@ -46,14 +46,12 @@ def render_field(field, reverse_required=False):
 
 @register.simple_tag
 def render_filter_field(field):
-    return render_to_string('future/forms/filter-field.html', {
-        'field': field,
-        'label': field.label,
-        'help_text': field.help_text,
-        'errors': field.errors,
-        'widget_type': calc_widget_type(field),
-        'label': field.label,
-    })
+    """
+    Template tag version of render_filter_field.
+
+    This is the current version and is used with the filterBox element
+    """
+    return render_field(field, reverse_required=True)
 
 # Deprecated ways to render form fields
 @register.filter('render_field')
@@ -62,7 +60,19 @@ def render_field_filter_version(field):
 
 @register.filter('render_filter_field')
 def render_filter_field_filter_version(field):
-    return render_filter_field(field)
+    """
+    Template tag version of render_filter_field.
+
+    This is the deprecated version and works with the old-style filters
+    """
+    return render_to_string('future/forms/filter-field.html', {
+        'field': field,
+        'label': field.label,
+        'help_text': field.help_text,
+        'errors': field.errors,
+        'widget_type': calc_widget_type(field),
+        'label': field.label,
+    })
 
 @register.inclusion_tag('future/forms/button-field.html')
 def button_field(field, button_label, button_class="cta"):

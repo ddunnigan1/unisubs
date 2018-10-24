@@ -20,9 +20,10 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
 from auth.models import CustomUser as User
-from subtitles.signals import subtitles_published
+from subtitles.signals import subtitles_published, subtitles_added
 from teams import stats
-from teams.models import TeamVideo, TeamMember, MembershipNarrowing
+from teams.models import (TeamVideo, TeamMember, MembershipNarrowing,
+                          TeamSubtitlesCompleted)
 from teams.signals import api_teamvideo_new
 from videos.signals import feed_imported
 
@@ -52,3 +53,14 @@ def on_subtitles_published(sender, **kwargs):
         stats.increment(tv.team, 'subtitles-published')
         stats.increment(
             tv.team, 'subtitles-published-{}'.format(sender.language_code))
+
+@receiver(subtitles_added)
+def on_subtitles_published(sender, version=None, **kwargs):
+    tv = sender.video.get_team_video()
+    if tv and version.author:
+        member = tv.team.get_member(version.author)
+        if member:
+            TeamSubtitlesCompleted.add(
+                member=member,
+                video=sender.video,
+                language_code=sender.language_code)

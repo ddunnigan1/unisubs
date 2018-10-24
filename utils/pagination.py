@@ -76,6 +76,8 @@ class AmaraPaginatorFuture(Paginator):
             (i, self.make_page_link(i, query))
             for i in range(start_page, end_page + 1)
         ]
+        page.first_page_link = self.make_page_link(1, query)
+        page.last_page_link = self.make_page_link(self.num_pages, query)
 
     def make_page_link(self, page_number, query):
         query['page'] = page_number

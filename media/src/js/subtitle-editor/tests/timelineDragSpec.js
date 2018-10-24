@@ -61,7 +61,7 @@ describe('TimelineDrag', function() {
         if(clickTime === undefined) {
             clickTime = 0;
         }
-        dragHandler = new handlerClass($scope, subtitleDiv, clickTime);
+        dragHandler = new handlerClass($scope, subtitleDiv, clickTime, 'testChangeGroup-');
     }
 
     describe('SubtitleDragHandlerMiddle', function() {

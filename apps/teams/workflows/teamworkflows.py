@@ -45,9 +45,10 @@ from collections import namedtuple
 from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from django.utils.translation import ungettext
+from django.utils.translation import ungettext, ugettext as _
 
 from subtitles.models import SubtitleLanguage
+from teams import experience
 from utils.behaviors import DONT_OVERRIDE
 from utils.text import fmt
 
@@ -138,7 +139,7 @@ class TeamWorkflow(object):
         """
         return []
 
-    def management_page_extra_tabs(self, request, *args, **kwargs):
+    def management_page_extra_tabs(self, user, *args, **kwargs):
         """Add extra sub tabs to the team management page.
 
         These appear near the top of the page.
@@ -154,8 +155,8 @@ class TeamWorkflow(object):
                 'slug': self.team.slug,
             })
 
-    def management_page_default(self, request):
-        extra_tabs = self.management_page_extra_tabs(request)
+    def management_page_default(self, user):
+        extra_tabs = self.management_page_extra_tabs(user)
         if extra_tabs:
             return extra_tabs[0].url
         else:
@@ -226,6 +227,12 @@ class TeamWorkflow(object):
             'language-changed',
         ]
 
+    def customize_permissions_table(self, team, form, permissions_table):
+        """
+        Customize the table show on the permissions settings page
+        """
+        pass
+
     # these can be used to customize the content in the project/language
     # manager pages
     def render_project_page(self, request, team, project, page_data):
@@ -244,6 +251,27 @@ class TeamWorkflow(object):
               .order_by('-id'))
         page_data['videos']= qs[:5]
         return render(request, 'new-teams/language-page.html', page_data)
+
+    def get_exerience_column_label(self):
+        """
+        Team members page label for the experience coluumn.
+        """
+        return _('Subtitles completed')
+
+    def add_experience_to_members(self, page):
+        """
+        Add experience attributes to a list of members
+
+        We call this for the team members page to populate the experience
+        column (usually subtitles completed).  This method should:
+
+          - Set the experience attribute to each member to a TeamExperience object
+          - Optionally, set the experience_extra attribute, which is a list of
+            extra experience to show in the expanded view.
+        """
+        subtitles_completed = experience.get_subtitles_completed(page)
+        for member, count in zip(page, subtitles_completed):
+            member.experience = TeamExperience(_('Subtitles completed'), count)
 
     # map type codes to subclasses
     _type_code_map = {}
@@ -311,3 +339,31 @@ Attributes:
     title: human friendly tab title
     url: URL for the page
 """
+
+TeamExperience = namedtuple('TeamExperience', 'label count')
+"""Used to list experience counts on the members directory
+
+By default, we show subtitles completed, but other workflows might want to
+display different things, like assignments completed, etc.
+"""
+
+class TeamPermissionsRow(object):
+    """
+    Used to display the checks/Xs on the permissions settings page
+    """
+    def __init__(self, label, admins, managers, contributors,
+                 setting_name=None):
+        self.label = label
+        self.admins = admins
+        self.managers = managers
+        self.contributors = contributors
+        self.setting_name = setting_name
+
+    @classmethod
+    def from_setting(cls, label, form, setting_name):
+        value = form[setting_name].value()
+        permissions = form[setting_name].field.widget.decompress(value)
+        # some fields only have settings for admins/managers.  Make sure to
+        # extend permissions to 3 items in that case
+        permissions.extend([False] * (3 - len(permissions)))
+        return cls(label, *permissions, setting_name=setting_name)

@@ -209,6 +209,23 @@
         ]);
     });
 
+    module.factory('SubtitleSoftLimits', function() {
+        var warningMessages = {};
+
+        warningMessages.lines = 'Too many lines';
+        warningMessages.timing = 'Too short duration';
+        warningMessages.cps = 'Too many characters per second';
+        warningMessages.cpl = 'Too many characters per line';
+
+        return {
+            lines: 2,
+            timing: 700,
+            cps: 21,
+            cpl: 42,
+            warningMessages: warningMessages
+        };
+    });
+
     module.value('gettext', jasmine.createSpy().and.callFake(function(text) { return text; }));
     module.value('pgettext', jasmine.createSpy().and.callFake(function(context, text) { return text; }));
     module.value('interpolate', function(text, data, named) {

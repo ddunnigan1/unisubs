@@ -51,4 +51,9 @@
             }
         }
     }]);
+
+    module.controller('GuidelinesController', ['$scope', 'SubtitleSoftLimits', function($scope, SubtitleSoftLimits) {
+        $scope.guidelines = SubtitleSoftLimits.guidelines;
+    }]);
+
 }).call(this);

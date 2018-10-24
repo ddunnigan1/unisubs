@@ -30,7 +30,7 @@ from teams.models import (
     Team, TeamMember, TeamVideo, Workflow, Task, Setting, MembershipNarrowing,
     Project, TeamLanguagePreference, TeamNotificationSetting, BillingReport,
     Partner, Application, ApplicationInvalidException, Invite, BillingRecord,
-    LanguageManager, BillToClient, EmailInvite
+    LanguageManager, BillToClient, EmailInvite, TeamTag
 )
 from utils.text import fmt
 from videos.models import Video
@@ -343,6 +343,9 @@ class BillingRecordAdmin(admin.ModelAdmin):
                      'new_subtitle_version', 'video', 'project',
     )
 
+class TeamTagAdmin(admin.ModelAdmin):
+    prepopulated_fields = {"slug": ("label",)}
+    fields = ('label', 'slug')
 
 admin.site.register(TeamMember, TeamMemberAdmin)
 admin.site.register(Team, TeamAdmin)
@@ -361,3 +364,4 @@ admin.site.register(Invite, InviteAdmin)
 admin.site.register(Application, ApplicationAdmin)
 admin.site.register(BillingRecord, BillingRecordAdmin)
 admin.site.register(EmailInvite)
+admin.site.register(TeamTag, TeamTagAdmin)

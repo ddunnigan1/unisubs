@@ -19,75 +19,143 @@ Some notes about testing:
 """
 
 from __future__ import absolute_import
-import os
-import sys
 
+import os
+import shutil
+import sys
+import tempfile
+
+from django.apps import apps
+from django.conf import settings
+from django_redis import get_redis_connection
+import mock
+import py.path
 import pytest
 
-import optionalapps
+from amara.signals import before_tests
 import startup
 
-def setup_test_directories(testdir):
-    """
-    Merge together the various test/ directories
+def is_one_path_a_parent_of_another(path1, path2):
+    return path1.startswith(path2) or path2.startswith(path1)
 
-    We allow each subrepository to create its own test directory, which then get
-    merged together to create a virtual test package with some magic from
-    tests/__init__.py.  However, this doesn't work with py.test, since it
-    expects to be able to walk through the filesystem paths to find files like
-    conftest.py.  To work around this, symlink all the actual files into an
-    actual directory
-    """
-    setup_test_links(optionalapps.project_root, testdir)
-    for repo_path in optionalapps.get_repository_paths():
-        setup_test_links(repo_path, testdir)
-    # create the __init__.py file
-    with open('__init__.py', 'w'):
-        pass
-    # We now have a bunch of potential packages named "tests".  Mess with the
-    # path/module registry to ensure that it's the one we just created the
-    # symlinks with.
-    sys.path.insert(0, '')
-    import tests
+class AmaraPlugin(object):
+    def __init__(self):
+        self.test_paths = [
+            config.path for config in apps.get_app_configs()
+            if 'guitests' not in config.name
+        ]
+        self.test_paths.extend(
+            os.path.abspath(p) for p in ['libs/babelsubs', 'libs/unilangs']
+        )
 
-def setup_test_links(repo_path, testdir):
-    source_test_dir = os.path.join(repo_path, testdir)
-    if not os.path.exists(source_test_dir):
-        return
-    for filename in os.listdir(source_test_dir):
-        if filename.endswith('.pyc'):
-            continue
-        if filename == '__init__.py':
-            # Don't copy the __init__.py files.  For one thing, there's
-            # multiple of them.  For another, we don't want the code inside
-            # them that messes with the python path
-            continue
-        src_path = os.path.join(source_test_dir, filename)
-        try:
-            os.symlink(src_path, filename)
-        except OSError:
-            print 'Error symlinking {}.  Is it duplicated?'.format(src_path)
-            sys.exit(1)
+    def pytest_ignore_collect(self, path, config):
+        for test_path in self.test_paths:
+            if is_one_path_a_parent_of_another(path.strpath, test_path):
+                return False
+        return True
 
-def no_tests_specified(args):
-    return all(arg.startswith('-') for arg in args[1:])
+    @pytest.mark.trylast
+    def pytest_configure(self, config):
+        from utils.test_utils import monkeypatch
+        self.patcher = monkeypatch.MonkeyPatcher()
+        self.patcher.patch_functions()
+        self.patch_mockredis()
+
+        settings.MEDIA_ROOT = tempfile.mkdtemp(prefix='amara-test-media-root')
+
+        reporter = config.pluginmanager.getplugin('terminalreporter')
+        reporter.startdir = py.path.local('/run/pytest/')
+
+        before_tests.send(config)
+
+    def patch_mockredis(self):
+        from mockredis.client import MockRedis
+        # Patch for mockredis returning a boolean when it should return 1 or 0.
+        # (See https://github.com/locationlabs/mockredis/issues/147)
+        def exists(self, key):
+            if self._encode(key) in self.redis:
+                return 1
+            else:
+                return 0
+        MockRedis.exists = exists
+
+        # Emulate PERSIST
+        def persist(self, key):
+            key = self._encode(key)
+            if key in self.redis and key in self.timeouts:
+                del self.timeouts[key]
+                return 1
+            else:
+                return 0
+        MockRedis.persist = persist
+
+    def pytest_runtest_teardown(self, item, nextitem):
+        self.patcher.reset_mocks()
+        get_redis_connection("default").flushdb()
+        get_redis_connection("storage").flushdb()
+
+    def pytest_unconfigure(self, config):
+        self.patcher.unpatch_functions()
+        shutil.rmtree(settings.MEDIA_ROOT)
+
+    @pytest.fixture(autouse=True)
+    def setup_amara_db(self, db):
+        from auth.models import CustomUser
+        CustomUser.get_amara_anonymous()
 
     @pytest.fixture(autouse=True)
     def undo_set_debug_to_false(self, db):
         # pytest-django sets this to False, undo it.
         settings.DEBUG = True
 
+    @pytest.fixture
+    def patch_for_test(self):
+        """
+        Call mock.patch to monkeypatch a function, then undo it at the end of
+        the test
+        """
+        patchers = []
+        def func(*args, **kwargs):
+            patcher = mock.patch(*args, **kwargs)
+            obj = patcher.start()
+            patchers.append(patcher)
+            return obj
+        yield func
+        for patcher in patchers:
+            patcher.stop()
+
+    @pytest.fixture
+    def redis_connection(self):
+        return get_redis_connection('storage')
+
+class AmaraGUITestsPlugin(object):
+    def __init__(self):
+        self.test_paths = [
+            config.path for config in apps.get_app_configs()
+            if 'guitests' in config.name
+        ]
+
+    def pytest_ignore_collect(self, path, config):
+        for test_path in self.test_paths:
+            if is_one_path_a_parent_of_another(path.strpath, test_path):
+                return False
+        return True
+
+    @pytest.mark.trylast
+    def pytest_configure(self, config):
+        reporter = config.pluginmanager.getplugin('terminalreporter')
+        reporter.startdir = py.path.local('/run/pytest/')
+
 if __name__ == '__main__':
     startup.startup()
-    # The first arg is the test directory to run.  Use that for
-    # setup_test_directories, then remove it from the command line that pytest
-    # sees
-    testdir = sys.argv[1]
-    setup_test_directories(testdir)
-    pytest_args = sys.argv[0:1] + sys.argv[2:]
-    if no_tests_specified(pytest_args):
-        if testdir == 'tests':
-            pytest_args.extend(['.', 'babelsubs.tests', 'unilangs.tests'])
-        else:
-            pytest_args.extend(['.'])
-    sys.exit(pytest.main(pytest_args))
+    test_type = sys.argv[1] # run type, either 'tests' or 'guitests'
+    pytest_args = sys.argv[2:] # send all args after that to pytest
+
+    if test_type == 'tests':
+        plugin = AmaraPlugin()
+    elif test_type == 'guitests':
+        plugin = AmaraGUITestsPlugin()
+    else:
+        print "Unknown test type: {}".format(test_type)
+        sys.exit(1)
+    sys.exit(pytest.main(pytest_args, plugins=[plugin]))

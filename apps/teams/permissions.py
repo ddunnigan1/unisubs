@@ -1076,3 +1076,10 @@ def can_manage_subtitles(user, team_video, language_code=None):
         return False
     return (member.is_language_manager(language_code) or
             member.is_project_manager(team_video.project_id))
+
+def can_set_soft_limits(team, user, video, language_code):
+    """Can a user set soft limits for a video's subtitles?
+
+    """
+    member = team.get_member(user)
+    return member and member.is_admin()

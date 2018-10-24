@@ -6,12 +6,13 @@
   <div class="container">
     <div class="content">
       <div class="row">
-        <div class="col-xs-12 col-sm-4">
+        <div class="col-xs-12 col-md-4">
           <header>
             <ul class="nav nav-tabs vertical">
               <li{% if settings_tab == "general" %} class="active"{% endif %}><a href="{% url "teams:settings_basic" team.slug %}">{% trans "General" %}</a></li>
               <li{% if settings_tab == "messages" %} class="active"{% endif %}><a href="{% url "teams:settings_messages" team.slug %}">{% trans "Messages" %}</a></li>
               <li{% if settings_tab == "lang-messages" %} class="active"{% endif %}><a href="{% url "teams:settings_lang_messages" team.slug %}">{% trans "Language Messages" %}</a></li>
+              <li{% if settings_tab == "permissions" %} class="active"{% endif %}><a href="{% url "teams:settings_permissions" team.slug %}">{% trans "Permissions" %}</a></li>
               <li{% if settings_tab == "feeds" %} class="active"{% endif %}><a href="{% url "teams:settings_feeds" team.slug %}">{% trans "Feeds" %}</a></li>
               <li{% if settings_tab == "projects" %} class="active"{% endif %}><a href="{% url "teams:settings_projects" team.slug %}">{% trans "Projects" %}</a></li>
               <li{% if settings_tab == "workflows" %} class="active"{% endif %}><a href="{% url "teams:settings_workflows" team.slug %}">{% trans "Workflows" %}</a></li>
@@ -19,7 +20,7 @@
             </ul>
           </header>
         </div>
-        <div class="col-xs-12 col-sm-8">
+        <div class="col-xs-12 col-md-8">
           {% block settings_form %}{% endblock %}
         </div>
       </div>

@@ -130,6 +130,7 @@ urlpatterns += [
     url(r'^(?P<slug>[-\w]+)/settings/$', new_views.settings_basic, name='settings_basic'),
     url(r'^(?P<slug>[-\w]+)/settings/messages/$', new_views.settings_messages, name='settings_messages'),
     url(r'^(?P<slug>[-\w]+)/settings/lang-messages/$', new_views.settings_lang_messages, name='settings_lang_messages'),
+    url(r'^(?P<slug>[-\w]+)/settings/permissons/$', new_views.settings_permissions, name='settings_permissions'),
     url(r'^(?P<slug>[-\w]+)/settings/feeds/$', new_views.settings_feeds, name='settings_feeds'),
     url(r'^(?P<slug>[-\w]+)/settings/projects/$', new_views.settings_projects, name='settings_projects'),
     url(r'^(?P<slug>[-\w]+)/settings/projects/(?P<project_slug>[-\w]+)/edit/$',

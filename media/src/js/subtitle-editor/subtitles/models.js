@@ -80,167 +80,6 @@ var angular = angular || null;
         }
         return doc[0];
     }
-    function Subtitle(startTime, endTime, markdown, region, startOfParagraph) {
-        /* Represents a subtitle in our system
-         *
-         * Subtitle has the following properties:
-         *   - startTime -- start time in seconds
-         *   - endTime -- end time in seconds
-         *   - markdown -- subtitle content in our markdown-style format
-         *   - region -- subtitle display region (top, or undefined for the default/bottom)
-         *   - startOfParagraph -- Are we the start of a new paragraph?
-         */
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.markdown = markdown;
-        this.region = region;
-        this.startOfParagraph = startOfParagraph;
-    }
-
-    Subtitle.prototype.duration = function() {
-        if(this.isSynced()) {
-            return this.endTime - this.startTime;
-        } else {
-            return -1;
-        }
-    }
-
-    Subtitle.prototype.hasWarning = function(type, data) {
-	if ((type == "lines" || type == undefined) && (this.lineCount() > 2))
-	    return true;
-	if ((type == "characterRate" || type == undefined) && (this.characterRate() > 21))
-	    return true;
-	if ((type == "timing" || type == undefined) && ((this.startTime > -1) && (this.endTime > -1) && (this.endTime - this.startTime < 700)))
-	    return true;
-	if (type == "longline" || type == undefined) {
-	    if (type == "longline" && (data == undefined) && ((this.characterCountPerLine().length == 1) && (this.characterCountPerLine()[0] > 42)))
-		return true;
-	    var from = (data == undefined) ? 0 : data;
-	    var to = (data == undefined) ? (this.characterCountPerLine().length) : (data + 1);
-	    for (var i = from ; i < to ; i++) {
-		if (this.characterCountPerLine()[i] > 42)
-		    return true;
-	    }
-	}
-	return false;
-    }
-
-    Subtitle.prototype.content = function() {
-        /* Get the content of this subtitle as HTML */
-        return dfxp.markdownToHTML(this.markdown);
-    }
-
-    Subtitle.prototype.isEmpty = function() {
-        return this.markdown == '';
-    }
-
-    Subtitle.prototype.characterCount = function() {
-        var rawContent = dfxp.markdownToPlaintext(this.markdown);
-        // Newline characters are not counted
-        return (rawContent.length - (rawContent.match(/\n/g) || []).length);
-    }
-
-    Subtitle.prototype.characterRate = function() {
-        if(this.isSynced()) {
-            return (this.characterCount() * 1000 / this.duration()).toFixed(1);
-        } else {
-            return "0.0";
-        }
-    }
-
-    Subtitle.prototype.lineCount = function() {
-        return this.markdown.split("\n").length;
-    }
-
-    Subtitle.prototype.characterCountPerLine = function() {
-        var lines = this.markdown.split("\n");
-        var counts = [];
-        for(var i = 0; i < lines.length; i++) {
-            counts.push(dfxp.markdownToPlaintext(lines[i]).length);
-        }
-        return counts;
-        
-    }
-
-    Subtitle.prototype.startTimeSynced = function() {
-        return this.startTime >= 0;
-    }
-    Subtitle.prototype.endTimeSynced = function() {
-        return this.endTime >= 0;
-    }
-    Subtitle.prototype.isSynced = function() {
-        return this.startTimeSynced() && this.endTimeSynced();
-    }
-
-    Subtitle.prototype.isAt = function(time) {
-        return this.isSynced() && this.startTime <= time && this.endTime > time;
-    }
-
-    Subtitle.prototype.startTimeSeconds = function() {
-        if(this.startTime >= 0) {
-            return this.startTime / 1000;
-        } else {
-            return -1;
-        }
-    }
-
-    Subtitle.prototype.endTimeSeconds = function() {
-        if(this.endTime >= 0) {
-            return this.endTime / 1000;
-        } else {
-            return -1;
-        }
-    }
-
-    // Get both start and end time as a list
-    Subtitle.prototype.getTimings = function() {
-        return [this.startTime, this.endTime];
-    }
-
-    Subtitle.prototype.isWhiteSpaceOnly = function() {
-        return !$.trim(this.markdown)
-    }
-
-    function StoredSubtitle(parser, node, id) {
-        /* Subtitle stored in a SubtitleList
-         *
-         * You should never change the proporties on a stored subtitle directly.
-         * Instead use the updateSubtitleContent() and updateSubtitleTime()
-         * methods of SubtitleList.
-         *
-         * If you want a subtitle object that you can change the times/content
-         * without saving them to the DFXP store, use the draftSubtitle() method
-         * to get a DraftSubtitle.
-         * */
-        var text = $(node).text().trim();
-        Subtitle.call(this, parser.startTime(node), parser.endTime(node),
-                text, parser.region(node), parser.startOfParagraph(node));
-        this.node = node;
-        this.id = id;
-    }
-
-    StoredSubtitle.prototype = Object.create(Subtitle.prototype);
-    StoredSubtitle.prototype.draftSubtitle = function() {
-        return new DraftSubtitle(this);
-    }
-    StoredSubtitle.prototype.isDraft = false;
-    StoredSubtitle.prototype.isDraftFor = function(subtitle) {
-        return false;
-    }
-
-    function DraftSubtitle(storedSubtitle) {
-        /* Subtitle that we are currently changing */
-        Subtitle.call(this, storedSubtitle.startTime, storedSubtitle.endTime,
-                storedSubtitle.markdown, storedSubtitle.region, storedSubtitle.startOfParagraph);
-        this.storedSubtitle = storedSubtitle;
-    }
-
-    DraftSubtitle.prototype = Object.create(Subtitle.prototype);
-    DraftSubtitle.prototype.isDraft = true;
-
-    DraftSubtitle.prototype.isDraftFor = function(subtitle) {
-        return this.storedSubtitle === subtitle;
-    }
 
     /*
      * Manages a list of subtitles.
@@ -256,8 +95,192 @@ var angular = angular || null;
      *
      */
 
-    module.service('SubtitleList', ['gettext', 'interpolate', function(gettext, interpolate) {
+    module.service('SubtitleList', ['gettext', 'interpolate', 'SubtitleSoftLimits', function(gettext, interpolate, SubtitleSoftLimits) {
         var MAX_UNDO_ITEMS = 1000;
+
+        function Subtitle(startTime, endTime, markdown, region, startOfParagraph) {
+            /* Represents a subtitle in our system
+             *
+             * Subtitle has the following properties:
+             *   - startTime -- start time in seconds
+             *   - endTime -- end time in seconds
+             *   - markdown -- subtitle content in our markdown-style format
+             *   - region -- subtitle display region (top, or undefined for the default/bottom)
+             *   - startOfParagraph -- Are we the start of a new paragraph?
+             */
+            this.startTime = startTime;
+            this.endTime = endTime;
+            this.markdown = markdown;
+            this.region = region;
+            this.startOfParagraph = startOfParagraph;
+        }
+
+        Subtitle.prototype.duration = function() {
+            if(this.isSynced()) {
+                return this.endTime - this.startTime;
+            } else {
+                return -1;
+            }
+        }
+
+        Subtitle.prototype.hasWarning = function(type, data) {
+            if ((type == "lines" || type == undefined) && (this.lineCount() > SubtitleSoftLimits.lines))
+                return true;
+            if ((type == "characterRate" || type == undefined) && (this.characterRate() > SubtitleSoftLimits.cps))
+                return true;
+            if ((type == "timing" || type == undefined) && ((this.startTime > -1) && (this.endTime > -1) && (this.endTime - this.startTime < SubtitleSoftLimits.minDuration)))
+                return true;
+            if (type == "longline" || type == undefined) {
+                var counts = this.characterCountPerLine();
+                var from = (data == undefined) ? 0 : data;
+                var to = (data == undefined) ? (counts.length) : (data + 1);
+                for (var i = from; i < to ; i++) {
+                    if (counts[i] > SubtitleSoftLimits.cpl) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        Subtitle.prototype.content = function() {
+            /* Get the content of this subtitle as HTML */
+            return dfxp.markdownToHTML(this.markdown);
+        }
+
+        Subtitle.prototype.isEmpty = function() {
+            return this.markdown == '';
+        }
+
+        Subtitle.prototype.characterCount = function() {
+            var rawContent = dfxp.markdownToPlaintext(this.markdown);
+            // Newline characters are not counted
+            return (rawContent.length - (rawContent.match(/\n/g) || []).length);
+        }
+
+        Subtitle.prototype.startTimeSynced = function() {
+            return this.startTime >= 0;
+        }
+        Subtitle.prototype.endTimeSynced = function() {
+            return this.endTime >= 0;
+        }
+        Subtitle.prototype.isSynced = function() {
+            return this.startTimeSynced() && this.endTimeSynced();
+        }
+
+        Subtitle.prototype.characterRate = function() {
+            if(this.isSynced()) {
+                return (this.characterCount() * 1000 / this.duration()).toFixed(1);
+            } else {
+                return "0.0";
+            }
+        }
+
+        Subtitle.prototype.lineCount = function() {
+            return this.markdown.split("\n").length;
+        }
+
+        Subtitle.prototype.characterCountPerLine = function() {
+            var lines = this.markdown.split("\n");
+            var counts = [];
+            for(var i = 0; i < lines.length; i++) {
+                counts.push(dfxp.markdownToPlaintext(lines[i]).length);
+            }
+            return counts;
+            
+        }
+
+        Subtitle.prototype.isSynced = function() {
+            return this.startTime >= 0 && this.endTime >= 0;
+        }
+
+        // Get both start and end time as a list
+        Subtitle.prototype.getTimings = function() {
+            return [this.startTime, this.endTime];
+        }
+
+        Subtitle.prototype.isWhiteSpaceOnly = function() {
+            return !$.trim(this.markdown)
+        }
+
+        Subtitle.prototype.isAt = function(time) {
+            return this.isSynced() && this.startTime <= time && this.endTime > time;
+        }
+
+        Subtitle.prototype.startTimeSeconds = function() {
+            if(this.startTime >= 0) {
+                return this.startTime / 1000;
+            } else {
+                return -1;
+            }
+        }
+
+        Subtitle.prototype.endTimeSeconds = function() {
+            if(this.endTime >= 0) {
+                return this.endTime / 1000;
+            } else {
+                return -1;
+            }
+        }
+
+        Subtitle.prototype.isWhiteSpaceOnly = function() {
+            return !$.trim(this.markdown)
+        }
+
+        function StoredSubtitle(parser, node, id) {
+            /* Subtitle stored in a SubtitleList
+             *
+             * You should never change the proporties on a stored subtitle directly.
+             * Instead use the updateSubtitleContent() and updateSubtitleTime()
+             * methods of SubtitleList.
+             *
+             * If you want a subtitle object that you can change the times/content
+             * without saving them to the DFXP store, use the draftSubtitle() method
+             * to get a DraftSubtitle.
+             * */
+            var text = $(node).text().trim();
+            Subtitle.call(this, parser.startTime(node), parser.endTime(node),
+                    text, parser.region(node), parser.startOfParagraph(node));
+            this.node = node;
+            this.id = id;
+        }
+
+        StoredSubtitle.prototype = Object.create(Subtitle.prototype);
+        StoredSubtitle.prototype.draftSubtitle = function() {
+            return new DraftSubtitle(this);
+        }
+        StoredSubtitle.prototype.isDraft = false;
+        StoredSubtitle.prototype.isDraftFor = function(subtitle) {
+            return false;
+        }
+
+        function DraftSubtitle(storedSubtitle) {
+            /* Subtitle that we are currently changing */
+            Subtitle.call(this, storedSubtitle.startTime, storedSubtitle.endTime,
+                    storedSubtitle.markdown, storedSubtitle.region, storedSubtitle.startOfParagraph);
+            this.storedSubtitle = storedSubtitle;
+        }
+
+        DraftSubtitle.prototype = Object.create(Subtitle.prototype);
+        DraftSubtitle.prototype.isDraft = true;
+        DraftSubtitle.prototype.isDraftFor = function(subtitle) {
+            return this.storedSubtitle === subtitle;
+        }
+
+        /*
+         * Manages a list of subtitles.
+         *
+         * For functions that return subtitle items, each item will have the
+         * following properties:
+         *   - startTime -- start time in seconds
+         *   - endTime -- end time in seconds
+         *   - content -- string of html for the subtitle content
+         *   - startOfParagraph -- does this subtitle start a new paragraph?
+         *   - region -- Region to position the subtitle (top, or undefined for bottom)
+         *   - node -- DOM node from the DFXP XML
+         *
+         */
+
 
         var SubtitleList = function() {
             this.parser = new AmaraDFXPParser();
