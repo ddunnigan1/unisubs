@@ -9,7 +9,7 @@
         </li>
     </ul>
     <div class="new-note">
-        <textarea ng-model="newNoteText" new-note-focus="newNoteFocus"></textarea>
+        <textarea ng-model="newNoteText" ng-focus="notesFocused(true)" ng-blur="notesFocused(false)" new-note-focus="newNoteFocus"></textarea>
         <button ng-click="onPostClicked($event);">Post New Note</button>
     </div>
   </div>

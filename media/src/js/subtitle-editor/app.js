@@ -571,8 +571,13 @@ var angular = angular || null;
             evt.stopPropagation();
         };
 
-        $scope.$watch('currentEdit.inProgress()', function(inProgress) {
-            if(inProgress) {
+        $scope.notesHaveFocus = false;
+        $scope.notesFocused = function(focused) {
+            $scope.notesHaveFocus = focused;
+        }
+
+        $scope.$watch('currentEdit.inProgress() || notesHaveFocus', function(editInProgress) {
+            if(editInProgress) {
                 Keys.enableContext('edit');
                 Keys.disableContext('no-edit');
             } else {
