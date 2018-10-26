@@ -104,3 +104,12 @@ def test_notify_by_message_unset(mock_send_mail):
                         'Test subject', 'tests/test-message.html', {})
     # test that we don't send a message
     assert Message.objects.for_user(user).count() == 0
+
+def test_inactive_user(mock_send_mail):
+    user = UserFactory(notify_by_message=True, notify_by_email=True,
+                       is_active=False)
+    notify.notify_users(notify.Notifications.ROLE_CHANGED, [user],
+                        'Test subject', 'tests/test-message.html', {})
+    # test that we don't send a message or an email
+    assert Message.objects.for_user(user).count() == 0
+    assert not mock_send_mail.called

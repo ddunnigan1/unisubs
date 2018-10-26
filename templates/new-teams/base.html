@@ -38,9 +38,14 @@
         <li>
           <a href="{% url "teams:settings_messages" slug=team.slug %}">{% trans "Messages" %}</a>
         </li>
+        {% if team.new_workflow.has_workflow_settings_page %}
+        <li>
+          <a href="{% url "teams:settings_permissions" team.slug %}">{% trans "Permissions" %}</a>
+        </li>
         <li>
           <a href="{% url "teams:settings_workflows" slug=team.slug %}">{% trans "Workflow" %}</a>
         </li>
+        {% endif %}
       {% for page in team|extra_settings_pages:request.user %}
         <li>
           <a href="{{ page.url }}">{{ page.title }}</a>

@@ -1722,14 +1722,14 @@ div.timeline {
         }
     }
     div.current-time-marker {
-        background: #FC0D1B;
         content: "";
         display: block;
         height: $timeline-height;
         left: 50%;
         position: absolute;
-        width: 1px;
+        width: 0;
         z-index: 54;
+        border-right: 1px solid #FC0D1B;
     }
     div.subtitles-container {
         height: $timeline-height;

@@ -16,4 +16,5 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
-from .teamworkflows import TeamWorkflow, TeamExperience
+from .teamworkflows import (TeamWorkflow, TeamPage, TeamExperience,
+                            TeamPermissionsRow)

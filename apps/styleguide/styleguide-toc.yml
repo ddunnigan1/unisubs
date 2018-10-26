@@ -74,12 +74,13 @@
   - filterList
   - id: check-all
     title: Check All
-  - actionBar
   - selectList
   - pagination
   - hangingLink
   - constrainContent
   - assignmentHistoryTable
+  - id: workflow-diagram
+    title: Workflow diagram
   - zeroState
   - id: progress-bar
     title: Progress bars

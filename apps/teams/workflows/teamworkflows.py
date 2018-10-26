@@ -69,11 +69,10 @@ class TeamWorkflow(object):
     workflow_settings_view = NotImplemented
     """
     view function for the workflow settings page.
-
-    .. note::
-      All workflows should allow the user to change membership_policy and
-      video_policy in their workflow settings page.
     """
+    has_workflow_settings_page = False
+    has_subtitle_visibility_setting = False
+
     def __init__(self, team):
         self.team = team
 
@@ -227,6 +226,12 @@ class TeamWorkflow(object):
             'language-changed',
         ]
 
+    def customize_permissions_table(self, team, form, permissions_table):
+        """
+        Customize the table show on the permissions settings page
+        """
+        pass
+
     # these can be used to customize the content in the project/language
     # manager pages
     def render_project_page(self, request, team, project, page_data):
@@ -340,3 +345,24 @@ TeamExperience = namedtuple('TeamExperience', 'label count')
 By default, we show subtitles completed, but other workflows might want to
 display different things, like assignments completed, etc.
 """
+
+class TeamPermissionsRow(object):
+    """
+    Used to display the checks/Xs on the permissions settings page
+    """
+    def __init__(self, label, admins, managers, contributors,
+                 setting_name=None):
+        self.label = label
+        self.admins = admins
+        self.managers = managers
+        self.contributors = contributors
+        self.setting_name = setting_name
+
+    @classmethod
+    def from_setting(cls, label, form, setting_name):
+        value = form[setting_name].value()
+        permissions = form[setting_name].field.widget.decompress(value)
+        # some fields only have settings for admins/managers.  Make sure to
+        # extend permissions to 3 items in that case
+        permissions.extend([False] * (3 - len(permissions)))
+        return cls(label, *permissions, setting_name=setting_name)

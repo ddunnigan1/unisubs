@@ -33,6 +33,7 @@ from utils.taskqueue import job
 
 Notifications = Enum('Notifications', [
     ('ROLE_CHANGED', _('Role changed')),
+    ('TEAM_INVITATION', _('Team invitation')),
 ])
 
 def notify_users(notification, user_list, subject, template_name,
@@ -68,6 +69,8 @@ def do_notify_users(notification, user_ids, subject, message, html_message,
                     send_email):
     user_list = User.objects.filter(id__in=user_ids)
     for user in user_list:
+        if not user.is_active:
+            continue
         if should_send_email(user, send_email):
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
                       [user.email], html_message=html_message)

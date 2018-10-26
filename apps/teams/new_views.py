@@ -63,7 +63,7 @@ from auth.forms import CustomUserCreationForm
 from messages import tasks as messages_tasks
 from subtitles.models import SubtitleLanguage
 from teams.models import Project
-from teams.workflows import TeamWorkflow
+from teams.workflows import TeamWorkflow, TeamPermissionsRow
 from ui import (
     AJAXResponseRenderer, ManagementFormList, render_management_form_submit,
     AjaxLink, ContextMenu)
@@ -1036,8 +1036,13 @@ def manage_videos_context_menu(team, video, enabled_forms):
 
 # Functions to handle the forms on the videos pages
 def get_video_management_forms(team):
+    if team.is_simple_team():
+        delete_form = forms.DeleteVideosFormSimple
+    else:
+        delete_form = forms.DeleteVideosForm
+
     form_list = ManagementFormList([
-        forms.DeleteVideosForm,
+        delete_form,
         forms.MoveVideosForm,
         forms.EditVideosForm,
     ])
@@ -1298,6 +1303,50 @@ def settings_feeds(request, team):
             BreadCrumb(_('Video Feeds')),
         ],
     })
+
+@team_settings_view
+def settings_permissions(request, team):
+    if request.POST:
+        form = forms.NewPermissionsForm(team, data=request.POST)
+
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(request, _(u'Permissions saved.'))
+            return HttpResponseRedirect(request.path)
+    else:
+        form = forms.NewPermissionsForm(team)
+
+    return render(request, "future/teams/settings/permissions.html", {
+        'team': team,
+        'form': form,
+        'team_nav': 'settings',
+        'settings_tab': 'permissions',
+        'permissions_table': make_permissions_table(form, team),
+    })
+
+def make_permissions_table(form, team):
+    management_rows = []
+    if team.is_by_invitation():
+        management_rows.append(TeamPermissionsRow.from_setting(
+            _('Invite users to join team'), form, 'membership_policy'))
+    elif team.is_by_application():
+        management_rows.append(TeamPermissionsRow(
+            _('Review team member applications'), True, False, False))
+    management_rows.extend([
+        TeamPermissionsRow(_('Change team member roles'),
+                           True, False, False),
+        TeamPermissionsRow(_('Remove users from team'),
+                           True, False, False),
+    ])
+    table = [
+        (_('Video Management'), [
+            TeamPermissionsRow.from_setting(
+                _('Add, update, or remove videos'), form, 'video_policy'),
+        ]),
+        (_('Team Management'), management_rows),
+     ]
+    team.new_workflow.customize_permissions_table(team, form, table)
+    return table
 
 @team_settings_view
 def settings_projects(request, team):

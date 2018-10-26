@@ -54,3 +54,27 @@ def was_promotion(member, old_member_info):
             member.is_a_project_or_language_manager()):
         return True
     return False
+
+def team_sends_notification(team, notification_setting_name):
+    from teams.models import Setting
+    # FIXME update this code
+    return not team.settings.filter(key=Setting.KEY_IDS[notification_setting_name]).exists()
+
+def send_invitation_message(invite):
+    if not team_sends_notification(invite.team,'block_invitation_sent_message'):
+        return False
+
+    context = {
+        'invite': invite,
+        'role': invite.role,
+        "user":invite.user,
+        "inviter":invite.author,
+        "team": invite.team,
+        'note': invite.note,
+        'custom_message': invite.team.get_message('messages_invite'),
+    }
+    title = fmt(_(u"You've been invited to the %(team)s team"),
+                team=unicode(invite.team))
+
+    notify_users(Notifications.TEAM_INVITATION, [invite.user], title,
+                 'messages/team-invitation.html', context)
