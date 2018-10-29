@@ -43,7 +43,6 @@ from django.utils.translation import ungettext
 from auth.forms import UserField
 from auth.models import CustomUser as User
 from activity.models import ActivityRecord
-from collab.models import CollaborationSettings
 from messages.models import Message, SYSTEM_NOTIFICATION
 from messages.tasks import send_new_messages_notifications
 from subtitles.forms import SubtitlesUploadForm
@@ -1004,11 +1003,11 @@ class GeneralSettingsForm(forms.ModelForm):
 
     # subtitle visibility setting are for collab teams only
     def _calc_subtitle_visibility(self):
-        if self.instance.is_collab_team():
-            if self.instance.collaboration_settings.subtitle_visibility == CollaborationSettings.SUBTITLES_PUBLIC:
+        if self.instance.new_workflow.has_subtitle_visibility_setting:
+            if self.instance.collaboration_settings.subtitle_visibility == Team.SUBTITLES_PUBLIC:
                 self.initial['subtitles_public'] = True
                 self.initial['drafts_public'] = True
-            elif self.instance.collaboration_settings.subtitle_visibility == CollaborationSettings.SUBTITLES_PRIVATE_UNTIL_COMPLETE:
+            elif self.instance.collaboration_settings.subtitle_visibility == Team.SUBTITLES_PRIVATE_UNTIL_COMPLETE:
                 self.initial['subtitles_public'] = True
         else:
             del self.fields['subtitles_public']
@@ -1057,13 +1056,13 @@ class GeneralSettingsForm(forms.ModelForm):
             team.membership_policy = self.cleaned_data['membership_policy']
             team.save()
 
-            if self.instance.is_collab_team():
+            if self.instance.new_workflow.has_subtitle_visibility_setting:
                 if self.cleaned_data['drafts_public']:
-                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PUBLIC
+                    self.instance.collaboration_settings.subtitle_visibility = Team.SUBTITLES_PUBLIC
                 elif self.cleaned_data['subtitles_public']:
-                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PRIVATE_UNTIL_COMPLETE
+                    self.instance.collaboration_settings.subtitle_visibility = Team.SUBTITLES_PRIVATE_UNTIL_COMPLETE
                 else:
-                    self.instance.collaboration_settings.subtitle_visibility = CollaborationSettings.SUBTITLES_PRIVATE
+                    self.instance.collaboration_settings.subtitle_visibility = Team.SUBTITLES_PRIVATE
                 self.instance.collaboration_settings.save()
 
             self.instance.handle_settings_changes(user, self.initial_settings)

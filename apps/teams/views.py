@@ -2500,4 +2500,7 @@ def activity(request, team):
     # tells the template to use get_old_message instead
     context['use_old_messages'] = True
 
+    if request.is_ajax():
+        return render(request, 'teams/_activity-list.html', context)
+
     return render(request, 'teams/activity.html', context)

@@ -43,7 +43,7 @@
     {% render_field form.team_visibility %}
     {% render_field form.video_visibility %}
 
-    {% if team.is_collab_team %}
+    {% if team.new_workflow.has_subtitle_visibility_setting %}
       <div id="subtitleVisibility">
         {% multi_field _("Subtitle Visibility") form.subtitles_public form.drafts_public dependent=True help_text=' ' %}
       </div>

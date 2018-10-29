@@ -69,11 +69,10 @@ class TeamWorkflow(object):
     workflow_settings_view = NotImplemented
     """
     view function for the workflow settings page.
-
-    .. note::
-      All workflows should allow the user to change membership_policy and
-      video_policy in their workflow settings page.
     """
+    has_workflow_settings_page = False
+    has_subtitle_visibility_setting = False
+
     def __init__(self, team):
         self.team = team
 
