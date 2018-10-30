@@ -26,7 +26,6 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 
-from collab.views import dashboard_set_languages
 from subtitles.models import SubtitleVersion
 from teams import views as old_views
 from teams import forms
@@ -205,6 +204,7 @@ def dashboard(request, team):
         raise PermissionDenied()
 
     if len(request.user.get_languages()) == 0:
+        from collab.views import dashboard_set_languages
         return dashboard_set_languages(request, team)
 
     video_qs = team.videos.all().order_by('-created')

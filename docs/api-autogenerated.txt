@@ -307,6 +307,14 @@ Creating subtitle languages
     :<json integer soft_limit_cps: Controls the max characters per second for
         subtitles.  A warning is shown in the editor if this limit is exceeded.
 
+Updating subtitle languages
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. http:put:: /api/videos/(video-id)/languages/(language-code)/
+
+    The request data is the same as when creating languages, except
+    ``language_code`` is not allowed.
+
 .. _subtitles_resource:
 
 Subtitles Resource

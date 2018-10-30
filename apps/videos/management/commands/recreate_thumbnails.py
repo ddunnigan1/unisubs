@@ -22,7 +22,7 @@ import sys
 from django.core.management.base import BaseCommand
 
 from teams.models import Team
-from videos.models import Video, VideoIndex
+from videos.models import Video
 import time
 
 class Command(BaseCommand):

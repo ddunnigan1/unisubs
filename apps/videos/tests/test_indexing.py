@@ -24,27 +24,25 @@ from nose.tools import *
 from utils.test_utils import *
 from utils.factories import *
 from subtitles import pipeline
-from videos.models import VideoIndex
 
 class VideoIndexingTest(TestCase):
-    @patch_for_test('videos.models.VideoIndex.calc_text')
+    @patch_for_test('videos.models.Video.calc_search_text')
     def test_index_new_video(self, mock_calc_text):
         mock_calc_text.return_value = 'test text'
         v = VideoFactory()
-        assert_false(VideoIndex.objects.filter(video=v).exists())
 
-        index = VideoIndex.index_video(v)
-        assert_equal(VideoIndex.objects.get(video=v).text, 'test text')
+        v.update_search_index()
+        assert_equal(v.search_text, 'test text')
 
-    @patch_for_test('videos.models.VideoIndex.calc_text')
+    @patch_for_test('videos.models.Video.calc_search_text')
     def test_update_index(self, mock_calc_text):
         mock_calc_text.return_value = 'old text'
         v = VideoFactory()
-        VideoIndex.index_video(v)
+        v.update_search_index()
 
         mock_calc_text.return_value = 'new text'
-        VideoIndex.index_video(v)
-        assert_equal(VideoIndex.objects.get(video=v).text, 'new text')
+        v.update_search_index()
+        assert_equal(v.search_text, 'new text')
 
     def test_index_text(self):
         video = VideoFactory(title='video_title',
@@ -68,22 +66,22 @@ class VideoIndexingTest(TestCase):
                 'speaker-name': 'es_speaker',
             }, visibility='private')
 
-        index_text = VideoIndex.index_video(video).text
-        assert_true('video_title' in index_text)
-        assert_true('video_description' in index_text)
-        assert_true('url_1' in index_text)
-        assert_true('url_2' in index_text)
-        assert_true('en_title' in index_text)
-        assert_true('en_description' in index_text)
-        assert_true('fr_title' in index_text)
-        assert_true('fr_description' in index_text)
-        assert_false('es_title' in index_text)
-        assert_false('es_description' in index_text)
+        video.update_search_index()
+        assert_true('video_title' in video.search_text)
+        assert_true('video_description' in video.search_text)
+        assert_true('url_1' in video.search_text)
+        assert_true('url_2' in video.search_text)
+        assert_true('en_title' in video.search_text)
+        assert_true('en_description' in video.search_text)
+        assert_true('fr_title' in video.search_text)
+        assert_true('fr_description' in video.search_text)
+        assert_false('es_title' in video.search_text)
+        assert_false('es_description' in video.search_text)
 
     def test_max_text_size(self):
         video = VideoFactory(title='abc' * 100,
                              video_url__url='http://example.com/url_1')
-        index_text = VideoIndex.calc_text(video, max_length=100)
+        index_text = video.calc_search_text(max_length=100)
         assert_equal(len(index_text), 100)
 
     # FIXME we should have searching tests, but we can't since we use sqlite

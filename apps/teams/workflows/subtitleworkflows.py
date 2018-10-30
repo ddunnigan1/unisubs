@@ -42,6 +42,9 @@ class TeamSubtitlesWorkflow(subtitles.workflows.DefaultWorkflow):
     def user_can_edit_video(self, user):
         return permissions.can_edit_video(self.team_video, user)
 
+    def user_can_create_new_subtitles(self, user):
+        return self.team_video.team.is_member(user)
+
     def user_can_view_private_subtitles(self, user, language_code):
         return self.team_video.team.is_member(user)
 
