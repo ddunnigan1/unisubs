@@ -92,6 +92,8 @@ VIDEO_META_TYPE_IDS = {}
 
 MAX_VIDEO_SEARCH_TERMS = 10
 
+MAX_SEACH_TEXT_LENGTH = 10 * 1000 * 1000
+
 def url_hash(url):
     return hashlib.md5(url.encode("utf-8")).hexdigest()
 
@@ -167,13 +169,13 @@ EXISTS(
         # Terms with less chars are not indexed, so they will never match anything.
         terms = get_terms(query)
         if len(terms) == 1 and len(terms[0]) > 2:
-            return self.filter(index__text__search=terms[0])
+            return self.filter(search_text__search=terms[0])
         else:
             terms = [t for t in get_terms(query) if len(t) > 2]
             if len(terms) > MAX_VIDEO_SEARCH_TERMS:
                 terms = terms[:MAX_VIDEO_SEARCH_TERMS]
             new_query = u' '.join(u'+"{}"'.format(t) for t in terms)
-            return self.filter(index__text__search=new_query)
+            return self.filter(search_text__search=new_query)
 
     def add_num_completed_languages(self):
         sql = ("""
@@ -400,10 +402,10 @@ class Video(models.Model):
     # denormalized convenience from VideoVisibility, should not be set
     # directely
     is_public = models.BooleanField(default=True)
-
     primary_audio_language_code = models.CharField(
         max_length=16, blank=True, default='',
         choices=translation.ALL_LANGUAGE_CHOICES)
+    search_text = models.TextField(default='')
 
     cache = VideoCacheManager()
 
@@ -452,10 +454,33 @@ class Video(models.Model):
         signals.video_deleted.send(sender=self, user=user)
         super(Video, self).delete()
 
-    def update_search_index(self):
+    def update_search_index(self, commit=True):
         """Update this video's search index text."""
 
-        VideoIndex.index_video(self)
+        self.search_text = self.calc_search_text(MAX_SEACH_TEXT_LENGTH)
+        if commit:
+            self.save()
+
+    def calc_search_text(self, max_length=None):
+        parts = [
+            self.title_display(),
+            self.description,
+            self.video_id,
+            self.meta_1_content,
+            self.meta_2_content,
+            self.meta_3_content,
+        ]
+        parts.extend(vurl.url for vurl in self.get_video_urls())
+        for tip in self.newsubtitleversion_set.public_tips():
+            parts.extend([
+                tip.title, tip.description,
+                tip.meta_1_content, tip.meta_2_content, tip.meta_3_content,
+            ])
+
+        text = '\n'.join(p for p in parts if p is not None)
+        if max_length is not None:
+            text = text[:max_length]
+        return text
 
     def title_display(self, use_language_title=True):
         """
@@ -492,6 +517,7 @@ class Video(models.Model):
                         visibility_override=version.visibility_override)
         signals.video_title_edited.send(sender=self, user=user,
                                         old_title=self.title)
+        self.update_search_index()
 
     def get_subtitle(self):
         return behaviors.get_video_subtitle(self, self.get_metadata())
@@ -1409,50 +1435,6 @@ def video_delete_handler(sender, instance, **kwargs):
 models.signals.pre_save.connect(create_video_id, sender=Video)
 models.signals.pre_delete.connect(video_delete_handler, sender=Video)
 models.signals.m2m_changed.connect(User.video_followers_change_handler, sender=Video.followers.through)
-
-class VideoIndex(models.Model):
-    video = models.OneToOneField(Video, primary_key=True, related_name='index')
-    text = models.TextField()
-
-    MAX_TEXT_LENGTH = 10 * 1000 * 1000
-
-    @classmethod
-    def index_video(cls, video):
-        # Run calc_text inside a transaction.  It does a bunch of queries on
-        # the regular InnoDB tables and we want to avoid any issues with
-        # deadlocking.  For example, if we need to wait on a table lock to
-        # update the row in the index table, we don't want to have a bunch of
-        # innodb locks still open.
-        with transaction.atomic():
-            text = cls.calc_text(video, max_length=cls.MAX_TEXT_LENGTH)
-        index, created = cls.objects.get_or_create(video=video,
-                                                   defaults={'text': text})
-        if not created:
-            index.text = text
-            index.save()
-        return index
-
-    @staticmethod
-    def calc_text(video, max_length=None):
-        parts = [
-            video.title_display(),
-            video.description,
-            video.video_id,
-            video.meta_1_content,
-            video.meta_2_content,
-            video.meta_3_content,
-        ]
-        parts.extend(vurl.url for vurl in video.get_video_urls())
-        for tip in video.newsubtitleversion_set.public_tips():
-            parts.extend([
-                tip.title, tip.description,
-                tip.meta_1_content, tip.meta_2_content, tip.meta_3_content,
-            ])
-
-        text = '\n'.join(p for p in parts if p is not None)
-        if max_length is not None:
-            text = text[:max_length]
-        return text
 
 # VideoMetadata
 #
