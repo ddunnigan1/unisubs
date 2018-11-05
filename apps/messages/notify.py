@@ -145,7 +145,8 @@ class TextEmailRenderer(object):
             if child.tail:
                 inline_parts.append(child.tail)
         self.parts.append(textwrap.fill(
-            ''.join(inline_parts), 70))
+            ''.join(inline_parts), 70, break_long_words=False,
+            break_on_hyphens=False))
 
     def process_list(self, elt):
         for child in elt:

@@ -118,6 +118,10 @@ class AmaraPlugin(object):
         def func(*args, **kwargs):
             patcher = mock.patch(*args, **kwargs)
             obj = patcher.start()
+            obj.run_original = lambda: [
+                patcher.temp_original(*args, **kwargs)
+                for args, kwargs in obj.call_args_list
+            ]
             patchers.append(patcher)
             return obj
         yield func
