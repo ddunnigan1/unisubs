@@ -129,6 +129,22 @@ class AmaraPlugin(object):
             patcher.stop()
 
     @pytest.fixture
+    def mock_handler(self):
+        """
+        Add a Mock() object as a handler of a signal.  Remove it at the end of
+        the test
+        """
+        disconnect_data = []
+        def func(signal, sender=None):
+            receiver = mock.Mock()
+            signal.connect(receiver, sender=sender)
+            disconnect_data.append((signal, receiver, sender))
+            return receiver
+        yield func
+        for (signal, receiver, sender) in disconnect_data:
+            signal.disconnect(receiver, sender=sender)
+
+    @pytest.fixture
     def redis_connection(self):
         return get_redis_connection('storage')
 
