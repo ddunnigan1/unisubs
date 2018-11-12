@@ -25,6 +25,8 @@ from django.core import exceptions
 from django.db import models
 from django.utils.deconstruct import deconstructible
 
+from ui.forms import DependentBooleanField
+
 RAISE_KEY_ERROR = object()
 
 @deconstructible
@@ -155,12 +157,14 @@ class Enum(object):
         if start_number in self.number_map:
             raise ValueError("ext_id {} already taken".format(ext_id))
 
-        for i, (name, label) in enumerate(members):
-            self.add_member(start_number + i, name, label)
+        for i, member in enumerate(members):
+            if not isinstance(member, EnumMember):
+                member = EnumMember(
+                    self.enum_name, member[0], member[1], start_number + i)
+            self.add_member(member)
 
-    def add_member(self, number, name, label):
-        member = EnumMember(self.enum_name, name, label, number)
-        setattr(self, name, member)
+    def add_member(self, member):
+        setattr(self, member.name, member)
         self.slug_map[member.slug] = member
         self.number_map[member.number] = member
         self.members.append(member)
@@ -193,7 +197,7 @@ class Enum(object):
         args = []
         kwargs = {
             'enum_name': self.enum_name,
-            'members': [(m.slug, m.label) for m in self.members]
+            'members': self.members,
         }
         name = 'utils.enum.Enum'
         return (name, args, kwargs)
@@ -204,12 +208,13 @@ class EnumField(models.PositiveSmallIntegerField):
     """
     # FIXME: merge this code with codefield.CodeField
 
-    def __init__(self, enum=None, **kwargs):
+    def __init__(self, enum=None, choices=None, **kwargs):
         if enum is None:
             # Note, enum=None doesn't really make any sense, but we need to
             # allow it to make south migrations work
             enum = Enum('FakeEnum', [])
         super(EnumField, self).__init__(**kwargs)
+        self._choices = choices
         self.enum = enum
         # remove the validators from PositiveSmallIntegerField
         self.validators = [ ]
@@ -223,8 +228,14 @@ class EnumField(models.PositiveSmallIntegerField):
                 params={'value': value},
             )
 
+    def _members(self):
+        if self._choices:
+            return self._choices
+        else:
+            return list(self.enum)
+
     def enumfield_get_choices(self):
-        return self.enum.choices()
+        return [member.choice() for member in self._members()]
 
     def enumfield_set_choices(self, choices):
         if choices:
@@ -241,7 +252,8 @@ class EnumField(models.PositiveSmallIntegerField):
 
     def contribute_to_class(self, cls, name):
         super(EnumField, self).contribute_to_class(cls, name)
-        setattr(cls, '{}_choices'.format(name), self.enum.slug_choices)
+        setattr(cls, '{}_choices'.format(name),
+                [member.slug_choice() for member in self._members()])
 
     def from_db_value(self, value, expression, connection, context):
         if value is None:
@@ -254,6 +266,8 @@ class EnumField(models.PositiveSmallIntegerField):
                 return self.enum.lookup_number(int(value))
             else:
                 return self.enum.lookup_slug(value)
+        elif isinstance(value, (int, long)):
+            return self.enum.lookup_number(value)
         elif isinstance(value, EnumMember) or value is None:
             return value
         else:

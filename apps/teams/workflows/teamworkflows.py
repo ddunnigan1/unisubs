@@ -73,6 +73,12 @@ class TeamWorkflow(object):
     has_workflow_settings_page = False
     has_subtitle_visibility_setting = False
 
+    notification_settings_form = None
+    notification_settings_template = None
+    """
+    Override the default team notiffication settings form
+    """
+
     def __init__(self, team):
         self.team = team
 

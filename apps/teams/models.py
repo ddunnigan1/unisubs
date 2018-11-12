@@ -55,6 +55,7 @@ from teams import behaviors
 from teams import notifymembers
 from teams import stats
 from teams import tasks
+from teams.const import *
 from teams.exceptions import ApplicationInvalidException
 from teams.notifications import BaseNotification
 from teams.signals import (member_leave, api_subtitles_approved,
@@ -164,17 +165,6 @@ class TeamManager(models.Manager):
     def get_queryset(self):
         """Return a QS of all non-deleted teams."""
         return TeamQuerySet(Team).filter(deleted=False)
-
-TeamVisibility = enum.Enum('TeamVisibility', [
-    ('PUBLIC', _(u'Public')),
-    ('UNLISTED', _(u'Unlisted')),
-    ('PRIVATE', _(u'Private')),
-])
-VideoVisibility = enum.Enum('VideoVisibility', [
-    ('PUBLIC', _(u'Public')),
-    ('UNLISTED', _(u'Unlisted')),
-    ('PRIVATE', _(u'Private')),
-])
 
 class TeamTag(models.Model):
     slug = models.SlugField()
@@ -317,6 +307,35 @@ class Team(models.Model):
     deleted = models.BooleanField(default=False)
     partner = models.ForeignKey('Partner', null=True, blank=True,
                                 related_name='teams')
+
+    # Notification settings.  These control how we send emails/messages to
+    # team members when things happen like subtitles complete, team members
+    # are added, etc.
+    #
+    # These are not related to TeamNotificationSettings, which is a deprecated
+    # class that controls sending HTTP callbacks for events.
+
+    notify_team_role_changed = enum.EnumField(
+        verbose_name=_('Team role changed'),
+        enum=TeamNotify, default=TeamNotify.CHANGED_MEMBER, choices=[
+            TeamNotify.CHANGED_MEMBER, TeamNotify.MANAGERS, TeamNotify.ADMINS,
+        ])
+    notify_request_updated = enum.EnumField(
+        verbose_name=_('Request updated'),
+        enum=TeamNotify, default=TeamNotify.NO_ONE, choices=[
+            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
+            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+    notify_request_sent_back = enum.EnumField(
+        verbose_name=_('Request sent back'),
+        enum=TeamNotify, default=TeamNotify.ASSIGNEES, choices=[
+            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
+            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+    notify_request_complete = enum.EnumField(
+        verbose_name=_('Request complete'),
+        enum=TeamNotify, default=TeamNotify.ASSIGNEES, choices=[
+            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
+            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+
     tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
     objects = TeamManager.from_queryset(TeamQuerySet)()
@@ -565,7 +584,8 @@ class Team(models.Model):
     # Settings
     SETTINGS_ATTRIBUTES = set([
         'description', 'sync_metadata', 'membership_policy', 'video_policy',
-        'team_visibility', 'video_visibility',
+        'team_visibility', 'video_visibility', 'notify_team_role_changed',
+        'notify_request_complete', 'notify_request_updated',
     ])
     def get_settings(self):
         """Get the current settings for this team
@@ -3456,7 +3476,6 @@ class TeamLanguagePreference(models.Model):
 
 
 post_save.connect(TeamLanguagePreference.objects.on_changed, TeamLanguagePreference)
-
 
 # TeamNotificationSettings
 class TeamNotificationSettingManager(models.Manager):

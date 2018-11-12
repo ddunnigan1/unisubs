@@ -38,6 +38,9 @@
         <li>
           <a href="{% url "teams:settings_messages" slug=team.slug %}">{% trans "Messages" %}</a>
         </li>
+        <li>
+          <a href="{% url "teams:settings_notifications" slug=team.slug %}">{% trans "Notifications" %}</a>
+        </li>
         {% if team.new_workflow.has_workflow_settings_page %}
         <li>
           <a href="{% url "teams:settings_permissions" team.slug %}">{% trans "Permissions" %}</a>

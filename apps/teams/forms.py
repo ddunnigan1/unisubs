@@ -1198,6 +1198,30 @@ class LanguagesForm(forms.Form):
 
         return self.cleaned_data
 
+class NotificationSettingsForm(forms.ModelForm):
+    def __init__(self, team, **kwargs):
+        super(NotificationSettingsForm, self).__init__(instance=team, **kwargs)
+        self.initial_settings = self.instance.get_settings()
+
+
+    def save(self, user):
+        with transaction.atomic():
+            super(NotificationSettingsForm, self).save()
+            self.instance.handle_settings_changes(user, self.initial_settings)
+
+    def formfield_callback(field, **kwargs):
+        if isinstance(field, enum.EnumField):
+            return DependentBooleanField(label=field.verbose_name,
+                                         initial=field.default,
+                                         choices=field.choices,
+                                         required=not field.blank)
+        else:
+            return field.formfield(**kwargs)
+
+    class Meta:
+        model = Team
+        fields = ['notify_team_role_changed']
+
 class AddMembersForm(forms.Form):
     role = AmaraChoiceField(choices=TeamMember.ROLES[::-1],
                              initial='contributor',

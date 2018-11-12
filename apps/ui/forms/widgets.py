@@ -293,7 +293,7 @@ class DependentCheckboxes(widgets.MultiWidget):
         # We handle the required attribute specially.  Don't make the
         # checkboxes required.  Instead make the first checkbox checked and
         # disabled.
-        required = attrs['required']
+        required = attrs.get('required', False)
         attrs['required'] = False
 
         context = super(DependentCheckboxes, self).get_context(

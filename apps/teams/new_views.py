@@ -1494,6 +1494,32 @@ def edit_project(request, team, project_slug):
 def settings_workflows(request, team):
     return team.new_workflow.workflow_settings_view(request, team)
 
+@team_settings_view
+def settings_notifications(request, team):
+    FormClass = team.new_workflow.notification_settings_form
+    template = team.new_workflow.notification_settings_template
+    if FormClass is None:
+        FormClass = forms.NotificationSettingsForm
+    if template is None:
+        template = 'future/teams/settings/notifications.html'
+
+    if request.POST:
+        form = FormClass(team, data=request.POST)
+
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(request, _(u'Notification settings saved.'))
+            return HttpResponseRedirect(request.path)
+    else:
+        form = FormClass(team)
+
+    return render(request, template, {
+        'team': team,
+        'form': form,
+        'team_nav': 'settings',
+        'settings_tab': 'notifications',
+    })
+
 @staff_member_required
 @team_view
 def video_durations(request, team):
