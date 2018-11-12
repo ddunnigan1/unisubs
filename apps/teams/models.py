@@ -1648,6 +1648,9 @@ class TeamMemberManager(models.Manager):
         tm.save()
         return tm
 
+    def managers(self):
+        return self.filter(role__in=(ROLE_MANAGER, ROLE_OWNER, ROLE_ADMIN))
+
     def admins(self):
         return self.filter(role__in=(ROLE_OWNER, ROLE_ADMIN))
 
@@ -1773,7 +1776,8 @@ class TeamMember(models.Model):
             if new_role in (ROLE_MANAGER, ROLE_ADMIN):
                 notifier.team_member_promoted(self.team_id, self.user_id, new_role)
         else:
-            notifymembers.send_role_changed_message(self, old_member_info)
+            notifymembers.send_role_changed_message(self, old_member_info,
+                                                    user)
 
     def project_narrowings(self):
         """Return any project narrowings applied to this member."""

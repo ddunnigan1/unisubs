@@ -61,8 +61,12 @@ def notify_users(notification, user_list, subject, template_name,
     message = _render_message_template(subject, template_name, context, 'text')
     html_message = _render_message_template(subject, template_name, context,
                                             'html')
-    do_notify_users.delay(notification, [u.id for u in user_list], subject,
-                          message, html_message, send_email)
+    user_ids = [
+        u.id if isinstance(u, User) else u
+        for u in user_list
+    ]
+    do_notify_users.delay(notification, user_ids, subject, message,
+                          html_message, send_email)
 
 @job
 def do_notify_users(notification, user_ids, subject, message, html_message,

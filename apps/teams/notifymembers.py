@@ -19,10 +19,38 @@
 from django.utils.translation import ugettext as _
 
 from messages.notify import notify_users, Notifications
+from teams.const import *
 from teams.permissions_const import *
+from utils.taskqueue import job
 from utils.text import fmt
 
-def send_role_changed_message(member, old_member_info):
+def generic_team_notify(notification, team, team_notify, subject, template_name, context,
+                        send_email=None, exclude=None):
+    """
+    Generic team notification code
+
+    This method handles sending notifications for the more general TeamNotify
+    values (MEMBERS, MANAGERS, ADMINS).
+
+    Other TeamNotify values need to be handled with custom code.  This
+    function is a no-op for those values.
+    """
+    if team_notify == TeamNotify.MEMBERS:
+        qs = team.members.all()
+    elif team_notify == TeamNotify.MANAGERS:
+        qs = team.members.managers()
+    elif team_notify == TeamNotify.ADMINS:
+        qs = team.members.admins()
+    else:
+        return
+
+    if exclude:
+        qs = qs.exclude(user__in=exclude)
+    user_ids = list(qs.values_list('user_id', flat=True))
+    notify_users(notification, user_ids, subject, template_name, context,
+                 send_email=send_email)
+
+def send_role_changed_message(member, old_member_info, managing_user):
     team = member.team
     context = {
         'team': team,
@@ -43,7 +71,13 @@ def send_role_changed_message(member, old_member_info):
         subject = fmt(_('Your role has been changed on the %(team)s team'),
                       team=unicode(team))
     notify_users(Notifications.ROLE_CHANGED, [member.user], subject,
-                 'messages/team-role-changed.html', context)
+                 'messages/team-role-changed-user.html', context)
+
+    generic_team_notify(
+        Notifications.ROLE_CHANGED, team, team.notify_team_role_changed,
+        _('Member role changed on the {} team').format(unicode(team)),
+        'messages/team-role-changed.html', context,
+        exclude=[member.user, managing_user])
 
 def was_promotion(member, old_member_info):
     if (ROLES_ORDER.index(old_member_info.role) >
