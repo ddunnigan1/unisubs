@@ -2,13 +2,13 @@
 <div class="listView videoUrls">
 
   {% for video_url, sync_account in video_urls %}
-  <div>
+  <div class="videoUrls-url">
     <a href="{{ video_url.url }}" target="_blank">{{ video_url.url }}</a>
     <div class="listView-secondary visible">
       {% blocktrans with user=video_url.added_by date=video_url.created|date %}Added {{ date }} by {{ user }}{% endblocktrans %}
     </div>
   </div>
-  <div>
+  <div class="videoUrls-badges">
     <span class="badge plum">{% blocktrans with format=video_url.get_type_display %}Format: {{ format }}{% endblocktrans %}</span>
     {% if video_url.primary %}<span class="badge lime">{% trans "Primary" %}</span>{% endif %}
     {% if video_url.original %}<span class="badge amaranth">{% trans "Original" %}</span>{% endif %}

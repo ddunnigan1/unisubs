@@ -1877,7 +1877,9 @@ class MemberFiltersForm(forms.Form):
     ] + get_language_choices()
 
     q = SearchField(label=_('Search'), required=False,
-                    widget=ContentHeaderSearchBar)
+                    widget=ContentHeaderSearchBar(attrs={
+                        'autocomplete': 'off',
+                    }))
 
     role = AmaraChoiceField(label=_('Select role'), choices=[
         ('any', _('All roles')),
@@ -1889,7 +1891,7 @@ class MemberFiltersForm(forms.Form):
     language = AmaraChoiceField(choices=LANGUAGE_CHOICES,
                                  label=_('Select language'),
                                  initial='any', required=False, filter=True)
-    sort = AmaraChoiceField(label=_('Change sort'), choices=[
+    sort = AmaraChoiceField(label=_('Sort'), choices=[
         ('recent', _('Newest joined')),
         ('oldest', _('Oldest joined')),
     ], initial='recent', required=False)

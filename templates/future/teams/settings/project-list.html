@@ -1,13 +1,13 @@
 {% load i18n forms dropdown %}
 {% if page %}
-<ul class="listView projects">
-  <div class="listView-header">{% trans "Title" %}</div>
-  <div class="listView-header">{% trans "Description" %}</div>
-  <div class="listView-header"></div>
+<ul class="listView projectList">
+  <div class="listView-header projectList-title">{% trans "Title" %}</div>
+  <div class="listView-header projectList-description">{% trans "Description" %}</div>
+  <div class="listView-header listView-actions"></div>
 
   {% for project in page %}
-  <div>{{ project.name }}</div>
-  <div>{{ project.description }}</div>
+  <div class="projectList-title">{{ project.name }}</div>
+  <div class="projectList-description">{{ project.description }}</div>
   <div class="listView-actions">
     {% dropdown-button-icon "project-context-menu" "listView-action" data_selection=project.id %}
   </div>
