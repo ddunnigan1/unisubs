@@ -21,11 +21,10 @@ from django.utils.translation import ugettext_lazy as _
 from utils import enum
 
 TeamNotify = enum.Enum('TeamNotify', [
-    ('NO_ONE', _('No one')),
     ('ASSIGNEES', _('Assignees')),
     ('CHANGED_MEMBER', _('Changed member')),
     ('MEMBERS', _('All team members')),
-    ('MANAGERS', _('Managers/Admins')),
+    ('MANAGERS', _('Managers')),
     ('ADMINS', _('Admins')),
 ])
 

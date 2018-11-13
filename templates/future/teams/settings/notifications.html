@@ -1,21 +1,19 @@
 {% extends "future/teams/settings/base.html" %}
 {% load i18n forms %}
 
-{% block content %}
-<section class="container">
-  <form method="POST">
-    {% csrf_token %}
-    <fieldset>
-      <legend><h3>{% trans "Members" %}</h3></legend>
-      {% render_field form.notify_team_role_changed %}
-    </fieldset>
+{% block settings_form %}
+<form method="POST">
+  {% csrf_token %}
+  <fieldset>
+    <legend><h3>{% trans "Members" %}</h3></legend>
+    {% render_field form.notify_team_role_changed %}
+  </fieldset>
 
-    {% block form-extra %}{% endblock %}
+  {% block form-extra %}{% endblock %}
 
-    <div class="fieldset-footer-shadow">
-      <div class="fieldset-backtotop-container"></div>
-      <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
-    </div>
-  </form>
-</section>
+  <div class="fieldset-footer-shadow">
+    <div class="fieldset-backtotop-container"></div>
+    <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
+  </div>
+</form>
 {% endblock %}

@@ -26,7 +26,7 @@ from django.template.loader import render_to_string
 from django.utils.html import format_html
 from django.utils.translation import ugettext as _
 
-from ui.forms import HelpTextList, SwitchInput
+from ui.forms import HelpTextList, SwitchInput, DependentCheckboxes
 from utils.text import fmt
 
 register = template.Library()
@@ -87,7 +87,11 @@ def button_field(field, button_label, button_class="cta"):
 @register.filter
 def is_checkbox(bound_field):
     widget = bound_field.field.widget
-    return (isinstance(widget, forms.CheckboxInput) and
+    checkbox_classes = (
+        forms.CheckboxInput,
+        DependentCheckboxes,
+    )
+    return (isinstance(widget, checkbox_classes) and
             not isinstance(widget, SwitchInput))
 
 def calc_widget_type(field):

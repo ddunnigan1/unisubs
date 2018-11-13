@@ -318,23 +318,24 @@ class Team(models.Model):
     notify_team_role_changed = enum.EnumField(
         verbose_name=_('Team role changed'),
         enum=TeamNotify, default=TeamNotify.CHANGED_MEMBER, choices=[
-            TeamNotify.CHANGED_MEMBER, TeamNotify.MANAGERS, TeamNotify.ADMINS,
+            TeamNotify.CHANGED_MEMBER, TeamNotify.ADMINS, TeamNotify.MANAGERS, 
         ])
     notify_request_updated = enum.EnumField(
         verbose_name=_('Request updated'),
-        enum=TeamNotify, default=TeamNotify.NO_ONE, choices=[
-            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
-            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+        enum=TeamNotify, default=None, null=True, blank=True, choices=[
+            TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS])
     notify_request_sent_back = enum.EnumField(
         verbose_name=_('Request sent back'),
-        enum=TeamNotify, default=TeamNotify.ASSIGNEES, choices=[
-            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
-            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+        enum=TeamNotify, default=TeamNotify.ASSIGNEES, null=True, blank=True,
+        choices=[
+            TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS,
+        ])
     notify_request_complete = enum.EnumField(
         verbose_name=_('Request complete'),
-        enum=TeamNotify, default=TeamNotify.ASSIGNEES, choices=[
-            TeamNotify.NO_ONE, TeamNotify.ASSIGNEES,
-            TeamNotify.MANAGERS, TeamNotify.ADMINS])
+        enum=TeamNotify, default=TeamNotify.ASSIGNEES, null=True, blank=True,
+        choices=[
+            TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS,
+        ])
 
     tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
