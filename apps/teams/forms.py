@@ -1209,18 +1209,13 @@ class NotificationSettingsForm(forms.ModelForm):
             super(NotificationSettingsForm, self).save()
             self.instance.handle_settings_changes(user, self.initial_settings)
 
-    def formfield_callback(field, **kwargs):
-        if isinstance(field, enum.EnumField):
-            return DependentBooleanField(label=field.verbose_name,
-                                         initial=field.default,
-                                         choices=field.choices,
-                                         required=not field.blank)
-        else:
-            return field.formfield(**kwargs)
-
     class Meta:
         model = Team
         fields = ['notify_team_role_changed']
+        field_classes = {
+            name: DependentBooleanField
+            for name in fields
+        }
 
 class AddMembersForm(forms.Form):
     role = AmaraChoiceField(choices=TeamMember.ROLES[::-1],

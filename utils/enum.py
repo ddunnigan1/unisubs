@@ -255,6 +255,20 @@ class EnumField(models.PositiveSmallIntegerField):
         setattr(cls, '{}_choices'.format(name),
                 [member.slug_choice() for member in self._members()])
 
+    def formfield(self, **kwargs):
+        if kwargs.get('form_class') == DependentBooleanField:
+            del kwargs['form_class']
+            defaults = {
+                'label': self.verbose_name,
+                'initial': self.default,
+                'choices': self.choices,
+                'required': not self.blank
+            }
+            defaults.update(kwargs)
+            return DependentBooleanField(**defaults)
+        else:
+            return super(EnumField, self).formfield(**kwargs)
+
     def from_db_value(self, value, expression, connection, context):
         if value is None:
             return None
