@@ -445,6 +445,7 @@ Subtitles for blacklisted languages will not be allowed.
 """
 
 from __future__ import absolute_import
+from collections import OrderedDict
 from datetime import datetime
 import json
 
@@ -469,7 +470,7 @@ from auth.models import CustomUser as User
 from notifications.models import TeamNotification
 from teams.models import (Team, TeamMember, Project, Task, TeamVideo,
                           Application, TeamLanguagePreference, TeamVisibility,
-                          VideoVisibility)
+                          VideoVisibility, LanguageManager)
 from teams.workflows import TeamWorkflow
 from utils.translation import ALL_LANGUAGE_CODES
 import messages.tasks
@@ -669,6 +670,23 @@ class TeamViewSet(mixins.CreateModelMixin,
             raise PermissionDenied()
         instance.delete()
 
+class LanguagesManagedSerializer(serializers.ModelSerializer):
+    # for flattening the response
+    def to_representation(self, obj):
+        return obj.code
+
+    class Meta:
+        model = LanguageManager
+        fields = ('code',)
+
+def _should_include(data):
+    # we only care about not returning empty lists for now
+    if isinstance(data, list) and len(data) < 1:
+        return False
+    if data is None:
+        return False
+    return True
+
 class TeamMemberSerializer(serializers.Serializer):
     default_error_messages = {
         'user-does-not-exist': "User does not exist: {username}",
@@ -684,7 +702,13 @@ class TeamMemberSerializer(serializers.Serializer):
     )
 
     user = UserField()
-    role = serializers.ChoiceField(ROLE_CHOICES)
+    role = serializers.ChoiceField(ROLE_CHOICES) 
+    projects_managed = serializers.SlugRelatedField(
+        queryset=Project.objects.all(),
+        many=True,  
+        required=False,
+        slug_field='slug')
+    languages_managed = LanguagesManagedSerializer(many=True)
     resource_uri = serializers.SerializerMethodField()
 
     def create(self, validated_data):
@@ -701,6 +725,12 @@ class TeamMemberSerializer(serializers.Serializer):
             'team_slug': self.context['team'].slug,
             'identifier': 'id$' + member.user.secure_id(),
         }, request=self.context['request'])
+
+    # we don't include null fields and empty lists in the response 
+    # i.e. we don't include `projects_managed` and `languages_managed` if they are empty
+    def to_representation(self, instance):
+        result = super(TeamMemberSerializer, self).to_representation(instance)
+        return OrderedDict([(key, result[key]) for key in result if _should_include(result[key])])
 
 class TeamMemberUpdateSerializer(TeamMemberSerializer):
     user = UserField(read_only=True)
