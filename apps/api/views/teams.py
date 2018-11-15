@@ -784,15 +784,11 @@ class TeamMemberUpdateSerializer(TeamMemberSerializer):
                 if validated_data['role'] != TeamMember.ROLE_CONTRIBUTOR:
                     self.fail('lm-pm-contributors-only')
 
+            instance.change_role(self.context.get('user'),
+                                 validated_data['role'],
+                                 projects,
+                                 language_codes)
             instance.save()
-
-            if projects:
-                for project in projects:
-                    instance.make_project_manager(project)
-            if language_codes:
-                for language_code in language_codes:
-                    instance.make_language_manager(language_code)
-            
             return instance
 
 class TeamSubviewMixin(object):
