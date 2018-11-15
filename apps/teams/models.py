@@ -52,7 +52,7 @@ from teams.permissions_const import (
     ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
 from teams import behaviors
-from teams import notifymembers
+from teams import member_notifications
 from teams import stats
 from teams import tasks
 from teams.const import *
@@ -331,7 +331,7 @@ class Team(models.Model):
             TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS,
         ])
     notify_request_complete = enum.EnumField(
-        verbose_name=_('Request complete'),
+        verbose_name=_('Request completed'),
         enum=TeamNotify, default=TeamNotify.ASSIGNEES, null=True, blank=True,
         choices=[
             TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS,
@@ -1658,6 +1658,13 @@ class TeamMemberManager(models.Manager):
     def owners(self):
         return self.filter(role=ROLE_OWNER)
 
+    def project_managers(self, project):
+        return self.filter(role=ROLE_CONTRIBUTOR, projects_managed=project)
+
+    def language_managers(self, language_code):
+        return self.filter(role=ROLE_CONTRIBUTOR,
+                           languages_managed__code=language_code)
+
     def members_from_users(self, team, users):
         return self.filter(team=team, user__in=users)
 
@@ -1777,8 +1784,8 @@ class TeamMember(models.Model):
             if new_role in (ROLE_MANAGER, ROLE_ADMIN):
                 notifier.team_member_promoted(self.team_id, self.user_id, new_role)
         else:
-            notifymembers.send_role_changed_message(self, old_member_info,
-                                                    user)
+            member_notifications.send_role_changed_message(
+                self, old_member_info, user)
 
     def project_narrowings(self):
         """Return any project narrowings applied to this member."""

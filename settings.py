@@ -226,6 +226,7 @@ INSTALLED_APPS = (
     'thirdpartyaccounts',
     'ui',
     'unisubs_compressor',
+    'usernotifications',
     'utils',
     'videos',
     'widget',

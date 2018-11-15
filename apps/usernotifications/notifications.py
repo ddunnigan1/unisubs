@@ -31,45 +31,91 @@ from messages.models import Message, SYSTEM_NOTIFICATION
 from utils.enum import Enum
 from utils.taskqueue import job
 
-Notifications = Enum('Notifications', [
+NotificationType = Enum('NotificationType', [
     ('ROLE_CHANGED', _('Role changed')),
     ('TEAM_INVITATION', _('Team invitation')),
+    ('NEW_ACTIVE_ASSIGNMENT', _(u'New active assignment')),
+    ('REQUEST_UPDATED', _(u'Request updated')),
+    ('REQUEST_COMPLETED', _(u'Request completed by team')),
+    ('REQUEST_SENDBACK', _(u'Request sent back to team')),
 ])
 
-def notify_users(notification, user_list, subject, template_name,
-                 context, send_email=None):
+class Notification(object):
+    """
+    Base class for rendering the emails/messages for a notification
+    """
+
+    # Subclasses need to define these:
+
+    notification_type = NotImplemented
+
+    # Template to render the message.  Note that we use the same template to
+    # render both the HTML and plaintext version of the message.  Here's the
+    # system we use to make this work.
+    #
+    #     - Templates are written in simplified HTML
+    #     - The only block-level tags supported are <p>, <ul>, and <li>
+    #     - The only inline tags supported are <a>, <em>, and <strong>
+    #     - For <a> tags make sure to use the {% universal_url %} tag or filter
+    template_name = NotImplemented
+
+    # set to True to always send email.  Set to False to never send email
+    send_email = None
+
+    def get_template_context(self):
+        raise NotImplementedError()
+
+    def subject(self):
+        raise NotImplementedError()
+
+    # Base class behavior
+    def render_messages(self):
+        """
+        Renders a text and HTML version of the message body
+        """
+        source = render_to_string(self.template_name,
+                                  self.get_template_context())
+        html_message = render_to_string('messages/html-email.html', {
+            'subject': self.subject(),
+            'body': source,
+        })
+        text_message = TextEmailRenderer(source).text
+
+        return text_message, html_message
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)
+
+    def __repr__(self):
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join('{}={}'.format(name, value)
+                      for name, value in self.__dict__.items()))
+
+def notify_users(notification, user_list):
     """
     Send notification messages to a list of users
 
     Arguments:
-        notification: member from the Notifications enum
+        notification: Instance of a Notification subclass
         user_list: list/iterable of CustomUser objects to notify
-        template_name: template to render the notification with
-        context: context dict to use for the 2 templates
-        send_email: Should we send an email alongside the message?  Use
-            True/False to force an email to be sent or not sent.  None, the
-            default means use the notify_by_email flag from CustomUser.
 
-    Note that we use the same template to render both the HTML and plaintext
-    version of the message.  Here's the system we use to make this work.
-
-        - Templates are written in simplified HTML
-        - The only block-level tags supported are <p>, <ul>, and <li>
-        - The only inline tags supported are <a>, <em>, and <strong>
-        - For <a> tags make sure to use the {% universal_url %} tag or filter
     """
-    message = _render_message_template(subject, template_name, context, 'text')
-    html_message = _render_message_template(subject, template_name, context,
-                                            'html')
+    message, html_message = notification.render_messages()
     user_ids = [
         u.id if isinstance(u, User) else u
         for u in user_list
     ]
-    do_notify_users.delay(notification, user_ids, subject, message,
-                          html_message, send_email)
+    do_notify_users.delay(notification.notification_type, user_ids,
+                          notification.subject(), message, html_message,
+                          notification.send_email)
+
+def notify_user(notification, user):
+    return notify_users(notification, [user])
 
 @job
-def do_notify_users(notification, user_ids, subject, message, html_message,
+def do_notify_users(notification_type, user_ids, subject, message, html_message,
                     send_email):
     user_list = User.objects.filter(id__in=user_ids)
     for user in user_list:
@@ -90,22 +136,6 @@ def should_send_email(user, send_email):
     return (user.email and
             (send_email == True or
              send_email is None and user.notify_by_email))
-
-def _render_message_template(subject, template_name, context, mode):
-    source = render_to_string(template_name, context)
-    if mode == 'html':
-        return format_html_message(subject, source)
-    else:
-        return format_text_message(subject, source)
-
-def format_html_message(subject, source):
-    return render_to_string('messages/html-email.html', {
-        'subject': subject,
-        'body': source,
-    })
-
-def format_text_message(subject, source):
-    return TextEmailRenderer(source).text
 
 class TextEmailRenderer(object):
     """
@@ -170,3 +200,7 @@ class TextEmailRenderer(object):
             raise ValueError(
                 "Can't process text outside <p> tags for the "
                 "plaintext email: {}".format(text_or_tail))
+
+__all__ = [
+    'NotificationType', 'Notification', 'notify_users', 'do_notify_users',
+]
