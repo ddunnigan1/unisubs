@@ -747,7 +747,6 @@ class TeamMemberSerializer(serializers.Serializer):
             if projects:
                 for project in projects:
                     member.make_project_manager(project)
-
             if language_codes:
                 for language_code in language_codes:
                     member.make_language_manager(language_code)
@@ -777,7 +776,23 @@ class TeamMemberUpdateSerializer(TeamMemberSerializer):
             self.fail('user-cannot-change-own-role')
         else:
             instance.role = validated_data['role']
+
+            projects = validated_data.get('projects_managed', None)
+            language_codes = validated_data.get('languages_managed', None)
+
+            if projects or language_codes:
+                if validated_data['role'] != TeamMember.ROLE_CONTRIBUTOR:
+                    self.fail('lm-pm-contributors-only')
+
             instance.save()
+
+            if projects:
+                for project in projects:
+                    instance.make_project_manager(project)
+            if language_codes:
+                for language_code in language_codes:
+                    instance.make_language_manager(language_code)
+            
             return instance
 
 class TeamSubviewMixin(object):

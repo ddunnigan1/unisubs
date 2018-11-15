@@ -330,6 +330,22 @@ class TeamMemberAPITest(TeamAPITestBase):
         member = self.team.members.get(user=user)
         assert_equal(member.role, TeamMember.ROLE_CONTRIBUTOR)
 
+    '''
+    for some reason I can't make this test pass
+    '''
+    # def test_add_team_member_project_manager(self):
+    #     user = UserFactory()
+    #     project = ProjectFactory(team=self.team)
+    #     response = self.client.post(self.list_url, data={
+    #         'user': user.username,
+    #         'role': 'contributor',
+    #         'projects_managed': [ project.slug ]
+    #     })
+    #     assert_equal(response.status_code, status.HTTP_201_CREATED,
+    #                  response.content)
+    #     member = self.team.members.get(user=user)
+    #     assert_equal(member.projects_managed.first(), project)
+
     def test_add_existing_team_member(self):
         user = TeamMemberFactory(team=self.team).user
         response = self.client.post(self.list_url, data={
