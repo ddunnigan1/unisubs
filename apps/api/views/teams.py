@@ -675,11 +675,33 @@ class LanguagesManagedSerializer(serializers.ModelSerializer):
     def to_representation(self, obj):
         return obj.code
 
+    def to_internal_value(self, code):
+        if code not in ALL_LANGUAGE_CODES:
+            raise serializers.ValidationError("Invalid language code: {}".format(code))
+
+        return code
+
     class Meta:
         model = LanguageManager
         fields = ('code',)
 
-def _should_include(data):
+class ProjectsManagedSerializer(serializers.ModelSerializer):
+    def to_representation(self, obj):
+        return obj.slug
+
+    def to_internal_value(self, slug):
+        try:
+            project = self.context['team'].project_set.get(slug=slug)
+            return project
+        except Project.DoesNotExist:
+            raise serializers.ValidationError('Project {} does not exist'.format(slug))
+
+    class Meta:
+        model = Project
+        fields = ('slug',)
+
+# used for determining if data should be included in response
+def _include_in_response(data):
     # we only care about not returning empty lists for now
     if isinstance(data, list) and len(data) < 1:
         return False
@@ -692,6 +714,7 @@ class TeamMemberSerializer(serializers.Serializer):
         'user-does-not-exist': "User does not exist: {username}",
         'user-already-member': "User is already a team member",
         'user-cannot-change-own-role': "User cannot change their own role",
+        'lm-pm-contributors-only': "Only contributors can be assigned as project/language managers",
     }
 
     ROLE_CHOICES = (
@@ -702,21 +725,34 @@ class TeamMemberSerializer(serializers.Serializer):
     )
 
     user = UserField()
-    role = serializers.ChoiceField(ROLE_CHOICES) 
-    projects_managed = serializers.SlugRelatedField(
-        queryset=Project.objects.all(),
-        many=True,  
-        required=False,
-        slug_field='slug')
-    languages_managed = LanguagesManagedSerializer(many=True)
+    role = serializers.ChoiceField(ROLE_CHOICES)
+    projects_managed = ProjectsManagedSerializer(many=True, required=False)
+    languages_managed = LanguagesManagedSerializer(many=True, required=False)
     resource_uri = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         try:
-            return self.context['team'].members.create(
-                user=validated_data['user'],
-                role=validated_data['role'],
-            )
+            projects = validated_data.get('projects_managed', None)
+            language_codes = validated_data.get('languages_managed', None)
+
+            if projects or language_codes:
+                if validated_data['role'] != TeamMember.ROLE_CONTRIBUTOR:
+                    self.fail('lm-pm-contributors-only')
+
+            member = self.context['team'].members.create(
+                        user=validated_data['user'],
+                        role=validated_data['role'],
+                    )
+
+            if projects:
+                for project in projects:
+                    member.make_project_manager(project)
+
+            if language_codes:
+                for language_code in language_codes:
+                    member.make_language_manager(language_code)
+
+            return member
         except IntegrityError:
             self.fail('user-already-member')
 
@@ -730,7 +766,7 @@ class TeamMemberSerializer(serializers.Serializer):
     # i.e. we don't include `projects_managed` and `languages_managed` if they are empty
     def to_representation(self, instance):
         result = super(TeamMemberSerializer, self).to_representation(instance)
-        return OrderedDict([(key, result[key]) for key in result if _should_include(result[key])])
+        return OrderedDict([(key, result[key]) for key in result if _include_in_response(result[key])])
 
 class TeamMemberUpdateSerializer(TeamMemberSerializer):
     user = UserField(read_only=True)
