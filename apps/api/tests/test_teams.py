@@ -331,7 +331,7 @@ class TeamMemberAPITest(TeamAPITestBase):
         assert_equal(member.role, TeamMember.ROLE_CONTRIBUTOR)
 
     '''
-    for some reason I can't make this test pass
+    for some reason I can't make these two tests pass
     '''
     # def test_add_team_member_project_manager(self):
     #     user = UserFactory()
@@ -345,6 +345,19 @@ class TeamMemberAPITest(TeamAPITestBase):
     #                  response.content)
     #     member = self.team.members.get(user=user)
     #     assert_equal(member.projects_managed.first(), project)
+
+    # def test_add_team_member_language_manager(self):
+    #     user = UserFactory()
+    #     language_code = 'en'
+    #     response = self.client.post(self.list_url, data={
+    #         'user': user.username,
+    #         'role': 'contributor',
+    #         'languages_managed': [ language_code ]
+    #     })
+    #     assert_equal(response.status_code, status.HTTP_201_CREATED,
+    #                  response.content)
+    #     member = self.team.members.get(user=user)
+    #     assert_equal(member.languages_managed.first().code, language_code)
 
     def test_add_existing_team_member(self):
         user = TeamMemberFactory(team=self.team).user
