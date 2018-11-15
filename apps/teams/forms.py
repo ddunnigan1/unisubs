@@ -1199,15 +1199,16 @@ class LanguagesForm(forms.Form):
         return self.cleaned_data
 
 class NotificationSettingsForm(forms.ModelForm):
-    def __init__(self, team, **kwargs):
+    def __init__(self, team, user, **kwargs):
         super(NotificationSettingsForm, self).__init__(instance=team, **kwargs)
+        self.user = user
         self.initial_settings = self.instance.get_settings()
 
 
-    def save(self, user):
+    def save(self):
         with transaction.atomic():
             super(NotificationSettingsForm, self).save()
-            self.instance.handle_settings_changes(user, self.initial_settings)
+            self.instance.handle_settings_changes(self.user, self.initial_settings)
 
     class Meta:
         model = Team

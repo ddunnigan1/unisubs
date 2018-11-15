@@ -1523,14 +1523,14 @@ def settings_notifications(request, team):
         template = 'future/teams/settings/notifications.html'
 
     if request.POST:
-        form = FormClass(team, data=request.POST)
+        form = FormClass(team, request.user, data=request.POST)
 
         if form.is_valid():
-            form.save(request.user)
+            form.save()
             messages.success(request, _(u'Notification settings saved.'))
             return HttpResponseRedirect(request.path)
     else:
-        form = FormClass(team)
+        form = FormClass(team, request.user)
 
     return render(request, template, {
         'team': team,
