@@ -3249,6 +3249,7 @@ class Setting(models.Model):
         (200, 'guidelines_subtitle'),
         (201, 'guidelines_translate'),
         (202, 'guidelines_review'),
+        (203, 'guidelines_approve'),
         # 300s means if this team will block those notifications
         (300, 'block_invitation_sent_message'),
         (301, 'block_application_sent_message'),
