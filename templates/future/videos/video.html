@@ -1,5 +1,5 @@
 {% extends "future/base.html" %}
-{% load i18n videos_tags modal %}
+{% load i18n videos_tags modal dropdown %}
 
 {% block head-extra %}
 {% include "future/videos/embed-script.html" %}
@@ -136,6 +136,6 @@
 
 {% block page-controls %}
 {% if perms.videos.edit_video %}
-<li><a href="{% url "admin:videos_video_change" video.pk %}" target="blank">{% trans 'Edit video' %}</a></li>
+{% dropdown-item _('Edit Video') "admin:videos_video_change" video.pk %}
 {% endif %}
 {% endblock %}

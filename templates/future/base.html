@@ -1,4 +1,4 @@
-{% load i18n assets media_bundle announcement_tags messages_tags assets modal %}
+{% load i18n assets media_bundle announcement_tags messages_tags assets modal dropdown captureas %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -55,23 +55,20 @@
       {% endif %}
       {% block content %}{% endblock %}
     </main>
-    {% block footer %}{% include "future/footer.html" %}{% endblock %}
+    {% captureas staff_controls %}
     {% if user.is_staff %}
-    {% startmodal "staff-controls" _('Staff Controls') %}
-    <div class="modal-content">
-      <ul>
-        <li><a target="_blank" href="{% url "staff:index" %}">{% trans 'Dashboard' %}</a></li>
-        <li><a target="_blank" href="{% url "admin:index" %}">{% trans 'Site Admin' %}</a></li>
-        <li><a href="//github.com/pculture/unisubs/commit/{{ LAST_COMMIT_GUID }}" title="{{ LAST_COMMIT_GUID }}">Github</a></li>
-        {% if user.is_superuser %}
-        <li><a target="_blank" href="{% url "auth:login_trap" %}">{% trans 'Impersonate' %}</a></li>
-        <li><a target="_blank" href="{% url "billing" %}">{% trans 'Billing' %}</a></li>
-        {% endif %}
-        {% block page-controls %}{% endblock %}
-      </ul>
-    </div>
-    {% endmodal %}
+    {% dropdown-button "staff-controls" "button teal" %}{% trans "Staff controls" %}{% end-dropdown-button %}
+    {% dropdown "staff-controls" labelled_by="dropdown-menu-button" %}
+    {% dropdown-item _('Dashboard') "staff:index" %}
+    {% dropdown-item _('Site Admiin') "admin:index" %}
+    {% dropdown-item _('Github') "//github.com/pculture/unisubs/commit/"|add:LAST_COMMIT_GUID raw_url=True %}
+    {% dropdown-item _('Impersonate') "auth:login_trap" %}
+    {% dropdown-item _('Billing') "billing" %}
+    {% block page-controls %}{% endblock %}
+    {% enddropdown %}
     {% endif %}
+    {% endcaptureas %}
+    {% block footer %}{% include "future/footer.html" %}{% endblock %}
 
     {% block main_js %}<script src="{% asset "js/application.js" %}"></script>{% endblock %}
     {% block bottom %}{% endblock %}

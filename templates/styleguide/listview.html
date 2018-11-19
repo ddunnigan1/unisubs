@@ -12,7 +12,7 @@
     <ul class="bullets">
       <li>Associated actions that get hidden until the user hovers the row.</li>
       <li>A checkbox column that can get hooked up to an <a href="{% url "styleguide:section" "actionBar" %}">action bar</a></li>
-      <li>Extra information that gets show when you expand the item.  Click anywhere on a row to expand it.</li>
+      <li>Extra information that gets show when you expand the item.  Click anywhere on a row to expand it. Don't forget to include the `expandable` class if your rows have extra information.</li>
     </ul>
   </div>
 
@@ -38,7 +38,10 @@
   more details.
   {% endcomment %}
 
-  <div tabindex="0" class="listView styleguideExample">
+  {% comment %}
+  Don't forget to include the `expandable` class if your listView rows contain secondary information
+  {% endcomment %}
+  <div tabindex="0" class="listView expandable styleguideExample">
     <div class="listView-header listView-checkbox">{% checkbox "all" id_prefix="selection-" class="checkAll" data_name="selection" %}</div>
     <div class="listView-header styleguideExample-title">Title</div>
     <div class="listView-header styleguideExample-language">Language</div>

@@ -1873,9 +1873,7 @@ class MemberFiltersForm(forms.Form):
     ] + get_language_choices()
 
     q = SearchField(label=_('Search'), required=False,
-                    widget=ContentHeaderSearchBar(attrs={
-                        'autocomplete': 'off',
-                    }))
+                    widget=ContentHeaderSearchBar())
 
     role = AmaraChoiceField(label=_('Select role'), choices=[
         ('any', _('All roles')),

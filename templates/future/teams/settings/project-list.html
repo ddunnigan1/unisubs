@@ -9,11 +9,12 @@
   <div class="projectList-title">{{ project.name }}</div>
   <div class="projectList-description">{{ project.description }}</div>
   <div class="listView-actions">
-    {% dropdown-button-icon "project-context-menu" "listView-action" data_selection=project.id %}
+    {% dropdown-button-icon "project-context-menu" "listView-action" data_selection=project.id data_slug=project.slug %}
   </div>
   {% endfor %}
 
   {% dropdown "project-context-menu" %}
+  {% dropdown-js-item _("Copy slug") 'copy-text' 'slug' %}
   {% dropdown-js-item _("Edit project") 'listview-form' 'edit' %}
   {% dropdown-js-item _("Delete") 'listview-form' 'delete' %}
   {% enddropdown %}
