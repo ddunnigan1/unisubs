@@ -309,7 +309,7 @@ def settings_lang_messages(request, team):
                     if len(l) == 2:
                         code = l[1]
                         try:
-                            setting = Setting.objects.get(team=team, key=Setting.KEY_IDS["messages_joins_localized"], language_code=code)
+                            setting = Setting.objects.get(team=team, key=Setting.KEY_IDS["messages_joins"], language_code=code)
                             if val == "":
                                 setting.delete()
                             else:
@@ -320,7 +320,7 @@ def settings_lang_messages(request, team):
                             return HttpResponseRedirect(request.path)
             if new_message and new_language:
                 setting, c = Setting.objects.get_or_create(team=team,
-                                  key=Setting.KEY_IDS["messages_joins_localized"],
+                                  key=Setting.KEY_IDS["messages_joins"],
                                   language_code=new_language)
                 if c:
                     setting.data = new_message

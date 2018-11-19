@@ -268,8 +268,8 @@ class MembershipNarrowingAdmin(admin.ModelAdmin):
     team.admin_order_field = 'member__team'
 
 class SettingAdmin(admin.ModelAdmin):
-    list_display = ('__unicode__', 'team', 'key', 'created', 'modified')
-    list_filter = ('key', 'created', 'modified')
+    list_display = ('__unicode__', 'team', 'key', 'language_code', 'modified')
+    list_filter = ('key', 'language_code', 'modified')
     search_fields = ('team__name',)
     raw_id_fields = ('team',)
     ordering = ('-created',)

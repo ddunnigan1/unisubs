@@ -167,6 +167,7 @@ def team_member_new(member_pk):
     if getattr(settings, "MESSAGES_DISABLED", False):
         return
     from messages.models import Message
+    from teams import messaging
     from teams.models import TeamMember, Setting
     member = TeamMember.objects.get(pk=member_pk)
     if not team_sends_notification(member.team,'block_team_member_new_message'):
@@ -201,22 +202,6 @@ def team_member_new(member_pk):
         template_name = "messages/email/team-new-member.html"
         send_templated_email(m.user, subject, template_name, context)
 
-    # does this team have a custom message for this?
-    team_default_message = None
-    messages = Setting.objects.messages().filter(team=member.team)
-    if messages.exists():
-        for m in messages:
-            if m.get_key_display() == 'messages_joins':
-                team_default_message = m.data
-                break
-    for ul in UserLanguage.objects.filter(user=member.user).order_by("priority"):
-        localized_message = Setting.objects.messages().filter(team=member.team, language_code=ul.language)
-        if len(localized_message) == 1:
-            if team_default_message:
-                team_default_message += u'\n\n----------------\n\n' + localized_message[0].data
-            else:
-                team_default_message = localized_message[0].data
-            break
     # now send welcome mail to the new member
     template_name = "messages/team-welcome.txt"
     context = {
@@ -224,7 +209,8 @@ def team_member_new(member_pk):
        "url_base":get_url_base(),
        "role":member.role,
        "user":member.user,
-       "custom_message": team_default_message,
+       "custom_message": messaging.format_message_for_notification(
+           member.team, member.user, 'messages_joins', old_format=True),
     }
     body = render_to_string(template_name,context)
 

@@ -3217,6 +3217,9 @@ class SettingManager(models.Manager):
     def with_names(self, names):
         return self.filter(key__in=[Setting.KEY_IDS[name] for name in names])
 
+    def with_name(self, name):
+        return self.filter(key=Setting.KEY_IDS[name])
+
     def all_messages(self):
         messages = {}
         for key in Setting.MESSAGE_KEYS:
@@ -3245,6 +3248,7 @@ class Setting(models.Model):
         (102, 'messages_admin'),
         (103, 'messages_application'),
         (104, 'messages_joins'),
+        # messages_joins_localized is deprecated, just use messages_joins with language_code set
         (105, 'messages_joins_localized'),
         (200, 'guidelines_subtitle'),
         (201, 'guidelines_translate'),
