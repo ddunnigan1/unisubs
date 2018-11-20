@@ -1207,25 +1207,21 @@ def settings_messages(request, team):
     if team.is_old_style():
         return old_views.settings_messages(request, team)
 
-    initial = team.settings.all_messages()
     if request.POST:
-        form = forms.GuidelinesMessagesForm(request.POST, initial=initial)
+        formset = forms.MessagingFormSet(team, data=request.POST)
 
-        if form.is_valid():
-            form.save(team)
-            messages.success(request, _(u'Guidelines and messages updated.'))
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, _(u'Messaging updated.'))
             return HttpResponseRedirect(request.path)
     else:
-        form = forms.GuidelinesMessagesForm(initial=initial)
+        formset = forms.MessagingFormSet(team)
 
-    return render(request, "new-teams/settings-messages.html", {
+    return render(request, "future/teams/settings/messaging.html", {
         'team': team,
-        'form': form,
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Settings'), 'teams:settings_basic', team.slug),
-            BreadCrumb(_('Messages')),
-        ],
+        'formset': formset,
+        'team_nav': 'settings',
+        'settings_tab': 'messaging',
     })
 
 @team_settings_view

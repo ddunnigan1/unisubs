@@ -1,0 +1,23 @@
+{% extends "future/teams/settings/base.html" %}
+{% load i18n forms %}
+
+{% block settings_form %}
+<form method="POST">
+  {% csrf_token %}
+
+  {{ formset.management_form }}
+
+  {% include "future/teams/settings/messaging-form.html" with form=formset.main_form %}
+
+  {% for form in formset.localized_forms %}
+  {% include "future/teams/settings/messaging-form.html" %}
+  {% endfor %}
+
+  <div class="fieldset-footer-shadow">
+      <div class="fieldset-backtotop-container"></div>
+      <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
+  </div>
+</form>
+
+{% endblock %}
+

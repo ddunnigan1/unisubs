@@ -1,0 +1,28 @@
+{% load i18n forms %}
+
+{{ form.language_code }}
+<fieldset>
+  <legend>{% trans "Custom Messaging" %}</legend>
+  <fieldset>
+    <legend>{% trans "Team Pages" %}</legend>
+    {% render_field form.pagetext_resources_page reverse_required=True %}
+    {% render_field form.pagetext_welcome_heading reverse_required=True %}
+  </fieldset>
+
+  <fieldset>
+    <legend>{% trans "Subtitle Editor" %}</legend>
+    {% render_field form.guidelines_subtitle reverse_required=True %}
+    {% render_field form.guidelines_translate reverse_required=True %}
+    {% render_field form.guidelines_review reverse_required=True %}
+    {% render_field form.guidelines_approve reverse_required=True %}
+  </fieldset>
+
+  <fieldset>
+    <legend>{% trans "Team Messages" %}</legend>
+    {% render_field form.messages_invite reverse_required=True %}
+    {% render_field form.messages_application reverse_required=True %}
+    {% render_field form.messages_joins reverse_required=True %}
+    {% render_field form.messages_manager reverse_required=True %}
+    {% render_field form.messages_admin reverse_required=True %}
+  </fieldset>
+</fieldset>

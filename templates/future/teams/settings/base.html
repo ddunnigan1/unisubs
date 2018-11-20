@@ -10,8 +10,7 @@
           <header>
             <ul class="nav nav-tabs vertical">
               <li{% if settings_tab == "general" %} class="active"{% endif %}><a href="{% url "teams:settings_basic" team.slug %}">{% trans "General" %}</a></li>
-              <li{% if settings_tab == "messages" %} class="active"{% endif %}><a href="{% url "teams:settings_messages" team.slug %}">{% trans "Messages" %}</a></li>
-              <li{% if settings_tab == "lang-messages" %} class="active"{% endif %}><a href="{% url "teams:settings_lang_messages" team.slug %}">{% trans "Language Messages" %}</a></li>
+              <li{% if settings_tab == "messaging" %} class="active"{% endif %}><a href="{% url "teams:settings_messages" team.slug %}">{% trans "Messaging" %}</a></li>
               <li{% if settings_tab == "permissions" %} class="active"{% endif %}><a href="{% url "teams:settings_permissions" team.slug %}">{% trans "Permissions" %}</a></li>
               <li{% if settings_tab == "feeds" %} class="active"{% endif %}><a href="{% url "teams:settings_feeds" team.slug %}">{% trans "Feeds" %}</a></li>
               <li{% if settings_tab == "projects" %} class="active"{% endif %}><a href="{% url "teams:settings_projects" team.slug %}">{% trans "Projects" %}</a></li>

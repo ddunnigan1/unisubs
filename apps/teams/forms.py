@@ -76,7 +76,8 @@ from utils.forms import (ErrorableModelForm, get_label_for_value,
                          UserAutocompleteField, LanguageField,
                          LanguageDropdown, Dropdown)
 from utils.panslugify import pan_slugify
-from utils.translation import get_language_choices, get_language_label
+from utils.translation import (get_language_choices, get_language_label,
+                               SUPPORTED_LANGUAGE_CODES)
 from utils.text import fmt
 from utils.validators import MaxFileSizeValidator
 from videos.forms import (AddFromFeedForm, VideoForm, CreateSubtitlesForm,
@@ -761,7 +762,7 @@ class MessageTextField(forms.CharField):
         if 'max_length' not in kwargs:
             kwargs['max_length'] = 4000
         super(MessageTextField, self).__init__(
-            required=False, widget=forms.Textarea,
+            required=False, widget=forms.Textarea(attrs={'rows': 3}),
             *args, **kwargs)
 
     def clean(self, value):
@@ -770,6 +771,7 @@ class MessageTextField(forms.CharField):
         return value
 
 class GuidelinesMessagesForm(forms.Form):
+    # Deprecated, use MessagingForm for futureui
     pagetext_welcome_heading = MessageTextField(
         label=_('Welcome heading on your landing page for non-members'))
 
@@ -807,6 +809,7 @@ class GuidelinesMessagesForm(forms.Form):
             team.save()
 
 class GuidelinesLangMessagesForm(forms.Form):
+  # Deprecated, use MessagingForm for futureui
   def __init__(self, *args, **kwargs):
     languages = kwargs.pop('languages')
     super(GuidelinesLangMessagesForm, self).__init__(*args, **kwargs)
@@ -825,6 +828,93 @@ class GuidelinesLangMessagesForm(forms.Form):
                                             label=label)
     sorted_keys = map(lambda x: x["key"], sorted(keys, key=lambda x: x["label"]))
     self.fields.keyOrder = ["messages_joins_language", "messages_joins_localized"] + sorted_keys
+
+class MessagingForm(forms.Form):
+    language_code = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    pagetext_resources_page = MessageTextField(
+        label=_('Team resources'),
+        help_text=_(u'Enter text here to create a team Resources page. Use '
+                    u'this to add extra guides/links/resources for your '
+                    u'team members.'))
+    pagetext_welcome_heading = MessageTextField(
+        label=_('Welcome heading'),
+        help_text=_('Create custom text for non-members on your '
+                    'team\'s landing page'))
+
+    guidelines_subtitle = MessageTextField(label=('Transcription guidelines'))
+    guidelines_translate = MessageTextField(label=('Translation guidelines'))
+    guidelines_review = MessageTextField(label=('Review guiudelines'))
+    guidelines_approve = MessageTextField(label=('Approval guiudelines'))
+
+    messages_invite = MessageTextField(
+        label=_('User is invited to team'))
+    messages_application = MessageTextField(
+        label=_('User submits an application to team'), max_length=15000)
+    messages_joins = MessageTextField(
+        label=_('User joins a team'))
+    messages_manager = MessageTextField(
+        label=_('Team member becomes manager'))
+    messages_admin = MessageTextField(
+        label=_('Team member becomes admin'))
+
+class MessagingFormSetBase(forms.BaseFormSet):
+    def __init__(self, team, data=None, **kwargs):
+        self.team = team
+        super(MessagingFormSetBase, self).__init__(
+            data=data,
+            **kwargs)
+        self.initial = self.calc_initial(team)
+
+    def calc_initial(self, team):
+        initial_data_map = {} # maps language code to a dict of settings data
+
+        for setting in self.settings_qs():
+            lc = setting.language_code
+
+            if lc not in initial_data_map:
+                initial_data_map[lc] = { 'language_code': lc }
+            initial_data_map[lc][setting.key_name] = setting.data
+
+        # return all the form initial data, sorted by language code.  This
+        # ensures that the non-localized data is first, and the localized data
+        # is ordered in a reasonable way
+        return [
+            initial_data_map[lc]
+            for lc in sorted(initial_data_map.keys())
+        ]
+
+    def main_form(self):
+        return self.forms[0]
+
+    def localized_forms(self):
+        return self.forms[1:]
+
+    def settings_qs(self):
+        names = set(self.main_form().fields.keys())
+        names.remove('language_code')
+        return self.team.settings.with_names(names)
+
+    def save(self):
+        with transaction.atomic():
+            self.settings_qs().delete()
+            for data in self.cleaned_data:
+                if not data:
+                    continue
+                data = data.copy()
+                language_code = data.pop('language_code')
+
+                for name, text in data.items():
+                    if text:
+                        Setting.objects.create(
+                            team=self.team,
+                            language_code=language_code,
+                            key=Setting.KEY_IDS[name],
+                            data=text)
+
+MessagingFormSet = forms.formset_factory(
+    MessagingForm, formset=MessagingFormSetBase,
+    max_num=len(SUPPORTED_LANGUAGE_CODES))
 
 class LegacySettingsForm(forms.ModelForm):
     logo = forms.ImageField(

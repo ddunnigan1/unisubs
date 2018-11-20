@@ -3214,6 +3214,12 @@ class SettingManager(models.Manager):
         """Return a QS of settings related to team messages or guidelines."""
         return self.get_queryset().filter(key__in=Setting.MESSAGE_KEYS)
 
+    def messaging(self):
+        """Return a QS of messages, guidelines, and pagetext."""
+        # These are settings in the 100s, 200s, and 400s
+        return self.get_queryset().filter(
+            Q(key__range=(100, 299)) | Q(key__range=(400, 499)))
+
     def with_names(self, names):
         return self.filter(key__in=[Setting.KEY_IDS[name] for name in names])
 
