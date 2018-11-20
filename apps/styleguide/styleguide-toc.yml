@@ -36,7 +36,8 @@
     title: Switches
   - id: multi-field
     title: multiField
-  - fieldsets
+  - id: fieldsets
+    title: Fieldsets
   - id: settings-fieldsets
     title: Settings page forms
   - fieldErrors
