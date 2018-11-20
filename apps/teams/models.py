@@ -238,7 +238,7 @@ class Team(models.Model):
     name = models.CharField(_(u'name'), max_length=250, unique=True)
     slug = models.SlugField(_(u'slug'), unique=True)
     description = models.TextField(_(u'description'), blank=True, help_text=_('All urls will be converted to links. Line breaks and HTML not supported.'))
-    resources_page_content = models.TextField(_(u'Team resources page text'), blank=True)
+    has_resources_page = models.BooleanField(default=False)
 
     logo = S3EnabledImageField(verbose_name=_(u'logo'), blank=True,
                                upload_to='teams/logo/',
@@ -3272,6 +3272,7 @@ class Setting(models.Model):
         # 400 is for text displayed on web pages
         (401, 'pagetext_welcome_heading'),
         (402, 'pagetext_warning_tasks'),
+        (403, 'pagetext_resources_page'),
         # 500 is to enable features
         (501, 'enable_require_translated_metadata'),
     )

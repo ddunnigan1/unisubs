@@ -62,6 +62,7 @@ from auth.models import CustomUser as User
 from auth.forms import CustomUserCreationForm
 from messages import tasks as messages_tasks
 from subtitles.models import SubtitleLanguage
+from teams import messaging
 from teams.models import Project
 from teams.workflows import TeamWorkflow, TeamPermissionsRow
 from ui import (
@@ -918,6 +919,8 @@ def resources(request, team):
     return render(request, 'future/teams/resources.html', {
         'team': team,
         'team_nav': 'resources',
+        'content': message.format_message_for_request(
+            team, 'pagetext_resources_page'),
     })
 
 def dashboard(request, slug):
@@ -1205,7 +1208,6 @@ def settings_messages(request, team):
         return old_views.settings_messages(request, team)
 
     initial = team.settings.all_messages()
-    initial['resources_page_content'] = team.resources_page_content
     if request.POST:
         form = forms.GuidelinesMessagesForm(request.POST, initial=initial)
 

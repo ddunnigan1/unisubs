@@ -784,7 +784,7 @@ class GuidelinesMessagesForm(forms.Form):
     messages_admin = MessageTextField(
         label=_('When a member is given the Admin role'))
 
-    resources_page_content = MessageTextField(
+    pagetext_resources_page = MessageTextField(
         label=_('Team resource page text'))
 
     guidelines_subtitle = MessageTextField(
@@ -796,13 +796,14 @@ class GuidelinesMessagesForm(forms.Form):
 
     def save(self, team):
         with transaction.atomic():
+            team.has_resources_page = False
             for key, val in self.cleaned_data.items():
-                if key in Setting.KEY_IDS:
-                    setting, _ = Setting.objects.get_or_create(
-                        team=team, key=Setting.KEY_IDS[key])
-                    setting.data = val
-                    setting.save()
-            team.resources_page_content = self.cleaned_data['resources_page_content']
+                if key == 'pagetext_resources_page' and val:
+                    team.has_resources_page = True
+                setting, _ = Setting.objects.get_or_create(
+                    team=team, key=Setting.KEY_IDS[key])
+                setting.data = val
+                setting.save()
             team.save()
 
 class GuidelinesLangMessagesForm(forms.Form):

@@ -22,7 +22,7 @@
     <li>
         <a href="{% url "teams:activity" team.slug %}">{% trans "Activity" %}</a>
     </li>
-    {% if team.resources_page_content %}
+    {% if team.has_resources_page %}
     <li><a href="{% url "teams:resources" team.slug %}">{% trans "Resources" %}</a></li>
     {% endif %}
     {% if team|can_view_management_tab:request.user or team|can_view_project_or_language_management_tab:request.user %}
