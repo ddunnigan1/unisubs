@@ -1,0 +1,26 @@
+{% extends "styleguide/base.html" %}
+
+{% block content %}
+<section>
+<p>An accordion is used to contain multiple similar content blocks, showing only 1 at a time</p>
+<div class="accordion" id="accordion">
+  <div class="accordion-section expanded">
+    <h3 class="accordion-title">Section 1<span class="accordion-caret"></span></h3>
+    <div class="accordion-content">{% lorem 3 p %}</div>
+  </div>
+  <div class="accordion-section">
+    <h3 class="accordion-title">Section 2<span class="accordion-caret"></span></h3>
+    <div class="accordion-content">{% lorem 3 p %}</div>
+  </div>
+  <div class="accordion-section">
+    <h3 class="accordion-title">Section 3<span class="accordion-caret"></span></h3>
+    <div class="accordion-content">{% lorem 3 p %}</div>
+  </div>
+</div>
+</section>
+
+<section>
+<button class="button lime" onclick="$('#accordion').accordion('addSection', 'New section', 'New section text')">Append new section</button>
+</section>
+
+{% endblock %}

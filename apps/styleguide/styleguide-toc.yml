@@ -66,6 +66,8 @@
     title: Content footer
   - id: listview
     title: List View
+  - id: accordion
+    title: Accordion
 
 - - Elements
   - alerts
