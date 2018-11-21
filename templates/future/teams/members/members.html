@@ -8,9 +8,9 @@
     <div class="contentHeader-title">{% trans "Members" %}</div>
     {{ filters_form.q }}
     {% if user.is_staff or show_invite_link %}
-    <button type="button" data-href="{% url "teams:invite" team.slug %}" class="contentHeader-addButton ajaxLink">
+    <button type="button" data-href="{% url "teams:invite" team.slug %}" class="expandButton ajaxLink">
       <span class="fa fa-plus"></span>
-      <span class="contentHeader-addButtonText">{% if user.is_staff and not show_invite_link %}{% trans 'Add members' %}{% elif user.is_staff %}{% trans 'Add/Invite members' %}{% else %}{% trans 'Invite members' %}{% endif %}</span>
+      <span class="expandButton-text">{% if user.is_staff and not show_invite_link %}{% trans 'Add members' %}{% elif user.is_staff %}{% trans 'Add/Invite members' %}{% else %}{% trans 'Invite members' %}{% endif %}</span>
     </button>
     {% endif %}
   </div>
