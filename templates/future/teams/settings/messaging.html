@@ -7,16 +7,36 @@
 
   {{ formset.management_form }}
 
-  {% include "future/teams/settings/messaging-form.html" with form=formset.main_form %}
+  <fieldset>
+    <legend>{% trans "Custom Messaging" %}</legend>
+    {% include "future/teams/settings/messaging-form.html" with form=formset.main_form full_width=1 %}
 
-  {% for form in formset.localized_forms %}
-  {% include "future/teams/settings/messaging-form.html" %}
-  {% endfor %}
-
+  </fieldset>
   <div class="fieldset-footer-shadow">
       <div class="fieldset-backtotop-container"></div>
       <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
   </div>
+
+  <fieldset>
+    <legend>{% trans "Additional Languages" %}</legend>
+    <div class="accordion">
+      {% for form in formset.localized_forms %}
+      <div class="accordion-section">
+        <h3 class="accordion-title">{{ form.get_language_label }}<span class="accordion-caret"></span></h3>
+        <div class="accordion-content">
+          {% include "future/teams/settings/messaging-form.html" %}
+          <div class="fieldset-footer-shadow">
+              <div class="fieldset-backtotop-container"></div>
+              <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </fieldset>
+  <div class="fieldset-footer"></div>
+
 </form>
 
 {% endblock %}

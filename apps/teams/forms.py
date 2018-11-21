@@ -856,6 +856,13 @@ class MessagingForm(forms.Form):
     messages_admin = MessageTextField(
         label=_('Team member becomes admin'))
 
+    def get_language_label(self):
+        language_code = self.initial.get('language_code')
+        if language_code:
+            return get_language_label(language_code)
+        else:
+            return _('Unknown language')
+
 class MessagingFormSetBase(forms.BaseFormSet):
     def __init__(self, team, data=None, **kwargs):
         self.team = team
@@ -927,7 +934,8 @@ class MessagingFormSetBase(forms.BaseFormSet):
 
 MessagingFormSet = forms.formset_factory(
     MessagingForm, formset=MessagingFormSetBase,
-    max_num=len(SUPPORTED_LANGUAGE_CODES))
+    max_num=len(SUPPORTED_LANGUAGE_CODES),
+    extra=0)
 
 class LegacySettingsForm(forms.ModelForm):
     logo = forms.ImageField(
