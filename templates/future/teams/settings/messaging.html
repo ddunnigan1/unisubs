@@ -18,7 +18,14 @@
   </div>
 
   <fieldset>
-    <legend>{% trans "Additional Languages" %}</legend>
+    <legend>{% trans "Additional Languages" %}
+      <div class="legend-extra">
+        <button class="expandButton">
+          <span class="fa fa-plus"></span>
+          <span class="expandButton-text">{% trans "Add Language" %}</span>
+        </button>
+      </div>
+    </legend>
     <div class="accordion">
       {% for form in formset.localized_forms %}
       <div class="accordion-section">
