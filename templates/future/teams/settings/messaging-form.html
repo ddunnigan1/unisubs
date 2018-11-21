@@ -1,30 +1,32 @@
 {% load i18n forms %}
 
-{{ form.language_code }}
+<div class="form-fields">
+  {{ form.language_code }}
 
-<fieldset{% if full_width %} class="full-width"{% endif %}>
-  <legend>{% trans "Team Pages" %}</legend>
-  {% render_field form.pagetext_resources_page reverse_required=True %}
-  {% render_field form.pagetext_welcome_heading reverse_required=True %}
-</fieldset>
+  <fieldset{% if full_width %} class="full-width"{% endif %}>
+    <legend>{% trans "Team Pages" %}</legend>
+    {% render_field form.pagetext_resources_page reverse_required=True %}
+    {% render_field form.pagetext_welcome_heading reverse_required=True %}
+  </fieldset>
 
-<fieldset{% if full_width %} class="full-width"{% endif %}>
-  <legend>{% trans "Subtitle Editor" %}</legend>
-  {% render_field form.guidelines_subtitle reverse_required=True %}
-  {% render_field form.guidelines_translate reverse_required=True %}
-  {% if form.guidelines_review %}
-  {% render_field form.guidelines_review reverse_required=True %}
-  {% endif %}
-  {% if form.guidelines_approve %}
-  {% render_field form.guidelines_approve reverse_required=True %}
-  {% endif %}
-</fieldset>
+  <fieldset{% if full_width %} class="full-width"{% endif %}>
+    <legend>{% trans "Subtitle Editor" %}</legend>
+    {% render_field form.guidelines_subtitle reverse_required=True %}
+    {% render_field form.guidelines_translate reverse_required=True %}
+    {% if form.guidelines_review %}
+    {% render_field form.guidelines_review reverse_required=True %}
+    {% endif %}
+    {% if form.guidelines_approve %}
+    {% render_field form.guidelines_approve reverse_required=True %}
+    {% endif %}
+  </fieldset>
 
-<fieldset{% if full_width %} class="full-width"{% endif %}>
-  <legend>{% trans "Team Messages" %}</legend>
-  {% render_field form.messages_invite reverse_required=True %}
-  {% render_field form.messages_application reverse_required=True %}
-  {% render_field form.messages_joins reverse_required=True %}
-  {% render_field form.messages_manager reverse_required=True %}
-  {% render_field form.messages_admin reverse_required=True %}
-</fieldset>
+  <fieldset{% if full_width %} class="full-width"{% endif %}>
+    <legend>{% trans "Team Messages" %}</legend>
+    {% render_field form.messages_invite reverse_required=True %}
+    {% render_field form.messages_application reverse_required=True %}
+    {% render_field form.messages_joins reverse_required=True %}
+    {% render_field form.messages_manager reverse_required=True %}
+    {% render_field form.messages_admin reverse_required=True %}
+  </fieldset>
+</div>

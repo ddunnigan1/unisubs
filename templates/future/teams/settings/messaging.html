@@ -1,5 +1,7 @@
 {% extends "future/teams/settings/base.html" %}
-{% load i18n forms %}
+{% load i18n forms modal %}
+
+{% block body-extra %} class="teamSettingsMessaging"{% endblock %}
 
 {% block settings_form %}
 <form method="POST">
@@ -7,26 +9,27 @@
 
   {{ formset.management_form }}
 
-  <fieldset>
-    <legend>{% trans "Custom Messaging" %}</legend>
-    {% include "future/teams/settings/messaging-form.html" with form=formset.main_form full_width=1 %}
-
-  </fieldset>
-  <div class="fieldset-footer-shadow">
-      <div class="fieldset-backtotop-container"></div>
-      <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
+  <div class="teamSettingsMessaging-mainForm">
+    <fieldset>
+      <legend>{% trans "Custom Messaging" %}</legend>
+      {% include "future/teams/settings/messaging-form.html" with form=formset.main_form full_width=1 %}
+    </fieldset>
+    <div class="fieldset-footer-shadow">
+        <div class="fieldset-backtotop-container"></div>
+        <button type="submit" class="button cta saveChangesButton">{% trans "Save Changes" %}</button>
+    </div>
   </div>
 
   <fieldset>
     <legend>{% trans "Additional Languages" %}
       <div class="legend-extra">
-        <button class="expandButton">
+        <button class="expandButton modal-show" data-target="#add-language-dialog">
           <span class="fa fa-plus"></span>
           <span class="expandButton-text">{% trans "Add Language" %}</span>
         </button>
       </div>
     </legend>
-    <div class="accordion">
+    <div class="accordion teamSettingsMessaging-localizedForms">
       {% for form in formset.localized_forms %}
       <div class="accordion-section">
         <h3 class="accordion-title">{{ form.get_language_label }}<span class="accordion-caret"></span></h3>
@@ -48,3 +51,19 @@
 
 {% endblock %}
 
+{% block bottom %}
+
+{% startmodal "add-language-dialog" _('Add language') %}
+<form class="teamSettingsMessaging-addLanguage">
+  <div class="modal-content">
+    {% csrf_token %}
+    {% render_field add_language_form.language %}
+  </div>
+  <div class="modal-footer">
+    <button class="button cta-reverse modal-close">{% trans "Cancel" %}</button>
+    <button class="button cta" type="button">{% trans "Add" %}</button>
+  </div>
+</form>
+{% endmodal %}
+
+{% endblock %}

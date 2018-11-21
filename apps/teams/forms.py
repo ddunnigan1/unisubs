@@ -856,10 +856,14 @@ class MessagingForm(forms.Form):
     messages_admin = MessageTextField(
         label=_('Team member becomes admin'))
 
+    def get_language_code(self):
+        return self.initial.get('language_code')
+
     def get_language_label(self):
-        language_code = self.initial.get('language_code')
+        language_code = self.get_language_code()
         if language_code:
-            return get_language_label(language_code)
+            return u'{} [{}]'.format(get_language_label(language_code),
+                                     language_code)
         else:
             return _('Unknown language')
 
@@ -936,6 +940,19 @@ MessagingFormSet = forms.formset_factory(
     MessagingForm, formset=MessagingFormSetBase,
     max_num=len(SUPPORTED_LANGUAGE_CODES),
     extra=0)
+
+class AddMessagingLanguageForm(forms.Form):
+    language = NewLanguageField(label=_(u'Translate messages into'),
+                                required=True,
+                                options='popular all')
+
+    def __init__(self, messaging_formset):
+        super(AddMessagingLanguageForm, self).__init__()
+
+        self.fields['language'].exclude([
+            form.get_language_code()
+            for form in messaging_formset.localized_forms()
+        ])
 
 class LegacySettingsForm(forms.ModelForm):
     logo = forms.ImageField(

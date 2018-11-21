@@ -1207,6 +1207,7 @@ def settings_messages(request, team):
     if team.is_old_style():
         return old_views.settings_messages(request, team)
 
+
     if request.POST:
         formset = forms.MessagingFormSet(team, data=request.POST)
 
@@ -1217,9 +1218,12 @@ def settings_messages(request, team):
     else:
         formset = forms.MessagingFormSet(team)
 
+    add_language_form = forms.AddMessagingLanguageForm(formset)
+
     return render(request, "future/teams/settings/messaging.html", {
         'team': team,
         'formset': formset,
+        'add_language_form': add_language_form,
         'team_nav': 'settings',
         'settings_tab': 'messaging',
     })

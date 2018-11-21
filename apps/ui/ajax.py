@@ -91,6 +91,19 @@ class AJAXResponseRenderer(object):
         else:
             self.add_change('hideModal')
 
+    def add_accordion_section(self, selector, header, template, context):
+        """Display a modal dialog
+
+        If we are already displaying a modal, then this will replace the
+        content of that modal.
+
+        Args:
+            template: template name to use to render the content
+            context: context dict to pass to the template
+        """
+        content = render_to_string(template, context, self.request)
+        self.add_change('addAccordionSection', selector, header, content)
+
     def perform_request(self, delay, view_name, *args, **kwargs):
         """Perform another AJAX request after a delay
 
