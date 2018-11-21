@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 from teams import forms
@@ -33,17 +34,15 @@ def test_initial_data(team_factory):
         ('', 'messages_invite', 'Please join'),
     ])
     formset = forms.MessagingFormSet(team)
-    assert formset.initial == [
-        {
-            'language_code': '',
-            'messages_joins': 'Hello',
-            'messages_invite': 'Please join',
-        },
-        {
-            'language_code': 'es',
-            'messages_joins': 'Hola',
-        }
-    ]
+    assert formset.forms[0].initial == {
+        'language_code': '',
+        'messages_joins': 'Hello',
+        'messages_invite': 'Please join',
+    }
+    assert formset.forms[1].initial == {
+        'language_code': 'es',
+        'messages_joins': 'Hola',
+    }
 
 def test_save_new_messages(team_factory):
     team = team_factory([])
@@ -92,3 +91,43 @@ def test_update_existing_messages(team_factory):
         ('fr', 'messages_joins', 'Bonjour'),
     ])
 
+
+def check_guideline_fields(team, correct_fields):
+    formset = forms.MessagingFormSet(team)
+    form_fields = [
+        key for key in formset.main_form().fields.keys()
+        if key.startswith('guidelines_')
+    ]
+    assert form_fields == correct_fields
+
+    # Also check out the settings_names method, which we use to delete
+    # old settings when the form is submitted.
+    settings_names = set(
+        name for name in formset.settings_names()
+        if name.startswith('guidelines_')
+    )
+    assert settings_names == set(correct_fields)
+
+def test_editor_guideline_fields(team_factory):
+    team = team_factory([])
+    team.new_workflow.review_enabled = mock.Mock(return_value=True)
+    team.new_workflow.approve_enabled = mock.Mock(return_value=True)
+    check_guideline_fields(team, [
+        'guidelines_subtitle',
+        'guidelines_translate',
+        'guidelines_review',
+        'guidelines_approve',
+    ])
+
+    team.new_workflow.review_enabled.return_value = False
+    check_guideline_fields(team, [
+        'guidelines_subtitle',
+        'guidelines_translate',
+        'guidelines_approve',
+    ])
+
+    team.new_workflow.approve_enabled.return_value = False
+    check_guideline_fields(team, [
+        'guidelines_subtitle',
+        'guidelines_translate',
+    ])

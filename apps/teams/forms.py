@@ -844,8 +844,6 @@ class MessagingForm(forms.Form):
 
     guidelines_subtitle = MessageTextField(label=('Transcription guidelines'))
     guidelines_translate = MessageTextField(label=('Translation guidelines'))
-    guidelines_review = MessageTextField(label=('Review guiudelines'))
-    guidelines_approve = MessageTextField(label=('Approval guiudelines'))
 
     messages_invite = MessageTextField(
         label=_('User is invited to team'))
@@ -862,9 +860,17 @@ class MessagingFormSetBase(forms.BaseFormSet):
     def __init__(self, team, data=None, **kwargs):
         self.team = team
         super(MessagingFormSetBase, self).__init__(
+            initial=self.calc_initial(team),
             data=data,
             **kwargs)
-        self.initial = self.calc_initial(team)
+
+    def add_fields(self, form, index):
+        if self.team.new_workflow.review_enabled():
+            form.fields["guidelines_review"] = MessageTextField(
+                label=('Review guiudelines'))
+        if self.team.new_workflow.approve_enabled():
+            form.fields["guidelines_approve"] = MessageTextField(
+                label=('Approval guiudelines'))
 
     def calc_initial(self, team):
         initial_data_map = {} # maps language code to a dict of settings data
@@ -890,10 +896,17 @@ class MessagingFormSetBase(forms.BaseFormSet):
     def localized_forms(self):
         return self.forms[1:]
 
-    def settings_qs(self):
-        names = set(self.main_form().fields.keys())
+    def settings_names(self):
+        names = set(self.form.base_fields.keys())
         names.remove('language_code')
-        return self.team.settings.with_names(names)
+        if self.team.new_workflow.review_enabled():
+            names.add('guidelines_review')
+        if self.team.new_workflow.approve_enabled():
+            names.add('guidelines_approve')
+        return names
+
+    def settings_qs(self):
+        return self.team.settings.with_names(self.settings_names())
 
     def save(self):
         with transaction.atomic():

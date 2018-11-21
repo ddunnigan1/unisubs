@@ -84,6 +84,12 @@ class TeamWorkflow(object):
         """Get the SubtitleWorkflow for a video with this workflow.  """
         raise NotImplementedError()
 
+    def review_enabled(self):
+        return False
+
+    def approve_enabled(self):
+        return False
+
     def extra_pages(self, user):
         """Get extra team pages to handle this workflow.
 

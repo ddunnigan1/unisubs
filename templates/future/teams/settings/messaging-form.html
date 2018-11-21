@@ -13,8 +13,12 @@
     <legend>{% trans "Subtitle Editor" %}</legend>
     {% render_field form.guidelines_subtitle reverse_required=True %}
     {% render_field form.guidelines_translate reverse_required=True %}
+    {% if form.guidelines_review %}
     {% render_field form.guidelines_review reverse_required=True %}
+    {% endif %}
+    {% if form.guidelines_approve %}
     {% render_field form.guidelines_approve reverse_required=True %}
+    {% endif %}
   </fieldset>
 
   <fieldset>
