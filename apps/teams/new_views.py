@@ -965,7 +965,8 @@ def welcome(request, team):
 @team_view
 def manage_videos(request, team, project_id=None):
     member = team.get_member(request.user)
-    if (not permissions.can_view_management_tab(team, request.user) and
+    permission_can_manage_videos = permissions.can_manage_videos(team, request.user)
+    if (not permission_can_manage_videos and
        (not bool(project_id) or not member.is_project_manager(int(project_id)))):
         raise PermissionDenied()
 
@@ -1012,6 +1013,7 @@ def manage_videos(request, team, project_id=None):
         'management_extra_tabs' : team.new_workflow.management_page_extra_tabs(
             request.user, project_id=project_id),
         'header': header,
+        'can_manage_videos': permission_can_manage_videos,
     }    
 
     if request.is_ajax():

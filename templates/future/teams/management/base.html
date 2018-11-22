@@ -14,7 +14,7 @@
     <li{% if current_tab == "videos" %} class="active"{% endif %}><a href="{% url "teams:manage_videos_project" team.slug project_id %}">{% trans "Videos" %}</a></li>
   <!-- everyone who has access to the team management page
        except for language managers should be able to see the Videos tab -->
-  {% elif not language_code %}
+  {% elif can_manage_videos %}
     <li{% if current_tab == "videos" %} class="active"{% endif %}><a href="{% url "teams:manage_videos" team.slug %}">{% trans "Videos" %}</a></li>
   {% endif %}
 </ul>

@@ -527,7 +527,10 @@ def can_view_settings_tab(team, user):
 
 def can_view_management_tab(team, user):
     """Return whether the given user can view the management pages """
-    return team.user_is_manager(user)
+    if team.is_simple_team():
+        return can_manage_videos(team, user)
+    else:
+        return team.user_is_manager(user)
 
 def can_view_project_or_language_management_tab(team, user):
     member = team.get_member(user)
@@ -1083,3 +1086,8 @@ def can_set_soft_limits(team, user, video, language_code):
     """
     member = team.get_member(user)
     return member and member.is_admin()
+
+def can_manage_videos(user, team):
+    return (can_add_video(user, team) and
+            can_edit_videos(user, team) and
+            can_remove_videos(user, team))
