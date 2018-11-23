@@ -2098,9 +2098,34 @@ class ChangeMemberRoleForm(ManagementForm):
         self.user = user
         self.is_owner = is_owner
         self.team = team
+        self.member = None
         super(ChangeMemberRoleForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files)
         self.fields['projects'].setup(team)
+
+        if len(selection) == 1:
+            self.member = self.get_first_object()
+
+            if self.member.is_a_project_or_language_manager():
+                self.fields['role'].initial = TeamMember.ROLE_PROJ_LANG_MANAGER
+            else:
+                self.fields['role'].initial = self.member.role
+
+            projects = self.member.get_projects_managed()
+            if projects:
+                project_pks = [ p.pk for p in projects ]
+                self.fields['projects'].set_initial_selections(project_pks)
+
+            languages = self.member.get_languages_managed()
+            if languages:
+                language_codes = [ l.code for l in languages ]
+                self.fields['languages'].set_initial_selections(language_codes)
+
+    def is_changing_a_proj_lang_manager(self):
+        if self.member:
+            return self.member.is_a_project_or_language_manager()
+        else:
+            return False
 
     def clean(self):
         cleaned_data = super(ChangeMemberRoleForm, self).clean()

@@ -343,6 +343,9 @@ def manage_members_form(request, team, form_name, members, page):
         modal_context['username'] = modal_context['member'].user.display_username
         modal_context['role'] = modal_context['member'].role
 
+        if form_name == 'role':
+            modal_context['show_proj_lang_selectors'] = form.is_changing_a_proj_lang_manager()
+
     response_renderer = AJAXResponseRenderer(request)
     response_renderer.show_modal(template_name, modal_context)
     return response_renderer.render()

@@ -27,7 +27,7 @@
   <div class="memberDirectory-role">
     {{ member.get_role_summary }}
     {% if member.is_a_project_manager or member.is_a_language_manager %}
-    <div class="listView-secondary">
+    <div class="listView-secondary" style="white-space: normal">
       {% if member.is_a_project_manager %}{{ member.get_projects_managed_display }}{% if member.is_a_language_manager %}<br>{% endif %}{% endif %}
       {% if member.is_a_language_manager %}{{ member.get_languages_managed_display  }}{% endif %}
     </div>

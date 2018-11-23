@@ -143,7 +143,18 @@ class AmaraChoiceField(AmaraChoiceFieldMixin, forms.ChoiceField):
 
 class AmaraMultipleChoiceField(AmaraChoiceFieldMixin,
                                forms.MultipleChoiceField):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        super(AmaraMultipleChoiceField, self).__init__(*args, **kwargs)
+        widget_classes = self.widget.attrs['class']
+        self.widget.attrs['class'] = widget_classes + " multipleSelect"
+
+    '''
+    <selections> is a list of the corresponding option values to be 
+    initially selected
+    '''
+    def set_initial_selections(self, selections):
+        self.set_select_data('initial-selections', selections)
 
 class LanguageFieldMixin(AmaraChoiceFieldMixin):
     """
@@ -220,6 +231,18 @@ class LanguageField(LanguageFieldMixin, forms.ChoiceField):
 class MultipleLanguageField(LanguageFieldMixin, forms.MultipleChoiceField):
     widget = widgets.AmaraLanguageSelectMultiple
 
+    def __init__(self, *args, **kwargs):
+        super(MultipleLanguageField, self).__init__(*args, **kwargs)
+        widget_classes = self.widget.attrs['class']
+        self.widget.attrs['class'] = widget_classes + " multipleSelect"
+
+    '''
+    <selections> is a list of the corresponding option values to be 
+    initially selected
+    '''
+    def set_initial_selections(self, selections):
+        self.set_select_data('initial-selections', selections)
+
 class SearchField(forms.CharField):
     widget = widgets.SearchBar
 
@@ -259,6 +282,10 @@ class MultipleAutoCompleteField(AmaraMultipleChoiceField):
     <selections> must be a list of JSON objects in the format select2 library expects:
         'id' - the value of the selected option
         'text' - the display text of the selected option
+
+    This is different from AmaraMultipleChoiceField.set_initial_selections since this is
+    an ajax autocomplete field, and the selections need to be appended first before being
+    actually selected
 
     Use this method if you want the form to have pre-loaded selections
     -- useful if you want to retain the value of this field after a failed validation
