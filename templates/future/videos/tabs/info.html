@@ -10,12 +10,12 @@
   </dd>
      {% if subtitle_version.get_metadata_for_display %}
         {% for entry in subtitle_version.get_metadata_for_display %}
-            <dt>{{ entry.label }}</dt>
+            <dt>{{ entry.label }}:</dt>
             <dd><bdi>{{ entry.content }}</bdi></dd>
         {% endfor %}
      {% else %}
         {% for entry in metadata %}
-            <dt>{{ entry.label }}</dt>
+            <dt>{{ entry.label }}:</dt>
             <dd>{{ entry.content }}</dd>
         {% endfor %}
      {% endif %}
