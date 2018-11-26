@@ -1,8 +1,8 @@
 {% load i18n localeurl_tags %}
 {% if old_role_name != new_role_name %}
-<p>{% blocktrans with user=member.user %}The role of {{ user }} been changed from {{ old_role_name }} to {{ new_role_name }} on the {{ team_name }} team.{% endblocktrans %}</p>
+<p>{% blocktrans with user=member.user %}The role of {{ user }} has been changed from {{ old_role_name }} to {{ new_role_name }} on the {{ team_name }} team.{% endblocktrans %}</p>
 {% else %}
-<p>{% blocktrans with user=member.user %}The management capabilities of {{ user }} been changed on the {{ team_name }} team.{% endblocktrans %}</p>
+<p>{% blocktrans with user=member.user %}The management capabilities of {{ user }} have been changed on the {{ team_name }} team.{% endblocktrans %}</p>
 {% endif %}
 
 {% if languages_managed %}

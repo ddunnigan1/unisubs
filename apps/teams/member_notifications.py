@@ -84,7 +84,7 @@ class MemberRoleChangedNotification(Notification):
 
     def subject(self):
         return _('Member role changed on the {} team').format(
-            unicode(self.team)),
+            unicode(self.team))
 
     template_name = 'messages/team-role-changed.html'
     def get_template_context(self):
