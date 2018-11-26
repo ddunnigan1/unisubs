@@ -188,6 +188,8 @@ def videos(request, team):
         'filters_form': filters_form,
         'team_nav': 'videos',
         'current_tab': 'videos',
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
     }
     if request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
@@ -930,25 +932,6 @@ def dashboard(request, slug):
         return welcome(request, team)
     else:
         return team.new_workflow.dashboard_view(request, team)
-
-def dashboard_set_languages(request, team):
-    if request.method == 'POST':
-        user_lang_form = forms.UserLanguageForm(request.user,
-                                               data=request.POST)
-        if user_lang_form.is_valid():
-            user_lang_form.save()
-            messages.success(request, _('Languages updated'))
-            return redirect('teams:dashboard', slug=team.slug)
-    else:
-        user_lang_form = forms.UserLanguageForm(request.user)
-
-    return render(request, 'collab/dashboard-set-languages.html', {
-        'team': team,
-        'user_lang_form': user_lang_form,
-        'breadcrumbs': [
-            BreadCrumb(team),
-        ],
-    })
 
 def welcome(request, team):
     if team.videos_public():
