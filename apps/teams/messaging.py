@@ -36,10 +36,7 @@ from django.utils.html import format_html_join, format_html
 from django.utils.safestring import mark_safe
 
 def format_message_for_request(team, setting_name):
-    messages = {
-        setting.language_code: setting.data
-        for setting in team.settings.with_name(setting_name)
-    }
+    messages = team.get_message_translations(setting_name)
     language_code = translation.get_language()
     if language_code in messages:
         return messages[language_code]
@@ -50,10 +47,7 @@ def format_message_for_request(team, setting_name):
 
 def format_message_for_notification(team, user, setting_name,
                                     old_format=False):
-    messages = {
-        setting.language_code: setting.data
-        for setting in team.settings.with_name(setting_name)
-    }
+    messages = team.get_message_translations(setting_name)
     parts = []
     # get the default message
     if '' in messages:

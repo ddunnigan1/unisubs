@@ -94,9 +94,7 @@
         </div>
     </div>
     <div class="modal-content" ng-show="teamGuidelines">
-        <div ng-show="teamTaskType() == 'subtitle'" ng-bind-html="teamGuidelines['subtitle']"></div>
-        <div ng-show="teamTaskType() == 'translate'" ng-bind-html="teamGuidelines['translate']"></div>
-        <div ng-show="teamTaskType() == 'review'" ng-bind-html="teamGuidelines['review']"></div>
+        <p ng-bind-html="teamGuidelines.current"></p>
         <a class="expand-link" href="" ng-click="showAllTeamGuidelines = true"
             ng-init="showAllTeamGuidelines=false" ng-show="!showAllTeamGuidelines">
             {% trans "Show All Guidelines" %} &#x25B6;
@@ -106,12 +104,22 @@
             {% trans "Hide All Guidelines" %} &#x25BC;
         </a>
         <div class="team-all-guidelines" ng-show="showAllTeamGuidelines" id="all-team-guidelines">
-            <h1>{% trans "Transcribing Guidelines" %}</h1>
-            <div ng-bind-html="teamGuidelines['subtitle']"></div>
-            <h1>{% trans "Translating Guidelines" %}</h1>
-            <div ng-bind-html="teamGuidelines['translate']"></div>
-            <h1>{% trans "Reviewing Guidelines" %}</h1>
-            <div ng-bind-html="teamGuidelines['review']"></div>
+            <div ng-show="teamGuidelines.subtitle">
+                <h1>{% trans "Transcribing Guidelines" %}</h1>
+                <div class="guideline" ng-bind-html="teamGuidelines.subtitle"></div>
+            </div>
+            <div ng-show="teamGuidelines.translate">
+                <h1>{% trans "Translating Guidelines" %}</h1>
+                <div class="guideline" ng-bind-html="teamGuidelines.translate"></div>
+            </div>
+            <div ng-show="teamGuidelines.review">
+                <h1>{% trans "Reviewing Guidelines" %}</h1>
+                <div class="guideline" ng-bind-html="teamGuidelines.review"></div>
+            </div>
+            <div ng-show="teamGuidelines.approve">
+                <h1>{% trans "Approving Guidelines" %}</h1>
+                <div class="guideline" ng-bind-html="teamGuidelines.approve"></div>
+            </div>
         </div>
     </div>
     <footer class="buttons">

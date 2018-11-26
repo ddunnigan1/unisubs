@@ -67,8 +67,8 @@ var angular = angular || null;
     }]);
 
     module.controller("AppController", ['$scope', '$sce', '$controller', 
-                      '$window', 'EditorData', 'VideoPlayer', 'Workflow',
-                      function($scope, $sce, $controller, $window, EditorData,
+                      '$window', 'gettext', 'EditorData', 'VideoPlayer', 'Workflow',
+                      function($scope, $sce, $controller, $window, _, EditorData,
                           VideoPlayer, Workflow) {
         $controller('AppControllerSubtitles', {$scope: $scope});
         $controller('AppControllerLocking', {$scope: $scope});
@@ -117,17 +117,15 @@ var angular = angular || null;
 		 EditorData.teamAttributes.guidelines['translate'] ||
 		 EditorData.teamAttributes.guidelines['review'])
 	       ) {
-		var noGuideline = "No guidelines specified.";
-                $scope.teamGuidelines = { 'subtitle': $sce.trustAsHtml(EditorData.teamAttributes.guidelines['subtitle'] || noGuideline),
-                                          'translate': $sce.trustAsHtml(EditorData.teamAttributes.guidelines['translate'] || noGuideline),
-                                          'review': $sce.trustAsHtml(EditorData.teamAttributes.guidelines['review'] || noGuideline) };
+		var noGuideline = _("No guidelines specified.");
+
+                var guidelineKeys = ['subtitle', 'translate', 'review', 'approve', 'current'];
+                $scope.teamGuidelines = {};
+                for(var i = 0; i < guidelineKeys.length; i++) {
+                    var key = guidelineKeys[i];
+                    $scope.teamGuidelines[key] = $sce.trustAsHtml(EditorData.teamAttributes.guidelines[key] || noGuideline);
+                }
             }
-            // Needs to be a function as we can only know once language was retrieved
-            $scope.teamTaskType = function() {
-		return EditorData.task_needs_pane ? 'review' : $scope.translating() ? 'translate' : 'subtitle';
-            };
-        } else {
-            $scope.teamTaskType = function() {return "";}
         }
         $scope.showTeamGuidelines = function() {
             if (($scope.teamGuidelines) && ($scope.teamName))

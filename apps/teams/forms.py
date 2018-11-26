@@ -884,7 +884,10 @@ class MessagingFormSetBase(forms.BaseFormSet):
                 label=('Approval guidelines'))
 
     def calc_initial(self, team):
-        initial_data_map = {} # maps language code to a dict of settings data
+        # maps language code to a dict of settings data
+        initial_data_map = {
+            '': { 'language_code': '' },
+        }
 
         for setting in self.settings_qs():
             lc = setting.language_code

@@ -118,6 +118,17 @@ class TeamWorkflow(object):
         """
         return []
 
+    def current_editor_guideline(self, video, language_code):
+        """
+        Which editor guideline we should use as the current guideline?
+
+        This is the one that appears as the main guideline
+        """
+        if video.primary_audio_language_code == language_code:
+            return 'subtitle'
+        else:
+            return 'translate'
+
     def team_page(self, name, title, view_name):
         """Convenience function to create an TeamPage object
 

@@ -52,6 +52,7 @@ from teams.permissions_const import (
     ROLE_CONTRIBUTOR, ROLE_PROJ_LANG_MANAGER
 )
 from teams import behaviors
+from teams import messaging
 from teams import notifymembers
 from teams import stats
 from teams import tasks
@@ -392,6 +393,18 @@ class Team(models.Model):
     def get_default_message(self, name):
         return fmt(Setting.MESSAGE_DEFAULTS.get(name, ''), team=self)
 
+    def get_message_translations(self, name):
+        """
+        Get all messages with a specific name
+
+        Returns: Map of language codes to the message text
+        """
+        return {
+            s.language_code: s.data
+            for s in self.settings.all()
+            if s.key_name == name
+        }
+
     def get_messages(self, names):
         """Fetch messages from the settings objects
 
@@ -422,6 +435,24 @@ class Team(models.Model):
         except Setting.DoesNotExist:
             pass
         return self.get_default_message(name)
+
+    def get_editor_guidelines(self, video, language_code):
+        names = [
+            'guidelines_subtitle',
+            'guidelines_translate',
+            'guidelines_review',
+            'guidelines_approve',
+        ]
+        guidelines = {
+            name[len('guidelines_'):]: messaging.format_message_for_request(self, name)
+            for name in names
+        }
+        current_name = self.new_workflow.current_editor_guideline(
+            video, language_code)
+        print current_name, guidelines
+        if current_name and current_name in guidelines:
+            guidelines['current'] = guidelines[current_name]
+        return guidelines
 
     def render_message(self, msg):
         """Return a string of HTML represention a team header for a notification.

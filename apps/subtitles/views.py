@@ -308,13 +308,13 @@ class SubtitleEditorBase(View):
     def get_team_editor_data(self):
         if self.team_video:
             team = self.team_video.team
-            return dict([('teamName', team.name), ('type', team.workflow_type),
-                         ('features', [f.key_name.split('_', 1)[-1] for f in team.settings.features()]),
-                         ('guidelines', dict(
-                             [(s.key_name.split('_', 1)[-1],
-                               linebreaks(urlize(force_escape(s.data))))
-                              for s in team.settings.guidelines()
-                              if s.data.strip()]))])
+            return dict([
+                ('teamName', team.name),
+                ('type', team.workflow_type),
+                ('features', [f.key_name.split('_', 1)[-1] for f in team.settings.features()]),
+                ('guidelines', team.get_editor_guidelines(self.video,
+                                                          self.language_code)),
+            ])
         else:
             return None
 
