@@ -878,10 +878,10 @@ class MessagingFormSetBase(forms.BaseFormSet):
     def add_fields(self, form, index):
         if self.team.new_workflow.review_enabled():
             form.fields["guidelines_review"] = MessageTextField(
-                label=('Review guiudelines'))
+                label=('Review guidelines'))
         if self.team.new_workflow.approve_enabled():
             form.fields["guidelines_approve"] = MessageTextField(
-                label=('Approval guiudelines'))
+                label=('Approval guidelines'))
 
     def calc_initial(self, team):
         initial_data_map = {} # maps language code to a dict of settings data

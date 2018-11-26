@@ -5,7 +5,7 @@
 <div class="container">
   <section>
     <h1>{% trans "Team resources" %}</h1>
-    {{ content|urlize|clean_html|linebreaks }}
+    <p>{{ content|urlize|clean_html|linebreaks }}</p>
   </section>
 </div>
 {% endblock %}

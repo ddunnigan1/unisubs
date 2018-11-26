@@ -848,6 +848,8 @@ def application_form(request, team):
     return render(request, "future/teams/applications/join.html", {
         'team': team,
         'form': form,
+        'application_message': messaging.format_message_for_request(
+            team, 'messages_application'),
     })
 
 @public_team_view
@@ -921,7 +923,7 @@ def resources(request, team):
     return render(request, 'future/teams/resources.html', {
         'team': team,
         'team_nav': 'resources',
-        'content': message.format_message_for_request(
+        'content': messaging.format_message_for_request(
             team, 'pagetext_resources_page'),
     })
 
@@ -955,9 +957,8 @@ def welcome(request, team):
         'team': team,
         'join_mode': team.get_join_mode(request.user),
         'login_base_url': get_team_login_url(team),
-        'team_messages': team.get_messages([
-            'pagetext_welcome_heading',
-        ]),
+        'welcome_heading': messaging.format_message_for_request(
+            team, 'pagetext_welcome_heading'),
         'videos': newest_videos,
         'videos_count': videos_count,
         'members_count': team.members.count(),

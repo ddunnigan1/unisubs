@@ -17,8 +17,8 @@
 
       <div class="content text-center">
         <h1 class="text-center">{{ team.name }}</h1>
-        {% if team_messages.pagetext_welcome_heading %}
-        <p class="compact-text" style="display:inline-block">{{ team_messages.pagetext_welcome_heading }}</p><br>
+        {% if welcome_heading %}
+        <p class="compact-text" style="display:inline-block">{{ welcome_heading }}</p><br>
         {% endif %}
         {% if team.description %}
         <p class="compact-text" style="display:inline-block">{{ team.description }}</p>

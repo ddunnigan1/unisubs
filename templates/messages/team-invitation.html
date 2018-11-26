@@ -2,7 +2,7 @@
 <p>{% blocktrans %}Hi {{ user }},{% endblocktrans %}</p>
 
 <p>{% blocktrans %}You have been invited as a {{ role }} for the {{ team }} team.{% endblocktrans %}</p>
-{% if custom_message %}<p>{{ custom_message|safe }}</p>{% endif %}
+{% if custom_message %}{{ custom_message }}{% endif %}
 {% if note %}<p>{{ note }}</p>{% endif %}
 
 {% universal_url "teams:accept_invite" invite_pk=invite.pk as accept_link %}

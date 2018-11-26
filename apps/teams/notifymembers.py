@@ -19,6 +19,7 @@
 from django.utils.translation import ugettext as _
 
 from messages.notify import notify_users, Notifications
+from teams import messaging
 from teams.permissions_const import *
 from utils.text import fmt
 
@@ -30,7 +31,7 @@ def send_role_changed_message(member, old_member_info):
         'old_role_name': old_member_info.role_name,
         'new_role_name': member.get_role_name(),
         'team_name': unicode(team),
-        'custom_message': team.get_message_for_role(member.role),
+        'custom_message': role_changed_custom_message(member),
         'management_url': team.new_workflow.management_page_default(member.user),
         'was_a_project_or_language_manager': old_member_info.project_or_language_manager,
         'languages_managed': member.get_languages_managed(),
@@ -44,6 +45,17 @@ def send_role_changed_message(member, old_member_info):
                       team=unicode(team))
     notify_users(Notifications.ROLE_CHANGED, [member.user], subject,
                  'messages/team-role-changed.html', context)
+
+def role_changed_custom_message(member):
+    # DEPRECATED: use the messaging model instead for new code
+    if member.role == ROLE_MANAGER:
+        name = 'messages_manager'
+    elif member.role in (ROLE_ADMIN, ROLE_OWNER):
+        name = 'messages_admin'
+    else:
+        return None
+    return messaging.format_message_for_notification(
+        member.team, member.user, name)
 
 def was_promotion(member, old_member_info):
     if (ROLES_ORDER.index(old_member_info.role) >
@@ -71,7 +83,8 @@ def send_invitation_message(invite):
         "inviter":invite.author,
         "team": invite.team,
         'note': invite.note,
-        'custom_message': invite.team.get_message('messages_invite'),
+        'custom_message': messaging.format_message_for_notification(
+            invite.team, invite.user, 'messages_invite'),
     }
     title = fmt(_(u"You've been invited to the %(team)s team"),
                 team=unicode(invite.team))

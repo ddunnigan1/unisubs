@@ -49,7 +49,7 @@ def test_format_message_for_request(team):
     with translation.override('es'):
         message = messaging.format_message_for_request(
             team, 'messages_joins')
-        assert message == '<p>Hola</p>'
+        assert message == 'Hola'
 
 def test_format_message_for_request_no_matches(team):
     # If none of the user languages matches, we should just use the
@@ -57,7 +57,7 @@ def test_format_message_for_request_no_matches(team):
     with translation.override('pt-br'):
         message = messaging.format_message_for_request(
             team, 'messages_joins')
-        assert message == '<p>Hello</p>'
+        assert message == 'Hello'
 
 def test_no_settings_at_all(team):
     # If there are no settings at all, even unlocalized settings, the

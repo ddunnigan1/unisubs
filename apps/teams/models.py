@@ -395,6 +395,8 @@ class Team(models.Model):
     def get_messages(self, names):
         """Fetch messages from the settings objects
 
+        DEPRECATED: use the messaging model instead for new code
+
         This method fetches the messages assocated with names and interpolates
         them to replace %(team)s with the team name.
 
@@ -411,6 +413,7 @@ class Team(models.Model):
         return messages
 
     def get_message(self, name):
+        # DEPRECATED: use the messaging model instead for new code
         key = Setting.KEY_IDS[name]
         try:
             setting = self.settings.get(key=key)
@@ -419,13 +422,6 @@ class Team(models.Model):
         except Setting.DoesNotExist:
             pass
         return self.get_default_message(name)
-
-    def get_message_for_role(self, role):
-        if role == ROLE_MANAGER:
-            return self.get_message('messages_manager')
-        elif role in (ROLE_ADMIN, ROLE_OWNER):
-            return self.get_message('messages_admin')
-        return None
 
     def render_message(self, msg):
         """Return a string of HTML represention a team header for a notification.
@@ -1009,7 +1005,11 @@ class Team(models.Model):
 
     # Applications (people applying to join)
     def application_message(self):
-        """Return the membership application message for this team, or '' if none exists."""
+        """
+        Return the membership application message for this team, or '' if none exists.
+
+        DEPRECATED: use the messaging module instead.
+        """
         try:
             return self.settings.get(key=Setting.KEY_IDS['messages_application']).data
         except Setting.DoesNotExist:

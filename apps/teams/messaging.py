@@ -42,9 +42,9 @@ def format_message_for_request(team, setting_name):
     }
     language_code = translation.get_language()
     if language_code in messages:
-        return format_html(u'<p>{}</p>', messages[language_code])
+        return messages[language_code]
     elif '' in messages:
-        return format_html(u'<p>{}</p>', messages[''])
+        return messages['']
     else:
         return ''
 
