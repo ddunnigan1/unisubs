@@ -24,6 +24,7 @@ from teams.models import (
     Team, TeamMember, Application, Project
 )
 from teams.permissions import roles_user_can_assign, save_role
+from teams.permissions_const import *
 from utils import translation
 from utils.rpc import Error, Msg, RpcRouter
 
@@ -169,6 +170,8 @@ class TeamsApiV2Class(object):
 
         projects = map(int, projects or [])
         res = save_role(team, member, role, projects, languages, user)
+        if role in (ROLE_MANAGER, ROLE_ADMIN):
+            notifier.team_member_promoted(team.id, user.id, role)
         if res:
             return { 'success': True }
         else:
