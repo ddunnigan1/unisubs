@@ -2403,6 +2403,9 @@ class VideoFeed(models.Model):
         signals.feed_imported.send(sender=self, new_videos=new_videos)
         return new_videos
 
+    def count_imported_videos(self):
+        return self.importedvideo_set.count()
+
 class ImportedVideo(models.Model):
     feed = models.ForeignKey(VideoFeed)
     video = models.OneToOneField(Video)

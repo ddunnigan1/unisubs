@@ -23,13 +23,23 @@
  */
 
 (function(Popcorn) {
+    function addURLParameter(url, parameter, value) {
+        if (url.indexOf('?') == -1) {
+            return url + ('?' + parameter + '=' + value)
+        } else {
+            return url + ('&' + parameter + '=' + value)
+        }
+    }
+
     Popcorn.amara = function(id, urls, primaryVideoType, options) {
-        // For youtube, we need to alter the URL to enable controls.
-        if(primaryVideoType == 'Y' && options.controls) {
-            if(urls[0].indexOf('?') == -1) {
-                urls[0] += '?controls=1';
-            } else {
-                urls[0] += '&controls=1';
+        // For youtube, we need to alter the URL to enable controls and hide captions.
+        if(primaryVideoType == 'Y') {
+            if (options.controls) {
+                urls[0] = addURLParameter(urls[0], 'controls', '1')    
+            }
+            
+            if (options.hide_subtitles) {
+                urls[0] = addURLParameter(urls[0], 'cc_load_policy', '3')
             }
         }
         return Popcorn.smart(id, urls, options);

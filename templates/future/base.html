@@ -60,7 +60,7 @@
     {% dropdown-button "staff-controls" "button teal" %}{% trans "Staff controls" %}{% end-dropdown-button %}
     {% dropdown "staff-controls" labelled_by="dropdown-menu-button" %}
     {% dropdown-item _('Dashboard') "staff:index" %}
-    {% dropdown-item _('Site Admiin') "admin:index" %}
+    {% dropdown-item _('Site Admin') "admin:index" %}
     {% dropdown-item _('Github') "//github.com/pculture/unisubs/commit/"|add:LAST_COMMIT_GUID raw_url=True %}
     {% dropdown-item _('Impersonate') "auth:login_trap" %}
     {% block page-controls %}{% endblock %}

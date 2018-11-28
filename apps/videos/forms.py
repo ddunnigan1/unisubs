@@ -254,7 +254,7 @@ class VideoForm(forms.Form):
         return self.cleaned_data
 
 class AddFromFeedForm(forms.Form, AjaxForm):
-    feed_url = FeedURLField(required=False, help_text=_(u'We support: rss 2.0 media feeds including Vimeo, Dailymotion, and more.'))
+    feed_url = FeedURLField(required=False)
 
     def __init__(self, user, *args, **kwargs):
         if not user.is_authenticated():
