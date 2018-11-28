@@ -923,6 +923,7 @@ class MessagingFormSetBase(forms.BaseFormSet):
         return self.team.settings.with_names(self.settings_names())
 
     def save(self):
+        set_messages = set()
         with transaction.atomic():
             self.settings_qs().delete()
             for data in self.cleaned_data:
@@ -933,11 +934,16 @@ class MessagingFormSetBase(forms.BaseFormSet):
 
                 for name, text in data.items():
                     if text:
+                        set_messages.add(name)
                         Setting.objects.create(
                             team=self.team,
                             language_code=language_code,
                             key=Setting.KEY_IDS[name],
                             data=text)
+
+            self.team.has_resources_page = (
+                'pagetext_resources_page' in set_messages)
+            self.team.save()
 
 MessagingFormSet = forms.formset_factory(
     MessagingForm, formset=MessagingFormSetBase,
