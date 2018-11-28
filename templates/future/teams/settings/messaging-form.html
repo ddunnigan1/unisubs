@@ -11,6 +11,7 @@
 
   <fieldset{% if full_width %} class="full-width"{% endif %}>
     <legend>{% trans "Subtitle Editor" %}</legend>
+    <div class="fieldsetHelpBlock">{% trans "Guidelines to display for team members working in the subtitle editor." %}</div>
     {% render_field form.guidelines_subtitle reverse_required=True %}
     {% render_field form.guidelines_translate reverse_required=True %}
     {% if form.guidelines_review %}
@@ -23,6 +24,7 @@
 
   <fieldset{% if full_width %} class="full-width"{% endif %}>
     <legend>{% trans "Team Messages" %}</legend>
+    <div class="fieldsetHelpBlock">{% trans "Add custom text to notifications sent to your team members." %}</div>
     {% render_field form.messages_invite reverse_required=True %}
     {% render_field form.messages_application reverse_required=True %}
     {% render_field form.messages_joins reverse_required=True %}

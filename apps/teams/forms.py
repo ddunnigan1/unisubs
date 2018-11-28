@@ -834,7 +834,7 @@ class MessagingForm(forms.Form):
 
     pagetext_resources_page = MessageTextField(
         label=_('Team resources'),
-        help_text=_(u'Enter text here to create a team Resources page. Use '
+        help_text=_(u'Enter text here to create a team resources page. Use '
                     u'this to add extra guides/links/resources for your '
                     u'team members.'))
     pagetext_welcome_heading = MessageTextField(
