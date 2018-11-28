@@ -471,7 +471,8 @@
                         this.model.get('player_urls'),
                         this.model.get('video_type'), {
                             controls: true,
-                            frameAnimation: true
+                            frameAnimation: true,
+                            hide_subtitles: false,
                         });
                 this.pop.controls(true);
 

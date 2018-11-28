@@ -52,12 +52,6 @@
     {% render_field form.prevent_duplicate_public_videos %}
   </fieldset>
 
-  <div class="fieldset-footer-shadow">
-      <div class="fieldset-backtotop-container">
-        <span class="fa fa-chevron-circle-up fieldset-backtotop-chevron"></span>
-        <span class="small">Back to top</span>
-      </div>
-      <button type="submit" class="button cta saveChangesButton">Save Changes</button>
-  </div>
+  {% include "future/forms/fieldset-footer.html" %}
 </form>
 {% endblock %}

@@ -63,7 +63,6 @@
     {% dropdown-item _('Site Admiin') "admin:index" %}
     {% dropdown-item _('Github') "//github.com/pculture/unisubs/commit/"|add:LAST_COMMIT_GUID raw_url=True %}
     {% dropdown-item _('Impersonate') "auth:login_trap" %}
-    {% dropdown-item _('Billing') "billing" %}
     {% block page-controls %}{% endblock %}
     {% enddropdown %}
     {% endif %}

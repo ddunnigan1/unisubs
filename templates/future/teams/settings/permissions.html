@@ -15,11 +15,7 @@
     {% render_field form.video_policy %}
   </fieldset>
 
-  <div class="fieldset-footer-shadow">
-      <div class="fieldset-backtotop-container">
-      </div>
-      <button type="submit" class="button cta saveChangesButton">Save Changes</button>
-  </div>
+  {% include "future/forms/fieldset-footer.html" %}
 </form>
 
 <section>

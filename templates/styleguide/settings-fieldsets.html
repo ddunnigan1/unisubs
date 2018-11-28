@@ -76,13 +76,7 @@ to note are the `.saveChangesButton` and `.fieldset-backtotop-container` classes
       <input type="password" id="password2" name="password2">
     </div>
   </fieldset>
-  <div class="fieldset-footer-shadow">
-      <div class="fieldset-backtotop-container">
-        <span class="fa fa-chevron-circle-up fieldset-backtotop-chevron"></span>
-        <span class="small">Back to top</span>
-      </div>
-      <button type="submit" class="button cta saveChangesButton">Save Changes</button>
-  </div>
+  {% include "future/forms/fieldset-footer.html" %}
 </form>
 
 {% endblock %}
