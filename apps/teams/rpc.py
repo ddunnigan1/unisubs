@@ -171,7 +171,7 @@ class TeamsApiV2Class(object):
         projects = map(int, projects or [])
         res = save_role(team, member, role, projects, languages, user)
         if role in (ROLE_MANAGER, ROLE_ADMIN):
-            notifier.team_member_promoted(team.id, user.id, role)
+            notifier.team_member_promoted(team.id, member.user.id, role)
         if res:
             return { 'success': True }
         else:
