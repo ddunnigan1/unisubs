@@ -73,7 +73,7 @@ from utils.pagination import AmaraPaginator, AmaraPaginatorFuture
 from utils.forms import autocomplete_user_view, FormRouter
 from utils.text import fmt
 from utils.translation import get_language_label, get_user_languages_from_cookie
-from videos.models import Video
+from videos.models import Video, VideoFeed
 
 import datetime
 
@@ -187,6 +187,8 @@ def videos(request, team):
         'filters_form': filters_form,
         'team_nav': 'videos',
         'current_tab': 'videos',
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
     }
     if request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
@@ -928,25 +930,6 @@ def dashboard(request, slug):
     else:
         return team.new_workflow.dashboard_view(request, team)
 
-def dashboard_set_languages(request, team):
-    if request.method == 'POST':
-        user_lang_form = forms.UserLanguageForm(request.user,
-                                               data=request.POST)
-        if user_lang_form.is_valid():
-            user_lang_form.save()
-            messages.success(request, _('Languages updated'))
-            return redirect('teams:dashboard', slug=team.slug)
-    else:
-        user_lang_form = forms.UserLanguageForm(request.user)
-
-    return render(request, 'collab/dashboard-set-languages.html', {
-        'team': team,
-        'user_lang_form': user_lang_form,
-        'breadcrumbs': [
-            BreadCrumb(team),
-        ],
-    })
-
 def welcome(request, team):
     if team.videos_public():
         videos = team.videos.order_by('-id')
@@ -1290,16 +1273,19 @@ def settings_feeds(request, team):
     if team.is_old_style():
         return old_views.video_feeds(request, team)
 
-    action = request.POST.get('action')
+    filters_form = forms.SearchVideoFeedForm(request.GET)
+    feeds = filters_form.update_qs(team.videofeed_set.all())
+
+    action = request.POST.get('action') 
     if request.method == 'POST' and action == 'import':
         feed = get_object_or_404(team.videofeed_set, id=request.POST['feed'])
         feed.update()
-        messages.success(request, _(u'Importing videos now'))
+        messages.success(request, _(u'Started importing videos from {}'.format(feed.url) ))
         return HttpResponseRedirect(request.build_absolute_uri())
     if request.method == 'POST' and action == 'delete':
         feed = get_object_or_404(team.videofeed_set, id=request.POST['feed'])
         feed.delete()
-        messages.success(request, _(u'Feed deleted'))
+        messages.success(request, _(u'Video feed deleted'))
         return HttpResponseRedirect(request.build_absolute_uri())
 
     if request.method == 'POST' and action == 'add':
@@ -1312,16 +1298,36 @@ def settings_feeds(request, team):
     else:
         add_form = forms.AddTeamVideosFromFeedForm(team, request.user)
 
-    return render(request, "new-teams/settings-feeds.html", {
+    context = {
         'team': team,
+        'filters_form': filters_form,
         'add_form': add_form,
-        'feeds': team.videofeed_set.all(),
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Settings'), 'teams:settings_basic', team.slug),
-            BreadCrumb(_('Video Feeds')),
-        ],
-    })
+        'feeds': feeds,
+        'team_nav': 'settings',
+        'settings_tab': 'feeds',
+    }
+
+    if request.is_ajax():
+        action = request.GET.get('action', None)
+
+        # filter search
+        if not action:
+            response_renderer = AJAXResponseRenderer(request)
+            response_renderer.replace('#video-feeds-list', 
+                'future/teams/settings/video-feeds-list.html',
+                context)
+            return response_renderer.render()
+
+        if action and action == 'remove':
+            pk = request.GET.get('pk')
+            feed = VideoFeed.objects.get(pk=pk)
+            response_renderer = AJAXResponseRenderer(request)
+            response_renderer.show_modal(
+                'future/teams/settings/forms/video-feed-remove.html',
+                { 'feed' : feed })
+            return response_renderer.render()
+
+    return render(request, "future/teams/settings/video-feeds.html", context)
 
 @team_settings_view
 def settings_permissions(request, team):
