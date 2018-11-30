@@ -74,13 +74,19 @@ def parse_hash_key(key):
     name, _, datestr = key.partition(':')
     return name, datetime(*(int(part) for part in datestr.split('-')))
 
-def increment(team, name):
+def increment(team, name, date=None):
     """
     Increment a team stat.
+
+    Use the `date` parameter for generating history stat data
+    e.g. for newly introduced stats
     """
+    if date is None:
+        date = dates.now()
+
     r = get_redis_connection('storage')
     hash_name = calc_hash_name(team)
-    hash_key = calc_hash_key(name, dates.now())
+    hash_key = calc_hash_key(name, date)
 
     pipe = r.pipeline()
     pipe.hincrby(hash_name, hash_key, 1)
