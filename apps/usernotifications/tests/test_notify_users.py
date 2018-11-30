@@ -20,14 +20,12 @@ from lxml import etree
 import mock
 import re
 
-import pytest
-
 from usernotifications import notifications
 from messages.models import Message
 from utils.factories import *
 
 class MockNotification(notifications.Notification):
-    notification_type = mock.Mock(name='test-notification-type')
+    notification_type = notifications.NotificationType.ROLE_CHANGED
     template_name = 'tests/test-message.html'
 
     def subject(self):
@@ -38,19 +36,6 @@ class MockNotification(notifications.Notification):
 
     def __eq__(self, other):
         return isinstance(other, MockNotification)
-
-@pytest.fixture(autouse=True)
-def mock_send_mail(monkeypatch):
-    mock_send_mail = mock.Mock()
-    with mock.patch('usernotifications.notifications.send_mail',
-                    mock_send_mail):
-        yield mock_send_mail
-
-@pytest.fixture(autouse=True)
-def setup_settings(settings):
-    settings.DEFAULT_FROM_EMAIL = 'test@example.com'
-    settings.HOSTNAME = 'test.amara.org'
-    settings.DEFAULT_PROTOCOL  = 'https'
 
 def test_should_send_email():
     # notify_by_email flag set
@@ -90,7 +75,7 @@ really really really really really really really really really long
 line.
 """
 
-def test_message(mock_send_mail):
+def test_message():
     user = UserFactory(notify_by_message=True)
     notifications.notify_users(MockNotification(), [user])
     # test that we send an message
@@ -98,7 +83,7 @@ def test_message(mock_send_mail):
     last_message = Message.objects.for_user(user).order_by('-id')[:1].get()
     assert last_message.subject == 'Test subject'
 
-def test_notify_by_message_unset(mock_send_mail):
+def test_notify_by_message_unset():
     user = UserFactory(notify_by_message=False)
     notifications.notify_users(MockNotification(), [user])
     # test that we don't send a message

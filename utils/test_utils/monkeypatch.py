@@ -72,12 +72,14 @@ class MockNow(mock.Mock):
         self.frozen = False
         return self.current
 
-    def increment(self):
+    def increment(self, amount=None):
         """Increment the now() value by 1 minute
 
         Returns: The new current now() value.
         """
-        self.current += timedelta(minutes=1)
+        if amount is None:
+            amount = timedelta(minutes=1)
+        self.current += amount
         return self.current
 
     def set(self, *args, **kwargs):

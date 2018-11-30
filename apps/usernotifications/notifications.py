@@ -23,22 +23,14 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
 from lxml import html
 
+from .const import NotificationType
+from .models import LastSentNotification
 from auth.models import CustomUser as User
 from messages.models import Message, SYSTEM_NOTIFICATION
-from utils.enum import Enum
+from utils import dates
 from utils.taskqueue import job
-
-NotificationType = Enum('NotificationType', [
-    ('ROLE_CHANGED', _('Role changed')),
-    ('TEAM_INVITATION', _('Team invitation')),
-    ('NEW_ACTIVE_ASSIGNMENT', _(u'New active assignment')),
-    ('REQUEST_UPDATED', _(u'Request updated')),
-    ('REQUEST_COMPLETED', _(u'Request completed by team')),
-    ('REQUEST_SENDBACK', _(u'Request sent back to team')),
-])
 
 class Notification(object):
     """
@@ -93,13 +85,17 @@ class Notification(object):
             ', '.join('{}={}'.format(name, value)
                       for name, value in self.__dict__.items()))
 
-def notify_users(notification, user_list):
+def notify_users(notification, user_list, rate_limit_by_type=None):
     """
     Send notification messages to a list of users
 
     Arguments:
         notification: Instance of a Notification subclass
         user_list: list/iterable of CustomUser objects to notify
+        rate_limit_by_type: Pass in a timedelta, to limit the number of
+            messages sent to a user by notification type.  If this flag is
+            check, we test if a notification with the same type was sent since
+            (now - timedelta).  If so, we don't send the message.
 
     """
     message, html_message = notification.render_messages()
@@ -109,18 +105,32 @@ def notify_users(notification, user_list):
     ]
     do_notify_users.delay(notification.notification_type, user_ids,
                           notification.subject(), message, html_message,
-                          notification.send_email)
+                          notification.send_email, rate_limit_by_type)
 
 def notify_user(notification, user):
     return notify_users(notification, [user])
 
 @job
 def do_notify_users(notification_type, user_ids, subject, message, html_message,
-                    send_email):
+                    send_email, rate_limit_by_type=None):
+    now = dates.now()
+
     user_list = User.objects.filter(id__in=user_ids)
     for user in user_list:
         if not user.is_active:
             continue
+
+        try:
+            last_sent_notification = LastSentNotification.objects.get(
+                type=notification_type, user=user)
+            if (rate_limit_by_type and
+                    last_sent_notification.datetime >
+                    now - rate_limit_by_type):
+                continue
+        except LastSentNotification.DoesNotExist:
+            last_sent_notification = LastSentNotification(
+                type=notification_type, user=user)
+
         if should_send_email(user, send_email):
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
                       [user.email], html_message=html_message)
@@ -128,6 +138,8 @@ def do_notify_users(notification_type, user_ids, subject, message, html_message,
             Message.objects.create(user=user, subject=subject,
                                    message_type=SYSTEM_NOTIFICATION,
                                    content=html_message, html_formatted=True)
+        last_sent_notification.datetime = now
+        last_sent_notification.save()
 
 def should_send_email(user, send_email):
     """
