@@ -499,6 +499,9 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
 
     def set_languages(self, languages):
         with transaction.atomic():
+            # need to delete all the set languages since there is some funky stuff
+            # happening if a user sets the same languages but with different priorities
+            self.userlanguage_set.all().delete()
             self.userlanguage_set.set([
                 UserLanguage.objects.create(
                     user=self, language=l["language"], priority=l["priority"])

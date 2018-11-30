@@ -2407,10 +2407,15 @@ class ApplicationForm(forms.Form):
 
     def _get_language_list(self):
         languages = []
+        added_languages = []
         for i in xrange(1, 7):
             value = self.cleaned_data.get('language{}'.format(i))
             if value:
-                languages.append({"language": value, "priority": i})
+                if value in added_languages:
+                    continue
+                else:
+                    languages.append({"language": value, "priority": i})
+                    added_languages.append(value)
 
         if not languages:
             raise forms.ValidationError(_("Please select at least one language"), code='no-language')
