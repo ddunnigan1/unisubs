@@ -1,7 +1,5 @@
 {% load i18n videos_tags %}
-{% if no_languages_yet %}
-{% include "future/teams/set-languages.html" %}
-{% elif page %}
+{% if page %}
 <div class="row">
   {% for video in page %}
   {% include "future/teams/videos/card.html" %}

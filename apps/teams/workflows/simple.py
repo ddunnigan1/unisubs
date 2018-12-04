@@ -226,7 +226,8 @@ def dashboard(request, team):
         'more_video_count': max(0, video_qs.count() - NEWEST_VIDEOS_PER_PAGE),
         'video_search_form': teams_forms.VideoFiltersForm(team),
         'member_profile_url': member.get_absolute_url(),
-        'no_languages_yet': len(request.user.get_languages()) == 0,
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
 
         'dashboard_videos': get_dashboard_videos(team, request.user, main_project),
         'dashboard_history': get_dashboard_history(team, request.user, main_project),
@@ -321,7 +322,4 @@ class SimpleTeamWorkflow(TeamWorkflow):
                 team = Team.objects.get(slug=slug)
             except Team.DoesNotExist:
                 return None
-        if team.user_is_member(request.user):
-            return team
-        else:
-            return None
+        return team

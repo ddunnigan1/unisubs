@@ -3,7 +3,7 @@
 
 {% if no_languages_yet %}
     {% include "future/teams/set-languages.html" with custom_text=_('Select the languages you can caption or translate to begin subtitling videos') %}
-{% elif create_subtitles_form and not no_languages_yet %}
+{% elif create_subtitles_form and not request.user.is_anonymous %}
 <div class="content videoSubtitleList">
     <h2 class="videoSubtitlesList-item">{% trans 'Contribute' %}</h2>
 

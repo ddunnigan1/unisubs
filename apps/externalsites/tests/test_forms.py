@@ -221,6 +221,7 @@ class YouTubeAccountTest(TestCase):
         # isn't an admin for
         team = TeamFactory(name='Synced team')
         account.sync_teams.add(team)
+        correct_choices.append(('', 'Clear'))
         correct_choices.append((team.id, unicode(team)))
         correct_initial.append(team.id)
         form = forms.YoutubeAccountForm(user, account)

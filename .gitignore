@@ -20,6 +20,7 @@ apps/webdriver_testing/Results/*.png
 apps/webdriver_testing/Results/results.html
 apps/webdriver_testing/Screenshots/
 nosetests.xml
+.dbreset-testdata
 .deploy_keys
 /codeship.aes
 /aws_creds

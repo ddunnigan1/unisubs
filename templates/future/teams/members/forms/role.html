@@ -11,7 +11,9 @@
     {% endif %}
     {% render_field form.role %}
     <div class="projectsAndLanguagesSelectors" {% if not show_proj_lang_selectors %}hidden{% endif %}>
-      {% render_field form.projects reverse_required=True %}
+      {% if form.projects %}
+        {% render_field form.projects reverse_required=True %}
+      {% endif %}
       {% render_field form.languages reverse_required=True %}
     </div>
   </div>

@@ -5,17 +5,17 @@
   <ul class="nav nav-tabs">
     {% if show_username_invite_link %}
     <li {% if modal_tab == 'username' %}class="active"{%endif%}>
-      <a href="#username" data-toggle="tab">Invite by username</a>
+      <a href="#username" data-toggle="tab">{% trans 'Invite by username' %}</a>
     </li>
     {% endif %}
     {% if show_email_invite_link %}
     <li {% if modal_tab == 'email' %}class="active"{%endif%}>
-      <a href="#email" data-toggle="tab">Invite by email</a>
+      <a href="#email" data-toggle="tab">{% trans 'Invite by email' %}</a>
     </li>
     {% endif %}
     {% if show_add_link %}
     <li {% if modal_tab == 'add' %}class="active"{%endif%}>
-      <a href="#add" data-toggle="tab">Add members</a>
+      <a href="#add" data-toggle="tab">{% trans 'Add members' %}</a>
     </li>
     {% endif %}
   </ul>

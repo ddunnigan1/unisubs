@@ -939,8 +939,7 @@ class ActivityQuerySet(query.QuerySet):
                 .distinct())
 
     def for_user(self, user):
-        return (self.filter(user=user).original()
-                .force_index('activity_activityrecord_user_id_9a176575334d68_idx'))
+        return self.filter(user=user).original()
 
     def for_team(self, team):
         return self.filter(team=team)

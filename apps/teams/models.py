@@ -255,6 +255,8 @@ class Team(models.Model):
                                      default=TeamVisibility.PRIVATE)
     video_visibility = enum.EnumField(enum=VideoVisibility,
                                       default=VideoVisibility.PRIVATE)
+    # when old-style teams are totally phased out, we can get rid of this setting since 
+    # this can now be set per YouTube account rather than being team-wide
     sync_metadata = models.BooleanField(_(u'Sync metadata when available (Youtube)?'), default=False)
     videos = models.ManyToManyField(Video, through='TeamVideo',  verbose_name=_('videos'))
     users = models.ManyToManyField(User, through='TeamMember', related_name='teams', verbose_name=_('users'))
