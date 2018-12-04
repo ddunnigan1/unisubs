@@ -177,3 +177,23 @@ def cleanup_counter(r, hash_name, now):
 __all__ = [
     'increment', 'get_stats', 'cleanup_counters', 'StatSums',
 ]
+
+'''
+Use this to generate `subtitles-completed` stats. This was supposed to be a migration 
+but it's too cumbersome to access custom model methods in a migration.
+'''
+def generate_subtitles_completed_stat():
+    from teams.models import Team
+
+    for t in Team.objects.all():
+        for tv in t.teamvideo_set.all():
+            for sl in tv.video.complete_languages():
+                now = dates.now()
+                completion_date = sl.get_tip().created
+
+                if (now - completion_date).days <= DAYS_TO_STORE:
+                    increment(tv.team, 'subtitles-completed', completion_date)
+                    increment(
+                        tv.team,
+                        'subtitles-completed-{}'.format(sl.language_code),
+                        completion_date)
