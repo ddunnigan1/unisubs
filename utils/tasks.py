@@ -34,3 +34,8 @@ def send_templated_email_async(to, subject, body_template, body_dict,
 @job
 def test():
     logger.info('in test task')
+
+@job
+def test_failure():
+    logger.info('failing in test task')
+    1 / 0

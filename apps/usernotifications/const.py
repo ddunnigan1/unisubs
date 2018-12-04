@@ -8,6 +8,13 @@ NotificationType = Enum('NotificationType', [
     ('REQUEST_UPDATED', _(u'Request updated')),
     ('REQUEST_COMPLETED', _(u'Request completed by team')),
     ('REQUEST_SENDBACK', _(u'Request sent back to team')),
+    ('AVAILABLE_ASSIGNMENTS_TRANSCRIPTION',
+     _(u'Transcription assignment available')),
+    ('AVAILABLE_ASSIGNMENTS_TRANSLATION',
+     _(u'Translation assignment available')),
+    ('AVAILABLE_ASSIGNMENTS_REVIEW', _(u'Review assignment available')),
+    ('AVAILABLE_ASSIGNMENTS_APPROVAL', _(u'Approval assignment available')),
+    ('AVAILABLE_ASSIGNMENTS_EVALUATION', _(u'Evaluation assignment available')),
 ])
 
 

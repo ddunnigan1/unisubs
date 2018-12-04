@@ -26,7 +26,7 @@ from utils.taskqueue import job
 from utils.text import fmt
 
 def notify_members(notification, team, setting, video=None,
-                   language_code=None, exclude=None):
+                   language_code=None, exclude=None, rate_limit_by_type=None):
     """
     Generic team notification code
 
@@ -45,6 +45,7 @@ def notify_members(notification, team, setting, video=None,
         language_code: Language related to the notificaton.  This controls
             which language managers get counted as managers
         exclude: list of users to exclude from the notification
+        rate_limit_by_type: rate_limit_by_type argument (see notify_users)
     """
     if setting == TeamNotify.MEMBERS:
         qs = team.members.all()
@@ -68,7 +69,7 @@ def notify_members(notification, team, setting, video=None,
         if language_code:
             qs = team.members.language_managers(language_code)
             user_ids.extend(qs.values_list('user_id', flat=True))
-    notify_users(notification, user_ids)
+    notify_users(notification, user_ids, rate_limit_by_type=rate_limit_by_type)
 
 class MemberRoleChangedNotification(Notification):
     """

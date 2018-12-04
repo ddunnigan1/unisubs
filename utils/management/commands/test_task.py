@@ -26,14 +26,20 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('-n', '--number', default=1,
-                    type=int, help='Number of tasks to run')
+                            type=int, help='Number of tasks to run')
         parser.add_argument('-d', '--delay', default=None,
-                    type=int, help='Seconds to delay the execution')
+                            type=int, help='Seconds to delay the execution')
+        parser.add_argument('-f', '--fail', action='store_true',
+                            help='Simulate an exception')
 
     def handle(self, **options):
+        if options['fail']:
+            job_func = tasks.test_failure
+        else:
+            job_func = tasks.test
         for i in range(options['number']):
             if options['delay'] is None:
-                job = tasks.test.delay()
+                job = job_func.delay()
             else:
-                job = tasks.test.enqueue_in(options['delay'])
+                job = job_func.enqueue_in(options['delay'])
             print 'Job: {}'.format(job.id)

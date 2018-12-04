@@ -16,6 +16,8 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from datetime import timedelta
+
 import mock
 import pytest
 
@@ -55,10 +57,11 @@ def team():
 @pytest.fixture
 def patch_notify_users(patch_for_test):
     mock_notify_users = patch_for_test('teams.member_notifications.notify_users')
-    def check_call(correct_users):
+    def check_call(correct_users, rate_limit_by_type=None):
         assert mock_notify_users.called
-        assert mock_notify_users.call_args == mock.call(MockNotification(),
-                                                        mock.ANY)
+        assert mock_notify_users.call_args == mock.call(
+            MockNotification(), mock.ANY,
+            rate_limit_by_type=rate_limit_by_type)
 
         user_list_arg = mock_notify_users.call_args[0][1]
         assert set(user_list_arg) == set(u.id for u in correct_users)
@@ -118,6 +121,13 @@ def test_exclude(team, patch_notify_users):
                    exclude=[team.admins[0]])
 
     patch_notify_users.check_call(team.admins[1:] + team.managers)
+
+def test_rate_limit_by_type(team, patch_notify_users):
+    notify_members(MockNotification(), team, TeamNotify.MANAGERS,
+                   rate_limit_by_type=timedelta(hours=1))
+
+    patch_notify_users.check_call(team.admins + team.managers,
+                                  rate_limit_by_type=timedelta(hours=1))
 
 def test_other_values_is_noop(team, patch_notify_users):
     notify_members(MockNotification(), team, TeamNotify.ASSIGNEES)

@@ -338,6 +338,41 @@ class Team(models.Model):
         choices=[
             TeamNotify.ASSIGNEES, TeamNotify.ADMINS, TeamNotify.MANAGERS,
         ])
+    notify_transcription_assignment = enum.EnumField(
+        verbose_name=_('Transcription assignment available'),
+        enum=TeamNotify, default=None, null=True, blank=True,
+        choices=[
+            TeamNotify.ADMINS, TeamNotify.MANAGERS,
+            TeamNotify.MEMBERS,
+        ])
+    notify_translation_assignment = enum.EnumField(
+        verbose_name=_('Translation assignment available'),
+        enum=TeamNotify, default=None, null=True, blank=True,
+        choices=[
+            TeamNotify.ADMINS, TeamNotify.MANAGERS,
+            TeamNotify.MEMBERS,
+        ])
+    notify_review_assignment = enum.EnumField(
+        verbose_name=_('Review assignment available'),
+        enum=TeamNotify, default=None, null=True, blank=True,
+        choices=[
+            TeamNotify.ADMINS, TeamNotify.MANAGERS,
+            TeamNotify.MEMBERS,
+        ])
+    notify_approval_assignment = enum.EnumField(
+        verbose_name=_('Approval assignment available'),
+        enum=TeamNotify, default=None, null=True, blank=True,
+        choices=[
+            TeamNotify.ADMINS, TeamNotify.MANAGERS,
+            TeamNotify.MEMBERS,
+        ])
+    notify_evaluation_assignment = enum.EnumField(
+        verbose_name=_('Evaluation assignment available'),
+        enum=TeamNotify, default=None, null=True, blank=True,
+        choices=[
+            TeamNotify.ADMINS, TeamNotify.MANAGERS,
+            TeamNotify.MEMBERS,
+        ])
 
     tags = models.ManyToManyField(TeamTag, related_name='teams', blank=True)
 
