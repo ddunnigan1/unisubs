@@ -73,8 +73,13 @@ def find_existing_caption_id(access_token, video_id, language_code,
             pass
     return None
 
+'''
+<account_syncs_metadata> is a boolean that specifies if the YouTube account is
+set to sync metadata for its videos. At the same time we maintain the usage of 
+the setting teams.models.Team.sync_metadata for old-style teams
+'''
 def update_subtitles(video_id, access_token, subtitle_version,
-                     enable_language_mapping):
+                     enable_language_mapping, account_syncs_metadata):
     """Push the subtitles for a language to YouTube """
     language_code = subtitle_version.language_code
     subs = subtitle_version.get_subtitles()
@@ -91,14 +96,22 @@ def update_subtitles(video_id, access_token, subtitle_version,
         language_code = convert_language_code(language_code, enable_language_mapping)
         google.captions_insert(access_token, video_id, language_code,
                                'text/vtt', content)
+
     sync_metadata(video_id, access_token, subtitle_version,
-                  enable_language_mapping)
+                    enable_language_mapping, account_syncs_metadata)
 
 def sync_metadata(video_id, access_token, subtitle_version,
-                  enable_language_mapping):
+                  enable_language_mapping, account_syncs_metadata):
     video = subtitle_version.video
     team_video = video.get_team_video()
-    if not (team_video and team_video.team.sync_metadata and
+    
+    # support for old-style teams
+    if (team_video and
+        team_video.team.is_old_style() and 
+        not team_video.team.sync_metadata):
+        return
+
+    if not (team_video and account_syncs_metadata and            
             subtitle_version.title and video.primary_audio_language_code):
         return
     primary_audio_language_code = convert_language_code(

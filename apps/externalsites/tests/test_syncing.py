@@ -862,7 +862,8 @@ class YouTubeLanguageMappingTest(TestCase):
                                          SubtitleSetFactory())
 
         youtube.update_subtitles(self.video_id, self.access_token, version,
-                                 enable_language_mapping=True)
+                                 enable_language_mapping=True,
+                                 account_syncs_metadata=True)
         if correct_language_code in self.mock_google.languages:
             assert_true(self.mock_google.captions_update.called)
             assert_equal(self.mock_google.captions_update.call_args[0][1],
