@@ -1,3 +1,5 @@
+{% load i18n %}
+<div class="contentFooter-paginatorCount">{% blocktrans with count=paginator.count %}{{ count }} {{ objects_word }}{% endblocktrans %}</div>
 <ul class="contentFooter-paginator">
   <li><a class="contentFooter-paginatorLink{% if page.number == 1 %} disabled{% endif %}" href="{{ page.first_page_link}}" aria-label="Previous"><span class="fa fa-angle-double-left"></span></a></li>
   {% for number, url in page.nearest_page_links %}

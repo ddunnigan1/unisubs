@@ -1398,10 +1398,10 @@ class InviteForm(forms.Form):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ('name', 'description', 'workflow_enabled')
+        fields = ('name', 'description')
 
-    def __init__(self, team, *args, **kwargs):
-        super(ProjectForm, self).__init__(*args, **kwargs)
+    def __init__(self, team, data=None, **kwargs):
+        super(ProjectForm, self).__init__(data, **kwargs)
         self.team = team
 
     def clean_name(self):
@@ -1423,29 +1423,39 @@ class ProjectForm(forms.ModelForm):
         return project
 
 class EditProjectForm(forms.Form):
-    project = forms.ChoiceField(choices=[])
-    name = forms.CharField(required=True)
-    description = forms.CharField(widget=forms.Textarea, required=False)
+    name = forms.CharField(required=True, max_length=50)
+    description = forms.CharField(widget=forms.Textarea, required=False, max_length=2048)
 
-    def __init__(self, team, *args, **kwargs):
-        super(EditProjectForm, self).__init__(*args, **kwargs)
+    def __init__(self, team, project, data=None, **kwargs):
+        super(EditProjectForm, self).__init__(data, **kwargs)
         self.team = team
-        self.fields['project'].choices = [
-            (p.id, p.id) for p in team.project_set.all()
-        ]
+        self.project = project
+        self.setup_fields()
+
+    def setup_fields(self):
+        self.fields['name'].widget.attrs.update({'value': self.project.name})
+        self.fields['description'].initial = self.project.description
 
     def clean(self):
-        if self.cleaned_data.get('name') and self.cleaned_data.get('project'):
-            self.check_duplicate_name()
+        if self.cleaned_data.get('name'):
+            self.check_name()
+        if self.cleaned_data.get('description'):
+            self.check_description()
         return self.cleaned_data
 
-    def check_duplicate_name(self):
+    def check_name(self):
         name = self.cleaned_data['name']
+
+        if len(name) > self.fields['name'].max_length:
+            self._errors['name'] = self.error_class([
+                _(u"Name is too long; Max length is 50 characters")
+            ])
+            del self.cleaned_data['name']
 
         same_name_qs = (
             self.team.project_set
             .filter(slug=pan_slugify(name))
-            .exclude(id=self.cleaned_data['project'])
+            .exclude(id=self.project.id)
         )
 
         if same_name_qs.exists():
@@ -1454,12 +1464,38 @@ class EditProjectForm(forms.Form):
             ])
             del self.cleaned_data['name']
 
+    def check_description(self):
+        description = self.cleaned_data['description']
+
+        if len(description) > self.fields['description'].max_length:
+            self._errors['description'] = self.error_class([
+                _(u"Description is too long; Max length is 2048 characters")
+            ])
+            del self.cleaned_data['description']
+
     def save(self):
-        project = self.team.project_set.get(id=self.cleaned_data['project'])
-        project.name = self.cleaned_data['name']
-        project.description = self.cleaned_data['description']
-        project.save()
-        return project
+        try:
+            self.project.name = self.cleaned_data['name']
+            self.project.description = self.cleaned_data['description']
+            self.project.save()
+        except Exception as e:
+            logger.warn(e, exc_info=True)
+
+        return self.project
+
+class DeleteProjectForm(forms.Form):
+    name = "delete_project"
+    label = _("Delete Project")
+
+    def __init__(self, team, project, data=None, **kwargs):
+        super(DeleteProjectForm, self).__init__(data, **kwargs)
+        self.project = project
+
+    def save(self):
+        try:
+            self.project.delete()
+        except Exception as e:
+            logger.warn(e, exc_info=True)
 
 class AddProjectManagerForm(forms.Form):
     member = UserAutocompleteField()
@@ -1817,7 +1853,7 @@ class MemberFiltersForm(forms.Form):
     ] + get_language_choices()
 
     q = SearchField(label=_('Search'), required=False,
-                    widget=ContentHeaderSearchBar)
+                    widget=ContentHeaderSearchBar())
 
     role = AmaraChoiceField(label=_('Select role'), choices=[
         ('any', _('All roles')),
@@ -1829,7 +1865,7 @@ class MemberFiltersForm(forms.Form):
     language = AmaraChoiceField(choices=LANGUAGE_CHOICES,
                                  label=_('Select language'),
                                  initial='any', required=False, filter=True)
-    sort = AmaraChoiceField(label=_('Change sort'), choices=[
+    sort = AmaraChoiceField(label=_('Sort'), choices=[
         ('recent', _('Newest joined')),
         ('oldest', _('Oldest joined')),
     ], initial='recent', required=False)
@@ -1909,6 +1945,36 @@ class ApplicationFiltersForm(forms.Form):
         if language and language != 'any':
             qs = qs.filter(user__userlanguage__language=language)
 
+        return qs
+
+class ProjectFiltersForm(forms.Form):
+    q = SearchField(label=_('Search'), required=False,
+                    widget=ContentHeaderSearchBar)
+
+    def __init__(self, get_data=None):
+        super(ProjectFiltersForm, self).__init__(
+            self.calc_data(get_data)
+        )
+
+    def calc_data(self, get_data):
+        if get_data is None:
+            return None
+        data = {k:v for k, v in get_data.items() if k != 'page'}
+        return data if data else None
+
+    def update_qs(self, qs):
+        if not (self.is_bound and self.is_valid()):
+            return qs.order_by('name')
+        else:
+            data = self.cleaned_data
+
+        q = data.get('q', '')
+
+        for term in [term.strip() for term in q.split()]:
+            if term:
+                qs = qs.filter(Q(name__icontains=term)
+                               | Q(slug__icontains=term))
+        qs = qs.order_by('name')
         return qs
 
 class ApproveApplicationForm(ManagementForm):
@@ -2024,8 +2090,8 @@ class ChangeMemberRoleForm(ManagementForm):
                 (TeamMember.ROLE_MANAGER, _('Manager')),
            ], initial='', label=_('Member Role'))
 
-    projects = MultipleProjectField(label=_('Project'), null_label=_('No change'), required=False)
-    languages = MultipleLanguageField(label=_('Subtitle language(s)'), options='null all', required=False)
+    projects = MultipleProjectField(label=_('Projects'), null_label=_('No change'), required=False)
+    languages = MultipleLanguageField(label=_('Languages'), options='null all', required=False)
 
     def __init__(self, user, queryset, selection, all_selected,
                  data=None, files=None, is_owner=False, team=None, **kwargs):
@@ -2034,19 +2100,31 @@ class ChangeMemberRoleForm(ManagementForm):
         self.team = team
         super(ChangeMemberRoleForm, self).__init__(
             queryset, selection, all_selected, data=data, files=files)
-        self.fields['projects'].setup(team)
 
     def clean(self):
         cleaned_data = super(ChangeMemberRoleForm, self).clean()
         role = cleaned_data.get('role')
 
         if (role == TeamMember.ROLE_PROJ_LANG_MANAGER and
-            not (cleaned_data['projects'] or cleaned_data['languages'])):
-                raise forms.ValidationError(_(u"Please select a project or language"))
+            not (cleaned_data.get('projects', None) or cleaned_data.get('languages', None))):
+                if self.fields.get('projects', None):
+                    raise forms.ValidationError(_(u"Please select a project or language"))
+                else:
+                    raise forms.ValidationError(_(u"Please select a language"))
 
         return cleaned_data
 
     def setup_fields(self):
+        if self.team.has_projects:
+            self.fields['projects'].setup(self.team)
+        else:
+            self.fields['role'].choices = [
+                ('', _("Don't change")),
+                (TeamMember.ROLE_CONTRIBUTOR, _('Contributor')),
+                (TeamMember.ROLE_PROJ_LANG_MANAGER, _('Language Manager')),
+                (TeamMember.ROLE_MANAGER, _('Manager'))]
+            del self.fields['projects']
+
         if self.is_owner:
             self.fields['role'].choices += [(TeamMember.ROLE_ADMIN, _('Admin'))]
             self.fields['role'].choices += [(TeamMember.ROLE_OWNER, _('Owner'))]
@@ -2309,10 +2387,15 @@ class ApplicationForm(forms.Form):
 
     def _get_language_list(self):
         languages = []
+        added_languages = []
         for i in xrange(1, 7):
             value = self.cleaned_data.get('language{}'.format(i))
             if value:
-                languages.append({"language": value, "priority": i})
+                if value in added_languages:
+                    continue
+                else:
+                    languages.append({"language": value, "priority": i})
+                    added_languages.append(value)
 
         if not languages:
             raise forms.ValidationError(_("Please select at least one language"), code='no-language')
@@ -2732,3 +2815,41 @@ class MoveVideosForm(VideoManagementForm):
                 count=self.video_policy_errors,
                 team=self.cleaned_data['new_team']))
         return messages
+
+class SearchVideoFeedForm(forms.Form):
+    q = SearchField(label=_('Search'), required=False,
+                    widget=ContentHeaderSearchBar)
+
+    def update_qs(self, qs):
+        if self.is_bound and self.is_valid():
+            q = self.cleaned_data.get('q', '')
+            qs = qs.filter(url__icontains=q)
+        return qs
+
+class UserLanguageForm(forms.Form):
+    language1 = forms.ChoiceField(choices=[], required=True, label='')
+    language2 = forms.ChoiceField(choices=[], required=False, label='')
+    language3 = forms.ChoiceField(choices=[], required=False, label='')
+    language4 = forms.ChoiceField(choices=[], required=False, label='')
+    language5 = forms.ChoiceField(choices=[], required=False, label='')
+    language6 = forms.ChoiceField(choices=[], required=False, label='')
+
+    def __init__(self, user, *args, **kwargs):
+        super(UserLanguageForm, self).__init__(*args, **kwargs)
+        self.user = user
+        user_lang_iter = iter(user.get_languages())
+        for i in xrange(1, 7):
+            field = self.fields['language{}'.format(i)]
+            field.choices = get_language_choices(with_empty=True)
+            try:
+                field.initial = user_lang_iter.next()
+            except StopIteration:
+                pass
+
+    def save(self):
+        languages = []
+        for i in xrange(1, 7):
+            value = self.cleaned_data['language{}'.format(i)]
+            if value:
+                languages.append({"language": value, "priority": i})
+        self.user.set_languages(languages)

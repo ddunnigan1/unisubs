@@ -33,6 +33,7 @@ from datetime import date
 import argparse
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -176,12 +177,31 @@ class JSTest(Command):
         ])
 
 class DBReset(Command):
-    """Reset the database."""
+    """Reset the database.
+
+    You can also setup your new database with test data by creating a
+    .dbreset-testdata file in the unisubs root directory.  Make each line an
+    argument to the setup_test_data management command, for example: "tasks
+    myuser myteam".  These will be run after the fresh database is created.
+    """
 
     def run(self):
         run_manage(['drop_all_tables'])
         run_manage(['migrate'])
         run_manage(['create_anonymous_user'])
+        self.setup_test_data()
+
+    def setup_test_data(self):
+        path = os.path.join(unisubs_root(), '.dbreset-testdata')
+        if not os.path.exists(path):
+            return
+        with open(path) as f:
+            for line in f:
+                args = shlex.split(line)
+                if args:
+                    cmdline = ['setup_test_data'] + list(args)
+                    print(cmdline)
+                    run_manage(cmdline)
 
 class DBDump(Command):
     """Dump the database to a flie."""

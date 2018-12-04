@@ -1,0 +1,18 @@
+{% extends "future/teams/settings/base.html" %}
+{% load i18n forms %}
+
+{% block settings_form %}
+<form method="GET" action="" style="" class="ajaxForm updateOnChange updateLocation">
+<div class="contentHeader">
+  <div class="contentHeader-title">{% trans "Project Settings" %}</div>
+    {{ filters_form.q }}
+    <button class="contentHeader-addButton" type="submit" name="form" value="add">
+      <span class="fa fa-plus"></span>
+      <span class="contentHeader-addButtonText" style="display: none;">{% trans "Add Project" %}</span>
+    </button>
+</div>
+</form>
+<div id="project-list-all">
+  {% include "future/teams/settings/project-list.html" %}
+</div>
+{% endblock %}

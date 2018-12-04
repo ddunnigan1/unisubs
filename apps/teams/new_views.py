@@ -73,7 +73,7 @@ from utils.pagination import AmaraPaginator, AmaraPaginatorFuture
 from utils.forms import autocomplete_user_view, FormRouter
 from utils.text import fmt
 from utils.translation import get_language_label, get_user_languages_from_cookie
-from videos.models import Video
+from videos.models import Video, VideoFeed
 
 import datetime
 
@@ -83,6 +83,7 @@ ACTIONS_PER_PAGE = 20
 VIDEOS_PER_PAGE = 12
 VIDEOS_PER_PAGE_MANAGEMENT = 20
 MEMBERS_PER_PAGE = 10
+PROJECTS_PER_PAGE = 10
 
 '''
 Maximum number of videos in the welcome page (non-member team landing page)
@@ -186,6 +187,8 @@ def videos(request, team):
         'filters_form': filters_form,
         'team_nav': 'videos',
         'current_tab': 'videos',
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
     }
     if request.is_ajax():
         response_renderer = AJAXResponseRenderer(request)
@@ -284,7 +287,6 @@ def members_public(request, slug):
     return render(request, 'future/teams/members/members.html', context)
 
 def manage_members_form(request, team, form_name, members, page):
-
     try:
         selection = request.GET['selection'].split('-')
     except StandardError:
@@ -1271,16 +1273,19 @@ def settings_feeds(request, team):
     if team.is_old_style():
         return old_views.video_feeds(request, team)
 
-    action = request.POST.get('action')
+    filters_form = forms.SearchVideoFeedForm(request.GET)
+    feeds = filters_form.update_qs(team.videofeed_set.all())
+
+    action = request.POST.get('action') 
     if request.method == 'POST' and action == 'import':
         feed = get_object_or_404(team.videofeed_set, id=request.POST['feed'])
         feed.update()
-        messages.success(request, _(u'Importing videos now'))
+        messages.success(request, _(u'Started importing videos from {}'.format(feed.url) ))
         return HttpResponseRedirect(request.build_absolute_uri())
     if request.method == 'POST' and action == 'delete':
         feed = get_object_or_404(team.videofeed_set, id=request.POST['feed'])
         feed.delete()
-        messages.success(request, _(u'Feed deleted'))
+        messages.success(request, _(u'Video feed deleted'))
         return HttpResponseRedirect(request.build_absolute_uri())
 
     if request.method == 'POST' and action == 'add':
@@ -1293,16 +1298,36 @@ def settings_feeds(request, team):
     else:
         add_form = forms.AddTeamVideosFromFeedForm(team, request.user)
 
-    return render(request, "new-teams/settings-feeds.html", {
+    context = {
         'team': team,
+        'filters_form': filters_form,
         'add_form': add_form,
-        'feeds': team.videofeed_set.all(),
-        'breadcrumbs': [
-            BreadCrumb(team, 'teams:dashboard', team.slug),
-            BreadCrumb(_('Settings'), 'teams:settings_basic', team.slug),
-            BreadCrumb(_('Video Feeds')),
-        ],
-    })
+        'feeds': feeds,
+        'team_nav': 'settings',
+        'settings_tab': 'feeds',
+    }
+
+    if request.is_ajax():
+        action = request.GET.get('action', None)
+
+        # filter search
+        if not action:
+            response_renderer = AJAXResponseRenderer(request)
+            response_renderer.replace('#video-feeds-list', 
+                'future/teams/settings/video-feeds-list.html',
+                context)
+            return response_renderer.render()
+
+        if action and action == 'remove':
+            pk = request.GET.get('pk')
+            feed = VideoFeed.objects.get(pk=pk)
+            response_renderer = AJAXResponseRenderer(request)
+            response_renderer.show_modal(
+                'future/teams/settings/forms/video-feed-remove.html',
+                { 'feed' : feed })
+            return response_renderer.render()
+
+    return render(request, "future/teams/settings/video-feeds.html", context)
 
 @team_settings_view
 def settings_permissions(request, team):
@@ -1353,57 +1378,109 @@ def settings_projects(request, team):
     if team.is_old_style():
         return old_views.settings_projects(request, team)
 
-    projects = Project.objects.for_team(team)
+    form_name = request.GET.get('form', None)
+    filters_form = forms.ProjectFiltersForm(request.GET)
+    projects = filters_form.update_qs(Project.objects.for_team(team))
 
-    form = request.POST.get('form')
+    paginator = AmaraPaginatorFuture(projects, PROJECTS_PER_PAGE)
+    page = paginator.get_page(request)
+    next_page, prev_page = paginator.make_next_previous_page_links(page, request)
 
-    if request.method == 'POST' and form == 'add':
-        add_form = forms.ProjectForm(team, data=request.POST)
-
-        if add_form.is_valid():
-            add_form.save()
-            messages.success(request, _('Project added.'))
-            return HttpResponseRedirect(
-                reverse('teams:settings_projects', args=(team.slug,))
-            )
-    else:
-        add_form = forms.ProjectForm(team)
-
-    if request.method == 'POST' and form == 'edit':
-        edit_form = forms.EditProjectForm(team, data=request.POST)
-
-        if edit_form.is_valid():
-            edit_form.save()
-            messages.success(request, _('Project updated.'))
-            return HttpResponseRedirect(
-                reverse('teams:settings_projects', args=(team.slug,))
-            )
-    else:
-        edit_form = forms.EditProjectForm(team)
-
-    if request.method == 'POST' and form == 'delete':
-        try:
-            project = projects.get(id=request.POST['project'])
-        except Project.DoesNotExist:
-            pass
-        else:
-            project.delete()
-            messages.success(request, _('Project deleted.'))
-            return HttpResponseRedirect(
-                reverse('teams:settings_projects', args=(team.slug,))
-            )
-
-    return render(request, "new-teams/settings-projects.html", {
+    context = {
         'team': team,
         'projects': projects,
-        'add_form': add_form,
-        'edit_form': edit_form,
+        'filters_form': filters_form,
+        'settings_tab': 'projects',
+        'paginator': paginator,
+        'page': page,
+        'next': next_page,
+        'previous': prev_page,
         'breadcrumbs': [
             BreadCrumb(team, 'teams:dashboard', team.slug),
             BreadCrumb(_('Settings'), 'teams:settings_basic', team.slug),
             BreadCrumb(_('Projects')),
         ],
-    })
+    }
+
+    if form_name == 'add':
+        return settings_add_project_form(request, team)
+    elif form_name:
+        return settings_projects_form(request, team, form_name, projects, page)
+
+    if not form_name and request.is_ajax():
+        response_renderer = AJAXResponseRenderer(request)
+        response_renderer.replace(
+            '#project-list-all',
+            'future/teams/settings/project-list.html',
+            context
+        )
+        return response_renderer.render()
+
+    return render(request, "future/teams/settings/projects.html", context)
+
+def settings_add_project_form(request, team):
+    response_renderer = AJAXResponseRenderer(request)
+
+    if request.method == 'POST':
+        try:
+            form = forms.ProjectForm(team, data=request.POST)
+        except Exception as e:
+            logger.error(e, exc_info=True)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Project added'))
+            response_renderer.reload_page()
+            return response_renderer.render()
+    else:
+        try:
+            form = forms.ProjectForm(team)
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            return HttpResponseBadRequest()
+
+    template_name = 'future/teams/settings/forms/project-add.html'
+    context = {'form': form, 'team': team}
+
+    response_renderer.show_modal(template_name, context)
+    return response_renderer.render()
+
+def settings_projects_form(request, team, form_name, projects, page):
+    try:
+        selection = int(request.GET['selection'])
+        project = projects.get(id=selection)
+    except:
+        return HttpResponseBadRequest()
+
+    if form_name == 'edit':
+        FormClass = forms.EditProjectForm
+        form_message = _('Project updated')
+    elif form_name == 'delete':
+        FormClass = forms.DeleteProjectForm
+        form_message = _('Project deleted')
+
+    response_renderer = AJAXResponseRenderer(request)
+
+    if request.method == 'POST':
+        try:
+            form = FormClass(team, project, data=request.POST)
+        except Exception as e:
+            logger.error(e, exc_info=True)
+        if form.is_valid():
+            form.save()
+            messages.success(request, form_message)
+            response_renderer.reload_page()
+            return response_renderer.render()
+    else:
+        try:
+            form = FormClass(team, project)
+        except Exception as e:
+            logger.error(e, exc_info=True)
+
+    template_name = 'future/teams/settings/forms/project-{}.html'.format(form_name)
+    context = {'form': form, 'team': team, 'project': project}
+
+    response_renderer.show_modal(template_name, context)
+    return response_renderer.render()
 
 @team_settings_view
 def edit_project(request, team, project_slug):

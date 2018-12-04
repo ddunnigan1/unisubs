@@ -5,7 +5,9 @@
 <main id="dashboard" class="pageContent">
   <section class="pageSection">
     <div class="container">
-      {% if dashboard_videos %}
+      {% if no_languages_yet %}
+        {% include "future/teams/set-languages.html" %}
+      {% elif dashboard_videos %}
       <div class="row">
         <div class="col-xs-12">
           <div id="" class="content">
@@ -20,7 +22,7 @@
     </div>
   </section>
 
-  {% if dashboard_history %}
+  {% if dashboard_history and not no_languages_yet %}
   <section class="pageSection">
     <div class="container">
       <div class="row">

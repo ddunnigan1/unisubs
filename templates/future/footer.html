@@ -12,6 +12,9 @@
         <div class="col-xs-12 col-md-7">
           <div id="footernav" class="content">
             {% include "future/navigation/footernav.html" %} 
+            <div class="pull-right">
+              {{ staff_controls }}
+            </div>
             <div class="pcf">
               <a href="https://pculture.org/" target="_blank">
                 <img src="{{ PCF_LOGO_URL }}" alt="{% trans "Participatory Culture Foundation Logo" %}">

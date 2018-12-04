@@ -1,5 +1,5 @@
 {% load i18n %}
-<aside modal-dialog="guidelines" allow-close class="modal" role="dialog" id="guidelines-modal" tabindex="-1" aria-labeledby="guidelines-heading" dir="[[ workingSubtitles.language.dir ]]">
+<aside ng-controller="GuidelinesController" modal-dialog="guidelines" allow-close class="modal" role="dialog" id="guidelines-modal" tabindex="-1" aria-labeledby="guidelines-heading" dir="[[ workingSubtitles.language.dir ]]">
     <ng-switch on="showTeamGuidelines()">
     <h3 ng-switch-when="true">[[ teamName ]] Guidelines</h3>
     <h3 id="guidelines-heading" ng-switch-when="false">{% trans "Amara Style Guidelines" %}</h3>
@@ -8,21 +8,19 @@
         <table>
             <tr>
                 <td>{% trans "Subtitle line length" %}</td>
-                <td>{% trans "Keep subtitle length to about 42 characters;" %}<br/>
-                    {% trans "avoid more than 2 lines per subtitle." %}</td>
+                <td>[[ guidelines.cpl ]]<br>[[ guidelines.lines ]]</td>
             </tr>
             <tr>
                 <td>{% trans "Minimum duration" %}</td>
-                <td>{% trans "Subtitles should not be less than 1 second." %}</td>
+                <td>[[ guidelines.minDuration ]]</td>
             </tr>
             <tr>
                 <td>{% trans "Maximum duration" %}</td>
-                <td>{% trans "Split subtitles lasting more than 7 seconds." %}</td>
+                <td>[[ guidelines.maxDuration ]]</td>
             </tr>
             <tr>
                 <td>{% trans "Reading speed" %}</td>
-                <td>{% trans "8-25 characters/second is recommended;" %}<br/>
-                    {% trans "8-16 characters/second for children." %}</td>
+                <td>[[ guidelines.cps ]]</td>
             </tr>
             <tr>
                 <td>{% trans "Sounds" %}</td>

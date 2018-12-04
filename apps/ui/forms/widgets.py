@@ -144,7 +144,11 @@ class SearchBar(widgets.TextInput):
 
 class ContentHeaderSearchBar(widgets.TextInput):
     def render(self, name, value, attrs=None):
+        if attrs is None:
+            attrs = {}
         attrs['class'] = 'contentHeader-searchBar'
+        if 'autocomplete' not in attrs:
+            attrs['autocomplete'] = 'off'
         input = super(ContentHeaderSearchBar, self).render(name, value, attrs)
         return format_html(
             '<div class="contentHeader-search">'

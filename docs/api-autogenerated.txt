@@ -307,6 +307,14 @@ Creating subtitle languages
     :<json integer soft_limit_cps: Controls the max characters per second for
         subtitles.  A warning is shown in the editor if this limit is exceeded.
 
+Updating subtitle languages
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. http:put:: /api/videos/(video-id)/languages/(language-code)/
+
+    The request data is the same as when creating languages, except
+    ``language_code`` is not allowed.
+
 .. _subtitles_resource:
 
 Subtitles Resource
@@ -1229,24 +1237,225 @@ Subtitle Request Resource
 -------------------------
 
 This API endpoint is used for subtitle requests for teams new team that use
-the collaboration model.  At this point it's only used by a limited number of
-teams, but we hope to make it available to everyone in the near future.
+the collaboration model.
 
-Terminology
-***********
+Subtitle requests are extremely flexible and can involve multiple teams
+working together on a request.  This section describes the simple case where
+only a single team is involved.
+
+This section describes a simplified version of the subtitle request API,
+leaving out functionality that's only needed for multi-team requests.  See the
+next section for the full API.
+
+Listing Requests
+****************
+
+.. http:get:: /api/teams/(team-slug)/subtitle-requests/
+
+    :queryparam string work_status: Filter by the status of work on the
+        subtitles.  Possible values:
+
+        - ``in-progress`` -- work in progress
+        - ``available`` -- assignment currently available
+        - ``assigned`` -- assignment in progress
+        - ``needs-subtitler`` -- transcribe/translate assignment available
+        - ``being-subtitled`` -- transcribe/translate assignment in progress
+        - ``needs-reviewer`` -- review assignment available
+        - ``being-reviewed`` -- review assignment in progress
+        - ``needs-approver`` -- approval assignment available
+        - ``being-approved`` -- approval assignment in progress
+        - ``complete`` -- work complete
+
+    :queryparam video-id video: Filter by video ID
+    :queryparam string video_title: Filter by video title
+    :queryparam bcp-47 video_language: Filter by video language
+    :queryparam bcp-47 language: Filter by subtitle request language
+    :queryparam slug project: Filter by team project
+    :queryparam username assignee: Filter by assignee
+    :queryparam string sort:  Sort order.  Possible values:
+
+      - ``-creation`` *(default)* -- creation date/time (latest first)
+      - ``creation`` -- creation date/time (earliest first)
+      - ``-due`` -- due date/time (latest first)
+      - ``due`` -- due date/time (earliest first)
+      - ``-completion`` -- latest completion date/time (latest first)
+      - ``completion`` -- latest completion date/time (earliest first)
+
+    :>json job-id job_id: ID for the request
+    :>json video-id video: Video for the request
+    :>json bcp-47 language: Language code of the subtitle request
+    :>json string work_status: Status of work on the subtitles.  Possible
+        values:
+
+        - ``needs-subtitler`` -- transcribe/translate assignment available
+        - ``being-subtitled`` -- transcribe/translate assignment in progress
+        - ``needs-reviewer`` -- review assignment available
+        - ``being-reviewed`` -- review assignment in progress
+        - ``needs-approver`` -- approval assignment available
+        - ``being-approved`` -- approval assignment in progress
+        - ``complete`` -- work complete
+
+    :>json datetime created: when the request was created.
+    :>json datetime work_completed: when the subittle work was completed, or
+        null.
+    :>json user subtitler: user creating the subtitles (see :ref:`user_fields`)
+    :>json user reviewer: user reviewing the subtitles (see :ref:`user_fields`).
+    :>json user approver: user approving the subtitles (see :ref:`user_fields`).
+    :>json uri video_uri: Video API resource
+    :>json uri subtitles_uri: Subtitles resource
+    :>json uri actions_uri: Subtitle actions resource
+    :>json uri resource_uri: Subtitle request details resource
+
+    List results are paginated.
+
+Request Details
+***************
+
+.. http:get:: /api/teams/(team-slug)/subtitle-requests/(job-id)/
+
+   Response data is the same as above.
+
+Creating Requests
+*****************
+
+.. http:post:: /api/teams/(team-slug)/subtitle-requests/
+
+    :<json video-id video: Video ID.  This must be part of the team identified
+      in the URL path
+    :<json bcp-47 language: language code for the subtitles
+
+    The API user must be an admin of the team to create a subtitle request.
+
+Updating Requests
+*****************
+
+.. http:PUT:: /api/teams/(team-slug)/subtitle-requests/(job-id)/
+
+    :<json user subtitler: User to assign as the subtitler,
+      or null to unassign the current subtitler (see :ref:`user_ids`).
+    :<json user reviewer: User to assign as the reviewer,
+      or null to unassign the current reviewer (see :ref:`user_ids`).
+    :<json user approver: User to assign as the approver,
+      or null to unassign the current approver (see :ref:`user_ids`).
+    :<json string work_status: Set to "complete" to mark the
+      subtitles complete.  This is the only value we currently support.
+
+Deleting Requests
+*****************
+
+.. http:delete:: /api/teams/(team-slug)/subtitle-requests/(job-id)/
+
+Examples:
+*********
+
+**Assigning a user:**
+
+.. sourcecode:: http
+
+    PUT /api/teams/my-team/subtitle-requests/abc123/
+
+    {
+        "subtitler": "alice"
+    }
+
+**Unassigning a user:**
+
+.. sourcecode:: http
+
+    PUT /api/teams/my-team/subtitle-requests/abc123/
+
+    {
+        "subtitler": null
+    }
+
+**Marking a subtitle request complete**
+
+.. sourcecode:: http
+
+    PUT /api/teams/my-team/subtitle-requests/abc123/
+
+    {
+        "work_status": "complete"
+    }
+
+Endorsing Subtitles
+*******************
+
+If you have an assignment, you can use the :ref:`subtitles_resource` to submit
+subtitles.  Use the ``endorse`` action to endorse them, moving the request to
+the next stage.  You can also use the :ref:`subtitle_actions_resource` to
+endorse the subtitles without submiting any changes.
+
+
+Subtitle Request Resource (Multiple Teams)
+------------------------------------------
+
+This API endpoint is used for subtitle requests for teams new team that use
+the collaboration model.
+
+Subtitle requests are extremely flexible and can involve multiple teams
+working together on a request.  This section describes the complex cases where
+multiple teams handle a request together.
+
+This section starts with some general concepts for multi-team requests, then
+describes the full subtitle request API.
+
+Team Terminology
+****************
 
 Several teams can be involved in a subtitle request.  We use these terms to
 distinguish the teams:
 
-  - *source team* -- Team that the video is part of.
-  - *work team* -- Team that is creating the subtitles.  We call this the
-    *initial work* to differentiate it from the evaluations.
-  - *evaulation teams* -- Teams that are evaluating/checking the subtitles.
+  - *source team* -- Team that owns the video.
+  - *work team* -- Team that is creating the subtitles.  We say this team does
+    the *initial work* to differentiate it from the evaluations.
+  - *evaulation teams* -- Teams that are checking the work of the work team.
     Each request can have 0-3 evaluation teams.
+  - Note that the source team may also be the work team or an evaluation team
+    for a request.
 
-All subtitle request endpoints are contained inside the main endpoint for a
-team.  When the docs say something like "source team only", it refers to that
-team.
+All subtitle request endpoints are contained inside
+``/api/teams/(team-slug)/subtitle-requests/``.  When the docs say something
+like "source team only", it refers to the team corresponding to
+``(team-slug)`` in the URL.
+
+Request Status Fields
+*********************
+
+The main concept to understand for multi-team requests is we use several
+status fields for the requests: ``status``, ``work_status``, and
+``evaluation_status``.  The status field that we return depends on the team's
+relationship to the request This gives each team a different view of the
+request.  Each team gets the details revelant to it's work, but not details
+about the work being done by other teams.
+
+As an example, consider a request that has 2 evaluation teams.  As the request
+progresses, here are the values that we will return for the various status
+fields:
+
+=============== =============== ========================= =========================
+status          work_status     evaluation_status (team1) evaluation_status (team2)
+=============== =============== ========================= =========================
+in-progress     needs-subtitler pending                   pending
+in-progress     being-subtitled pending                   pending
+in-progress     needs-reviewer  pending                   pending
+in-progress     being-reviewed  pending                   pending
+in-progress     needs-approver  pending                   pending
+in-progress     being-approved  pending                   pending
+in-evaluation1  complete        available                 pending
+in-evaluation1  complete        assigned                  pending
+in-evaluation2  complete        complete                  available
+in-evaluation2  complete        complete                  assigned
+complete        complete        complete                  complete
+=============== =============== ========================= =========================
+
+* ``status`` will be returned to the source team
+* ``work_status`` will be returned to the work team
+* ``evaluation_status`` will be returned to evaluation teams
+* If the source team is also the work or evaluation team, then it will see
+  multiple status fields.
+* ``status``, ``work_status``, and ``evaluation_status`` are also available as
+  filters to use when listing requests.
 
 Listing Requests
 ****************
@@ -1375,42 +1584,6 @@ Request Details
 
    Response data is the same as above.
 
-Request Status Fields
-*********************
-
-We return several status fields for requests (``status``, ``work_status``,
-``evaluation_status``).  The status field that you see depends on the team's
-relationship to the request (where "the team" is identified by the
-``team-slug`` param in the URL).  This gives each team a different view of the
-request.  Each team gets the information revelant to it's work, and doesn't
-get information about the work being done by other teams.
-
-As an example, consider a request that has 2 evaluation teams.  As the request
-progresses, here are the values that we will return for the various status
-fields:
-
-=============== =============== ========================= =========================
-status          work_status     evaluation_status (team1) evaluation_status (team2)
-=============== =============== ========================= =========================
-in-progress     needs-subtitler pending                   pending
-in-progress     being-subtitled pending                   pending
-in-progress     needs-reviewer  pending                   pending
-in-progress     being-reviewed  pending                   pending
-in-progress     needs-approver  pending                   pending
-in-progress     being-approved  pending                   pending
-in-evaluation1  complete        available                 pending
-in-evaluation1  complete        assigned                  pending
-in-evaluation2  complete        complete                  available
-in-evaluation2  complete        complete                  assigned
-complete        complete        complete                  complete
-=============== =============== ========================= =========================
-
-* ``status`` will be returned to the source team
-* ``work_status`` will be returned to the work team
-* ``evaluation_status`` will be returned to evaluation teams
-* Multiple status fields can be returned if the team fits into more than one
-  of the above categories
-
 Creating Requests
 *****************
 
@@ -1455,52 +1628,3 @@ Deleting Requests
 *****************
 
 .. http:delete:: /api/teams/(team-slug)/subtitle-requests/(job-id)/
-
-
-**Assigning a user:**
-
-.. sourcecode:: http
-
-    PUT /api/teams/my-team/subtitle-requests/abc123/
-
-    {
-        "subtitler": "alice"
-    }
-
-**Unassigning a user:**
-
-.. sourcecode:: http
-
-    PUT /api/teams/my-team/subtitle-requests/abc123/
-
-    {
-        "subtitler": null
-    }
-
-**Marking a subtitle request complete**
-
-.. sourcecode:: http
-
-    PUT /api/teams/my-team/subtitle-requests/abc123/
-
-    {
-        "work_status": "complete"
-    }
-
-**Moving a subtitle request to another team**
-
-.. sourcecode:: http
-
-    PUT /api/teams/my-team/subtitle-requests/abc123/
-
-    {
-        "team": "other-team-slug"
-    }
-
-Endorsing Subtitles
-*******************
-
-If you have an assignment, you can use the :ref:`subtitles_resource` to submit
-subtitles.  Use the ``endorse`` action to endorse them, moving the request to
-the next stage.  You can also use the :ref:`subtitle_actions_resource` to
-endorse the subtitles without submiting any changes.

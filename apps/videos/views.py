@@ -357,6 +357,8 @@ def video(request, video_id, video_url=None, title=None):
             (vurl, get_sync_account(video, vurl))
             for vurl in video.get_video_urls()
         ],
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
     })
 
 def create_subtitles(request, video_id):
@@ -674,6 +676,8 @@ def subtitles(request, video_id, lang, lang_id, version_id=None):
             request.user, subtitle_language.language_code),
         'header': customization.header,
         'extra_page_controls': customization.extra_page_controls,
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
     }
     if workflow.user_can_view_notes(request.user, subtitle_language.language_code):
         editor_notes = workflow.get_editor_notes(request.user, subtitle_language.language_code)
@@ -687,9 +691,11 @@ def subtitles(request, video_id, lang, lang_id, version_id=None):
             context['show_notes'] = False
     else:
         context['show_notes'] = False
-    if team_video and can_resync(team_video.team, request.user):
-        context.update(sync_history_context(video, subtitle_language))
-        context['show_sync_history'] = True
+    if team_video:
+        context['team'] = team_video.team
+        if can_resync(team_video.team, request.user):
+            context.update(sync_history_context(video, subtitle_language))
+            context['show_sync_history'] = True
     else:
         context['show_sync_history'] = False
         context['can_resync'] = False

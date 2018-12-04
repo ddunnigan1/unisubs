@@ -23,6 +23,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.management.base import BaseCommand
 from django.test import RequestFactory
 from django.urls import resolve
+from django.utils import translation
 
 from auth.models import CustomUser as User
 from localeurl.utils import strip_path
@@ -35,22 +36,20 @@ middleware_to_apply = [
 
 class Command(BaseCommand):
     help = u'Run a test request'
+
+    def add_arguments(self, parser):
+        parser.add_argument('path', help='URL path to test')
+        parser.add_argument('username', nargs='?',
+                            help='Simulate this user hitting the page')
     
-    def handle(self, *args, **kwargs):
-        try:
-            url = args[0]
-        except IndexError:
-            self.stderr.write("manage testrequest url [username]\n")
-            return
-        try:
-            username = args[1]
-        except IndexError:
-            user = AnonymousUser()
+    def handle(self, **options):
+        if options['username']:
+            user = User.objects.get(username=options['username'])
         else:
-            user = User.objects.get(username=username)
-        path, query = self.parse_url(url)
+            user = AnonymousUser()
+        locale, path, query = self.parse_url(options['path'])
+        translation.activate(locale)
         request = RequestFactory().get(path, query)
-        request.LANGUAGE_CODE = 'en'
         request.user = user
         for middleware in middleware_to_apply:
             middleware.process_request(request)
@@ -64,5 +63,5 @@ class Command(BaseCommand):
     def parse_url(self, url):
         parsed = urlparse(url)
         locale, path = strip_path(parsed.path)
-        return path, parse_qs(parsed.query)
+        return locale, path, parse_qs(parsed.query)
 

@@ -21,7 +21,7 @@ from settings import *
 import logging
 import os
 
-ALLOWED_HOSTS = ['unisubs.example.com']
+ALLOWED_HOSTS = ['*']
 HOSTNAME = 'unisubs.example.com:8000'
 
 INSTALLED_APPS += (

@@ -216,7 +216,8 @@ def edit(request):
     context = {
         'form': form,
         'user_info': request.user,
-        'edit_profile_page': True
+        'edit_profile_page': True,
+        'redirect': request.GET.get('next', None)
     }
     return render(request, 'profiles/edit.html', context)
 

@@ -93,7 +93,7 @@ class VideoType(object):
             for block in response.iter_content(1024):
                 handle.write(block)
         output = os.path.join(settings.TMP_FOLDER, str(uuid.uuid4()) + ".wav")
-        cmd = """avconv -i "{}" -ar 16000 -ac 1 {}""".format(download_file, output)
+        cmd = """ffmpeg -i "{}" -ar 16000 -ac 1 {}""".format(download_file, output)
         logger.error("CMD " + cmd)
         try:
             subprocess.check_call(cmd, shell=True)

@@ -40,9 +40,11 @@ subtitle_loader.add_region('top', 'amara-style',
                            origin='0% 0%')
 
 def create_new_subtitles(language_code, title='', description='',
-                         frame_rate=None, frame_rate_multiplier=None):
+                         frame_rate=None, frame_rate_multiplier=None,
+                         drop_mode=None):
     return subtitle_loader.create_new(language_code, title, description,
-                                      frame_rate, frame_rate_multiplier)
+                                      frame_rate, frame_rate_multiplier,
+                                      drop_mode)
 
 def load_subtitles(language_code, content, file_type):
     return subtitle_loader.loads(language_code, content, file_type)

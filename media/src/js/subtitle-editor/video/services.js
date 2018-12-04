@@ -122,6 +122,7 @@ var angular = angular || null;
                 videoURLs = SubtitleStorage.getVideoURLs();
                 pop = window.Popcorn.amara('#video', videoURLs, EditorData.video.primaryVideoURLType, {
                     controls: false,
+                    hide_subtitles: true,
                 });
                 handlePopcornEvents();
                 routeEvents();

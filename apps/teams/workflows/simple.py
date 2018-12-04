@@ -26,12 +26,9 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 
-from collab.views import dashboard_set_languages
 from subtitles.models import SubtitleVersion
-from teams import views as old_views
-from teams import forms
+from teams import views as old_views, forms as teams_forms
 from teams.behaviors import get_main_project
-from teams import forms as teams_forms
 from teams.models import Project, Team
 from teams.workflows import TeamWorkflow
 from ui import CTA, SplitCTA, Link
@@ -204,9 +201,6 @@ def dashboard(request, team):
     if not member:
         raise PermissionDenied()
 
-    if len(request.user.get_languages()) == 0:
-        return dashboard_set_languages(request, team)
-
     video_qs = team.videos.all().order_by('-created')
     if main_project:
         video_qs = video_qs.filter(teamvideo__project=main_project)
@@ -232,9 +226,8 @@ def dashboard(request, team):
         'more_video_count': max(0, video_qs.count() - NEWEST_VIDEOS_PER_PAGE),
         'video_search_form': teams_forms.VideoFiltersForm(team),
         'member_profile_url': member.get_absolute_url(),
-        'breadcrumbs': [
-            BreadCrumb(team),
-        ],
+        'no_languages_yet': (False if request.user.is_anonymous 
+                             else len(request.user.get_languages()) == 0),
 
         'dashboard_videos': get_dashboard_videos(team, request.user, main_project),
         'dashboard_history': get_dashboard_history(team, request.user, main_project),
@@ -329,7 +322,4 @@ class SimpleTeamWorkflow(TeamWorkflow):
                 team = Team.objects.get(slug=slug)
             except Team.DoesNotExist:
                 return None
-        if team.user_is_member(request.user):
-            return team
-        else:
-            return None
+        return team
