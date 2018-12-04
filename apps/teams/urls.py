@@ -84,7 +84,7 @@ urlpatterns += [
     url(r'^(?P<slug>[-\w]+)/videos/ajax-search/$', new_views.ajax_video_search,
         name='ajax-video-search'),
     url(r'^(?P<slug>[-\w]+)/members/$', new_views.members, name='members'),
-    url(r'^(?P<slug>[-\w]+)/member/(?P<username>.+)/$', new_views.member_profile, name='member-profile'),
+    url(r'^(?P<slug>[-\w]+)/members/(?P<username>.+)/$', new_views.member_profile, name='member-profile'),
     url(r'^(?P<slug>[-\w]+)/members/ajax-search/$', new_views.ajax_member_search,
         name='ajax-member-search'),
     url(r'^(?P<slug>[-\w]+)/inviteable_users/ajax-search/$',

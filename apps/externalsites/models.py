@@ -156,10 +156,12 @@ class ExternalAccount(models.Model):
             self.do_update_subtitles(video_url, language, version)
         except Exception, e:
             SyncHistory.objects.create_for_error(e, **sync_history_values)
+            return False
         else:
             SyncHistory.objects.create_for_success(**sync_history_values)
             SyncedSubtitleVersion.objects.set_synced_version(
                 self, video_url, language, version)
+            return True
 
     def delete_subtitles(self, video_url, language):
         sync_history_values = {
@@ -201,6 +203,18 @@ class ExternalAccount(models.Model):
         """
         return False
 
+    def readable_account_name(self):
+        """Return the human-readable account name of this
+           external account
+        """
+        raise NotImplementedError()
+
+    def readable_account_type(self):
+        """Return the human-readable account type of this
+           external account
+        """
+        raise NotImplementedError()
+
     class Meta:
         abstract = True
 
@@ -241,6 +255,12 @@ class KalturaAccount(ExternalAccount):
         kaltura_id = video_url.get_video_type().kaltura_id()
         syncing.kaltura.delete_subtitles(self.partner_id, self.secret,
                                          kaltura_id, language.language_code)
+
+    def readable_account_name(self):
+        return self.partner_id
+
+    def readable_account_type(self):
+        return _('Kaltura')
 
 class BrightcoveAccount(ExternalAccount):
     account_type = 'B'
@@ -403,6 +423,12 @@ class BrightcoveCMSAccount(ExternalAccount):
                                      self.client_secret,
                                      bc_video_id, language)
 
+    def readable_account_name(self):
+        return self.client_id
+
+    def readable_account_type(self):
+        return _('Brightcove CMS')
+
 class VimeoSyncAccountManager(ExternalAccountManager):
     def _get_sync_account_team_video(self, team_video, video_url):
         query = self.filter(type=ExternalAccount.TYPE_TEAM, username=video_url.owner_username)
@@ -544,6 +570,13 @@ class VimeoSyncAccount(ExternalAccount):
         return (self.type == ExternalAccount.TYPE_USER or
                 (self.type == ExternalAccount.TYPE_TEAM and self.import_team))
 
+    def readable_account_name(self):
+        return self.username
+
+
+    def readable_account_type(self):
+        return _('Vimeo')
+
 class YouTubeAccountManager(ExternalAccountManager):
     def _get_sync_account_team_video(self, team_video, video_url):
         query = self.filter(type=ExternalAccount.TYPE_TEAM,
@@ -609,6 +642,10 @@ class YouTubeAccount(ExternalAccount):
     fetch_initial_subtitles = models.BooleanField(default=True)
     sync_teams = models.ManyToManyField(
         Team, related_name='youtube_sync_accounts')
+
+    # this setting was originally a team-wide setting in teams.models.Team.sync_metadata
+    # the setting is now transferred here and adjustable on a per-Youtube-account basis
+    sync_metadata = models.BooleanField(default=True)
 
     objects = YouTubeAccountManager()
 
@@ -696,7 +733,8 @@ class YouTubeAccount(ExternalAccount):
             access_token = google.get_new_access_token(self.oauth_refresh_token)
             syncing.youtube.update_subtitles(video_url.videoid, access_token,
                                              version,
-                                             self.enable_language_mapping)
+                                             self.enable_language_mapping,
+                                             self.sync_metadata)
 
     def do_delete_subtitles(self, video_url, language):
         access_token = google.get_new_access_token(self.oauth_refresh_token)
@@ -739,6 +777,21 @@ class YouTubeAccount(ExternalAccount):
 
         self.last_import_video_id = video_ids[0]
         self.save()
+
+    def imports_to_owner_team(self):
+        return (self.type == self.TYPE_TEAM and 
+                self.import_team_id and
+                self.import_team_id == self.owner_id)
+
+    def imports_to_other_team(self):
+        return (self.type == self.TYPE_TEAM and 
+                self.import_team_id)
+
+    def readable_account_name(self):
+        return self.username
+
+    def readable_account_type(self):
+        return _('YouTube')
 
 account_models = [
     KalturaAccount,
@@ -824,6 +877,19 @@ class SyncedSubtitleVersionManager(models.Manager):
                     video_url=video_url,
                     language=language).delete()
 
+    def for_owner(self, owner):
+        accounts = []
+        for model in account_models:
+            for account in model.objects.for_owner(owner):
+                accounts.append(account)
+
+        ret_val = []
+        for account in accounts:
+            for ssv in self.filter(account_type=account.account_type,
+                                   account_id=account.id):
+                ret_val.append(ssv)
+        return ret_val
+
 class SyncedSubtitleVersion(models.Model):
     """Stores the subtitle version that is currently synced to an external
     account.
@@ -887,12 +953,14 @@ class SyncHistoryManager(models.Manager):
         return self.filter(language=language).order_by('-id')
 
     def create_for_success(self, **kwargs):
-        sh = self.create(result=SyncHistory.RESULT_SUCCESS, **kwargs)
+        sh = self.create(result=SyncHistory.RESULT_SUCCESS, 
+                         is_latest=True,
+                         **kwargs)
         # clear the retry flag for this account/language since we just
         # successfully synced.
         self.filter(account_type=sh.account_type, account_id=sh.account_id,
                     video_url=sh.video_url, language=sh.language,
-                    retry=True).update(retry=False)
+                    retry=True).update(retry=False, is_latest=False)
         return sh
 
     def create_for_error(self, e, **kwargs):
@@ -905,7 +973,9 @@ class SyncHistoryManager(models.Manager):
             details = str(e)
         if 'retry' not in kwargs:
             kwargs['retry'] = isinstance(e, RetryableSyncingError)
-        return self.create(result=SyncHistory.RESULT_ERROR, details=details,
+        return self.create(result=SyncHistory.RESULT_ERROR, 
+                           details=details,
+                           is_latest=True,
                            **kwargs)
 
     def create(self, *args, **kwargs):
@@ -1019,6 +1089,50 @@ class SyncHistoryManager(models.Manager):
             return True
         return False
 
+    # gets the latest SyncHistory object for each video per language from `owner`
+    def for_owner_latest_per_video_and_language(self, owner):
+        accounts = []
+        for model in account_models:
+            for account in model.objects.for_owner(owner):
+                accounts.append(account)
+
+        history = {}
+
+        for account in accounts:
+            for sh in self.filter(account_type=account.account_type,
+                                  account_id=account.id,
+                                  is_latest=True).order_by('-datetime'):
+                if (sh.video_url.pk, sh.language.language_code) in history:
+                    continue
+                else:
+                    history[(sh.video_url.pk, sh.language.language_code)] = sh
+
+        #  we need to sort again since the initial sorting will be 
+        #  latest per account type and we want to sort by most recent across all
+        #  account types
+        return [i[1] for i in sorted(history.items(), key=lambda v: v[1].datetime, reverse=True)]
+
+    # gets the latest SyncHistory object for each team video per language for all team videos
+    # that have an existing SyncHistory
+    # we don't actually use this but let's keep this as reference
+    # for when we restructure how we track SyncHistory
+    def get_latest_sync_history_per_team_video(self, team):
+        history = {}
+        for tv in team.teamvideo_set.all():
+            vid_urls = tv.video.videourl_set.all()
+
+            for vu in vid_urls:
+                if not vu.synchistory_set.exists():
+                    continue
+
+                for sh in vu.synchistory_set.order_by('-datetime'):
+                    if (sh.video_url.pk, sh.language.language_code) in history:
+                        continue
+                    else:
+                        history[(sh.video_url.pk, sh.language.language_code)] = sh
+
+        return [i[1] for i in sorted(history.items(), key=lambda v: v[1].datetime, reverse=True)]
+
 class SyncHistory(models.Model):
     """History of all subtitle sync attempts."""
 
@@ -1049,6 +1163,7 @@ class SyncHistory(models.Model):
     details = models.CharField(max_length=255, blank=True, default='')
     # should we try to resync these subtitles?
     retry = models.BooleanField(default=False)
+    is_latest = models.BooleanField(default=False)
 
     objects = SyncHistoryManager()
 
@@ -1069,6 +1184,13 @@ class SyncHistory(models.Model):
 
     def cache_account(self, account):
         self._account = account
+
+    def get_team(self):
+        tv = self.video_url.video.get_team_video()
+        if tv:
+            return tv.team
+        else:
+            return None
 
 class CreditedVideoUrl(models.Model):
     """Track videos that we have added our amara credit to.

@@ -574,6 +574,9 @@ class CustomUser(BaseUser, secureid.SecureIDMixin):
     def small_avatar(self):
         return self._get_avatar_by_size(50)
 
+    def large_avatar(self):
+        return self._get_avatar_by_size(240)
+
     # future UI avatar
     def _get_avatar(self, size):
         if self.picture:

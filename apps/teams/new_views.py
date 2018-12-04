@@ -82,6 +82,7 @@ logger = logging.getLogger('teams.views')
 ACTIONS_PER_PAGE = 20
 VIDEOS_PER_PAGE = 12
 VIDEOS_PER_PAGE_MANAGEMENT = 20
+HISTORY_PER_PAGE_PROFILE = 20
 MEMBERS_PER_PAGE = 10
 PROJECTS_PER_PAGE = 10
 
@@ -236,7 +237,7 @@ def members(request, team):
         'show_invite_link': permissions.can_invite(team, request.user),
         'show_add_link': permissions.can_add_members(team, request.user),
         'show_application_link': show_application_link,
-        'experience_column_label': team.new_workflow.get_exerience_column_label(),
+        'experience_column_label': team.new_workflow.get_experience_column_label(),
     }
 
     if form_name and is_team_admin:
@@ -286,9 +287,11 @@ def members_public(request, slug):
     }
     return render(request, 'future/teams/members/members.html', context)
 
-def manage_members_form(request, team, form_name, members, page):
+def manage_members_form(request, team, form_name, members, page=None,
+                        selection=None):
     try:
-        selection = request.GET['selection'].split('-')
+        if selection is None:
+            selection = request.GET['selection'].split('-')
     except StandardError:
         return HttpResponseBadRequest()
     if form_name == 'role':
@@ -298,15 +301,18 @@ def manage_members_form(request, team, form_name, members, page):
     else:
         raise Http404()
 
-    # Don't count the current user for the all_selected var, since they cannot
-    # select their own entry
-    enabled_checkbox_count = len([
-        member for member in page
-        if member.user_id != request.user.id
-    ])
+    if page is None:
+        all_selected = False
+    else:
+        # Don't count the current user for the all_selected var, since they cannot
+        # select their own entry
+        enabled_checkbox_count = len([
+            member for member in page
+            if member.user_id != request.user.id
+        ])
+        all_selected = len(selection) >= enabled_checkbox_count
 
     is_owner = team.is_owner(request.user)
-    all_selected = len(selection) >= enabled_checkbox_count
     # filter out the current user from the full queryset
     members = members.exclude(user=request.user)
 
@@ -330,6 +336,7 @@ def manage_members_form(request, team, form_name, members, page):
                              is_owner=is_owner, team=team)
         except Exception as e:
             logger.error(e, exc_info=True)
+            return HttpResponseBadRequest()
 
     template_name = 'future/teams/members/forms/{}.html'.format(form_name)
     modal_context.update({
@@ -346,6 +353,10 @@ def manage_members_form(request, team, form_name, members, page):
     response_renderer = AJAXResponseRenderer(request)
     response_renderer.show_modal(template_name, modal_context)
     return response_renderer.render()
+
+def manage_members_form_single_user(request, team, form_name, member):
+    return manage_members_form(request, team, form_name, team.members,
+                               selection=[member.id])
 
 @with_old_view(old_views.applications)
 @team_view
@@ -571,8 +582,50 @@ def member_profile(request, team, username):
         user = User.objects.get(username=username)
         member = TeamMember.objects.get(team=team, user=user)
     except (User.DoesNotExist, TeamMember.DoesNotExist):
-        raise Http404
-    return team.new_workflow.member_view(request, team, member)
+        # This happens when a manager removes a member via the profile page,
+        # then we reload.  Redirect back to the members directory
+        return HttpResponseRedirect(reverse('teams:members',
+                                            args=[team.slug]))
+    team.new_workflow.add_experience_to_members([member])
+
+    # Handle the management forms
+    form_name = request.GET.get('form', None)
+    enabled_forms = {}
+    if request.user != user:
+        if permissions.can_edit_member(team, request.user):
+            enabled_forms['role'] = True
+        if permissions.can_remove_member(team, request.user):
+            enabled_forms['remove'] = True
+    if form_name and form_name in enabled_forms:
+        return manage_members_form_single_user(
+            request, team, form_name, member)
+
+    # Handle the history table
+    history_form = forms.MemberProfileSearch(get_data=request.GET)
+    if history_form.is_valid():
+        query = history_form.cleaned_data['q']
+    else:
+        query = None
+    member_history = team.new_workflow.fetch_member_history(user, query)
+    paginator = AmaraPaginatorFuture(member_history, HISTORY_PER_PAGE_PROFILE)
+    context = {
+        'team': team,
+        'user': user,
+        'member': member,
+        'enabled_forms': enabled_forms,
+        'paginator': paginator,
+        'page': paginator.get_page(request),
+        'history_filters': history_form,
+        'team_nav': 'member_directory',
+    }
+
+    if request.is_ajax():
+        renderer = AJAXResponseRenderer(request)
+        renderer.replace('#member-history',
+                         'future/teams/members/profile-history.html', context)
+        return renderer.render()
+    else:
+        return render(request, 'future/teams/members/profile.html', context)
 
 @team_view
 def add_members(request, team):

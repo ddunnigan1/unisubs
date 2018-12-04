@@ -35,7 +35,7 @@
   </div>
   <div class="memberDirectory-joined">{{ member.created|datetime }}</div>
   <div class="memberDirectory-experience">
-    {{ member.experience.count}}
+    {{ member.experience_count}}
     {% if member.experience_extra %}<div class="listView-secondary"><ul>{% for experience in member.experience_extra %}<li>{{ experience.label }}: {{ experience.count}}</li>{% endfor %}</ul></div>{% endif %}
   </div>
   {% if is_team_admin %}

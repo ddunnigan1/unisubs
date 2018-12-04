@@ -939,8 +939,7 @@ class ActivityQuerySet(query.QuerySet):
                 .distinct())
 
     def for_user(self, user):
-        return (self.filter(user=user).original()
-                .force_index('activity_activityrecord_user_id_9a176575334d68_idx'))
+        return self.filter(user=user).original()
 
     def for_team(self, team):
         return self.filter(team=team)
@@ -1144,6 +1143,7 @@ class ActivityRecord(models.Model):
             # Team activity stream.  There's often lots of activity per-team,
             # so we add some extra indexes here
             ('team', 'created'),
+            ('team', 'user', 'created'),
             ('team', 'type', 'created'),
             ('team', 'language_code', 'created'),
             ('team', 'type', 'video_language_code', 'created'),

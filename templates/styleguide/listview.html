@@ -45,7 +45,16 @@
     <div class="listView-header listView-checkbox">{% checkbox "all" id_prefix="selection-" class="checkAll" data_name="selection" %}</div>
     <div class="listView-header styleguideExample-title">Title</div>
     <div class="listView-header styleguideExample-language">Language</div>
-    <div class="listView-header listView-actions"></div>
+    <div class="listView-header listView-actions">
+      {% dropdown-button-icon "header-menu" "listView-action" %}
+      {% dropdown "header-menu" %}
+      {% dropdown-header-item "Sort" %}
+      {% dropdown-js-item "a-z" "update-filter" "sort" "name" "default" %}
+      {% dropdown-js-item "z-a" "update-filter" "sort" "-name" %}
+      {% dropdown-js-item "newest first" "update-filter" "sort" "-created" %}
+      {% dropdown-js-item "oldest first" "update-filter" "sort" "created" %}
+      {% enddropdown %}
+    </div>
 
     {% for i in "x"|rjust:"10" %} {# dirty way to do a for loop #}
     {% captureas menu_id %}menu-1-{{ forloop.counter }}{% endcaptureas %}

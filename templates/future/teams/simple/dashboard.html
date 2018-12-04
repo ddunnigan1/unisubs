@@ -1,5 +1,5 @@
 {% extends "future/teams/base.html" %}
-{% load i18n %}
+{% load i18n teams_tags %}
 {% block body-extra %} class="dashboard"{% endblock %}
 {% block content %}
 <main id="dashboard" class="pageContent">
@@ -22,14 +22,16 @@
     </div>
   </section>
 
-  {% if dashboard_history and not no_languages_yet %}
+  {% if not no_languages_yet %}
   <section class="pageSection">
     <div class="container">
       <div class="row">
         <div class="col-xs-12">
-          <div id="assignments_history" class="content">
-            {% include "future/teams/simple/subtitling_history.html" with histories=dashboard_history %}
-          </div>
+          <header class="dashboardHeader">
+            <h2>{% trans "Recent activity" %}</h2>
+            {% if member_history %}<a class="small" href="{{ member_profile_url }}">{% trans "See all" %}</a>{% endif %}
+          </header>
+          {% include member_history_template %}
         </div>
       </div>
     </div>

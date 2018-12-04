@@ -1968,8 +1968,16 @@ class ApplicationFiltersForm(forms.Form):
         return qs
 
 class ProjectFiltersForm(forms.Form):
+    SORT_CHOICES = [
+        ('name', _('A-Z')),
+        ('-name', _('Z-A')),
+        ('-created', _('Newest first')),
+        ('created', _('Oldest first')),
+    ]
     q = SearchField(label=_('Search'), required=False,
                     widget=ContentHeaderSearchBar)
+    sort = AmaraChoiceField(label=_('Sort'), choices=SORT_CHOICES,
+                            initial='name', required=False)
 
     def __init__(self, get_data=None):
         super(ProjectFiltersForm, self).__init__(
@@ -1989,12 +1997,13 @@ class ProjectFiltersForm(forms.Form):
             data = self.cleaned_data
 
         q = data.get('q', '')
+        sort = data.get('sort', '')
 
         for term in [term.strip() for term in q.split()]:
             if term:
                 qs = qs.filter(Q(name__icontains=term)
                                | Q(slug__icontains=term))
-        qs = qs.order_by('name')
+        qs = qs.order_by(sort if sort else 'name')
         return qs
 
 class ApproveApplicationForm(ManagementForm):
@@ -2835,6 +2844,10 @@ class MoveVideosForm(VideoManagementForm):
                 count=self.video_policy_errors,
                 team=self.cleaned_data['new_team']))
         return messages
+
+class MemberProfileSearch(FiltersForm):
+    q = SearchField(label=_('Search by video'), required=False,
+                    widget=ContentHeaderSearchBar)
 
 class SearchVideoFeedForm(forms.Form):
     q = SearchField(label=_('Search'), required=False,

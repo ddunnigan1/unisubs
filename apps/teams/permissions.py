@@ -387,6 +387,10 @@ def can_add_member(team, user, role):
         team=team, user=user, role__in=roles_allowed
     ).exists()
 
+def can_edit_member(team, user):
+    member = team.get_member(user)
+    return member.is_admin()
+
 def can_remove_member(team, user):
     member = team.get_member(user)
     return can_add_member(team, user, member.role)

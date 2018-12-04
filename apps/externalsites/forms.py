@@ -27,6 +27,7 @@ from django.utils.translation import ugettext_lazy
 from auth.models import CustomUser as User
 from teams.models import Team
 from externalsites import models
+from ui.forms import AmaraMultipleChoiceField, AmaraChoiceField
 from utils.forms import SubmitButtonField, SubmitButtonWidget
 from utils.text import fmt
 import videos.tasks
@@ -170,12 +171,19 @@ class AddYoutubeAccountForm(forms.Form):
 class YoutubeAccountForm(forms.Form):
     remove_button = SubmitButtonField(label=ugettext_lazy('Remove account'),
                                       required=False)
-    sync_teams = forms.MultipleChoiceField(
-        widget=forms.CheckboxSelectMultiple,
+    sync_teams = AmaraMultipleChoiceField(
+        widget=forms.widgets.SelectMultiple,
         required=False)
-    import_team = forms.ChoiceField(label='', required=False)
-    sync_subtitles = forms.BooleanField(label=ugettext_lazy('Sync subtitles from Amara to YouTube'), required=False)
-    fetch_initial_subtitles = forms.BooleanField(label=ugettext_lazy('Fetch initial subtitles from YouTube when videos are submitted to Amara'), required=False)
+    import_team = AmaraChoiceField(label=ugettext_lazy('Import videos to team'), required=False)
+    sync_subtitles = forms.BooleanField(
+        label=ugettext_lazy('Export subtitles from Amara to YouTube'), 
+        required=False,
+        widget=forms.CheckboxInput(attrs={ 'class': 'syncSubtitlesYoutube' }))
+    fetch_initial_subtitles = forms.BooleanField(label=ugettext_lazy('Import initial subtitles from YouTube when videos are submitted to Amara'), required=False)
+    sync_metadata = forms.BooleanField(
+       required=False,
+       label=ugettext_lazy('Export video titles and descriptions'),
+       help_text=ugettext_lazy('Enable to export the translations of the video title and description if available'))
 
     def __init__(self, admin_user, account, data=None, **kwargs):
         super(YoutubeAccountForm, self).__init__(data=data, **kwargs)
@@ -185,12 +193,18 @@ class YoutubeAccountForm(forms.Form):
         self.setup_import_team()
         self.setup_account_options()
 
+        if len(self.fields['sync_teams'].choices) > 1:
+            self.fields['sync_teams'].set_select_data('placeholder', _('Set sync teams'))
+        else:
+            del self.fields['sync_teams']
+
     def setup_account_options(self):
         self['sync_subtitles'].field.initial = self.account.sync_subtitles
         self['fetch_initial_subtitles'].field.initial = self.account.fetch_initial_subtitles
+        self['sync_metadata'].field.initial = self.account.sync_metadata
 
     def setup_sync_team(self):
-        choices = []
+        choices = [ ('', _('Clear')) ]
         initial = []
         # allow the admin to uncheck any of the current sync teams
         current_sync_teams = list(self.account.sync_teams.get_queryset())
@@ -205,6 +219,7 @@ class YoutubeAccountForm(forms.Form):
                      .select_related('team'))
         choices.extend((member.team.id, member.team.name)
                        for member in member_qs if not member.team.deleted)
+
         self['sync_teams'].field.choices = choices
         self['sync_teams'].field.initial = initial
 
@@ -221,7 +236,7 @@ class YoutubeAccountForm(forms.Form):
                         fmt(label_template, team=self.account.team.name)))
         choices.extend(
             (team_id, fmt(label_template, team=team_name))
-            for team_id, team_name in self.fields['sync_teams'].choices
+            for team_id, team_name in self.fields['sync_teams'].choices[1:]
         )
         if (self.account.import_team_id and
             self.account.import_team_id not in [c[0] for c in choices]):
@@ -238,15 +253,19 @@ class YoutubeAccountForm(forms.Form):
         if self.cleaned_data['remove_button']:
             self.account.delete()
         else:
-            self.account.sync_teams = Team.objects.filter(
-                id__in=self.cleaned_data['sync_teams']
-            )
+            if self.cleaned_data.get('sync_teams', None):
+                self.account.sync_teams = Team.objects.filter(
+                    id__in=self.cleaned_data['sync_teams']
+                )
+            else:
+                self.account.sync_teams = []
             if self.cleaned_data['import_team'] == '':
                 self.account.import_team = None
             else:
                 self.account.import_team_id = self.cleaned_data['import_team']
             self.account.sync_subtitles = self.cleaned_data['sync_subtitles']
             self.account.fetch_initial_subtitles = self.cleaned_data['fetch_initial_subtitles']
+            self.account.sync_metadata = self.cleaned_data['sync_metadata']
             self.account.save()
 
     def show_sync_teams(self):
@@ -255,11 +274,11 @@ class YoutubeAccountForm(forms.Form):
 class VimeoAccountForm(forms.Form):
     remove_button = SubmitButtonField(label=ugettext_lazy('Remove account'),
                                       required=False)
-    sync_teams = forms.MultipleChoiceField(
-        widget=forms.CheckboxSelectMultiple,
+    sync_teams = AmaraMultipleChoiceField(
+        widget=forms.widgets.SelectMultiple,
         required=False)
-    sync_subtitles = forms.BooleanField(label=ugettext_lazy('Sync subtitles from Amara to Vimeo'), required=False)
-    fetch_initial_subtitles = forms.BooleanField(label=ugettext_lazy('Fetch initial subtitles from Vimeo when videos are submitted to Amara'), required=False)
+    sync_subtitles = forms.BooleanField(label=ugettext_lazy('Export subtitles from Amara to Vimeo'), required=False)
+    fetch_initial_subtitles = forms.BooleanField(label=ugettext_lazy('Import initial subtitles from Vimeo when videos are submitted to Amara'), required=False)
 
     def __init__(self, admin_user, account, data=None, **kwargs):
         super(VimeoAccountForm, self).__init__(data=data, **kwargs)
@@ -268,12 +287,18 @@ class VimeoAccountForm(forms.Form):
         self.setup_sync_team()
         self.setup_account_options()
 
+        if len(self.fields['sync_teams'].choices) > 1:
+            self.fields['sync_teams'].set_select_data('placeholder', _('Set sync teams'))
+        else:
+            del self.fields['sync_teams']
+
+
     def setup_account_options(self):
         self['sync_subtitles'].field.initial = self.account.sync_subtitles
         self['fetch_initial_subtitles'].field.initial = self.account.fetch_initial_subtitles
 
     def setup_sync_team(self):
-        choices = []
+        choices = [ ('', _('Clear')) ]
         initial = []
         # allow the admin to uncheck any of the current sync teams
         current_sync_teams = list(self.account.sync_teams.all())
@@ -287,7 +312,7 @@ class VimeoAccountForm(forms.Form):
                      .exclude(team_id__in=exclude_team_ids)
                      .select_related('team'))
         choices.extend((member.team.id, member.team.name)
-                       for member in member_qs)
+                       for member in member_qs if not member.team.deleted)
         self['sync_teams'].field.choices = choices
         self['sync_teams'].field.initial = initial
 

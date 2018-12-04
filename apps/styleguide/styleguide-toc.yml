@@ -8,6 +8,8 @@
   - palette
   - typography
   - lists
+  - id: definition-lists
+    title: Definition Lists
   - id: tables
     title: Tables
   - id: dropdown-menus
