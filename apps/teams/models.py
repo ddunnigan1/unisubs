@@ -364,7 +364,6 @@ class Team(models.Model):
         enum=TeamNotify, default=None, null=True, blank=True,
         choices=[
             TeamNotify.ADMINS, TeamNotify.MANAGERS,
-            TeamNotify.MEMBERS,
         ])
     notify_evaluation_assignment = enum.EnumField(
         verbose_name=_('Evaluation assignment available'),
