@@ -51,7 +51,7 @@
               <input type="hidden" name="next" value="{{ next }}" />
             </form>
         </div>
-        <div id="create-account" class="sso">
+        <div id="create-account" class="{% if auto_scroll_to_error %}auto-scroll-target {% endif %}sso">
           <form class="auth-form" action="{% url "auth:create_user" %}" method="post">
               <h2>{% trans "Create an Account" %}</h2>
               <h5>{% trans "It's free!" %}</h5>

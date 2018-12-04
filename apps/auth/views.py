@@ -148,7 +148,7 @@ def create_user(request):
         auth_login(request, user)
         return HttpResponseRedirect(redirect_to)
     else:
-        return render_login(request, form, AuthenticationForm(label_suffix=""), redirect_to)
+        return render_login(request, form, AuthenticationForm(label_suffix=""), redirect_to, auto_scroll_to_error=True)
 
 @login_required
 def delete_user(request):
@@ -339,7 +339,7 @@ def login_trap(request):
 
 # Helpers
 
-def render_login(request, user_creation_form, login_form, redirect_to, email_form=None, confirm_type=None):
+def render_login(request, user_creation_form, login_form, redirect_to, email_form=None, confirm_type=None, auto_scroll_to_error=False):
     redirect_to = redirect_to or '/'
     context = {
         REDIRECT_FIELD_NAME: redirect_to,
@@ -359,6 +359,9 @@ def render_login(request, user_creation_form, login_form, redirect_to, email_for
             context['ted_auth'] = get_authentication_provider('ted')
         if confirm_type == 'facebook':
             context['submit_facebook'] = "submit-proceed-to-create-facebook"
+
+    if auto_scroll_to_error:
+        context['auto_scroll_to_error'] = True
     return render(request, template, context)
 
 def make_redirect_to(request, default=''):
