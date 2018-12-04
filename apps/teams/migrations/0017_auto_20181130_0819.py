@@ -4,14 +4,24 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+from teams import stats
+from utils import dates
+
 def generate_subtitles_completed_stat(apps, scheme_editor):
     Team = apps.get_model('teams', 'Team')
 
     for t in Team.objects.all():
         for tv in t.teamvideo_set.all():
             for sl in tv.video.complete_languages():
-                # SubtitleVersion should have information if it completes a SubtitleLanguage
-                pass
+                now = dates.now()
+                completion_date = sl.get_tip().created
+
+                if (now - completion_date).days <= stats.DAYS_TO_STORE:
+                    stats.increment(tv.team, 'subtitles_completed', completion_date)
+                    stats.increment(
+                        tv.team,
+                        'subtitles_completed-{}'.format(sl.language_code),
+                        completion_date)
 
 class Migration(migrations.Migration):
 
@@ -20,4 +30,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(generate_subtitles_completed_stat)
     ]
