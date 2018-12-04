@@ -64,7 +64,7 @@ def patch_notify_users(patch_for_test):
             rate_limit_by_type=rate_limit_by_type)
 
         user_list_arg = mock_notify_users.call_args[0][1]
-        assert set(user_list_arg) == set(u.id for u in correct_users)
+        assert sorted(user_list_arg) == sorted(u.id for u in correct_users)
     return Bunch(mock_notify_users=mock_notify_users,
                  check_call=check_call)
 
@@ -121,6 +121,29 @@ def test_exclude(team, patch_notify_users):
                    exclude=[team.admins[0]])
 
     patch_notify_users.check_call(team.admins[1:] + team.managers)
+
+def set_languages(user, language_codes):
+    user.set_languages([
+        {
+            'language': lc,
+            'priority': i
+        }
+        for i, lc in enumerate(language_codes)
+    ])
+
+def test_languages(team, patch_notify_users):
+    set_languages(team.admins[0], ['en', 'fr'])
+    set_languages(team.managers[1], ['fr', 'de'])
+    set_languages(team.contributors[0], ['de'])
+    set_languages(team.contributors[1], ['en', 'es'])
+
+    notify_members(MockNotification(), team, TeamNotify.MEMBERS,
+                   with_languages=['fr', 'de'])
+    patch_notify_users.check_call([
+        team.admins[0],
+        team.managers[1],
+        team.contributors[0],
+    ])
 
 def test_rate_limit_by_type(team, patch_notify_users):
     notify_members(MockNotification(), team, TeamNotify.MANAGERS,

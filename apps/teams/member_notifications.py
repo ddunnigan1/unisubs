@@ -16,8 +16,10 @@
 # along with this program.  If not, see
 # http://www.gnu.org/licenses/agpl-3.0.html.
 
+from django.db.models import Exists, OuterRef
 from django.utils.translation import ugettext as _
 
+from auth.models import CustomUser as User
 from usernotifications.notifications import (
     notify_users, notify_user, Notification, NotificationType)
 from teams.const import *
@@ -26,7 +28,8 @@ from utils.taskqueue import job
 from utils.text import fmt
 
 def notify_members(notification, team, setting, video=None,
-                   language_code=None, exclude=None, rate_limit_by_type=None):
+                   language_code=None, exclude=None, with_languages=None,
+                   rate_limit_by_type=None):
     """
     Generic team notification code
 
@@ -45,12 +48,20 @@ def notify_members(notification, team, setting, video=None,
         language_code: Language related to the notificaton.  This controls
             which language managers get counted as managers
         exclude: list of users to exclude from the notification
+        with_languages: Only notify users who have these languages set in
+           their profile
         rate_limit_by_type: rate_limit_by_type argument (see notify_users)
     """
+    project = None
+    if video:
+        team_video = video.get_team_video()
+        if team_video:
+            project = team_video.project
     if setting == TeamNotify.MEMBERS:
         qs = team.members.all()
     elif setting == TeamNotify.MANAGERS:
-        qs = team.members.managers()
+        qs = team.members.managers(language_code=language_code,
+                                   project=project)
     elif setting == TeamNotify.ADMINS:
         qs = team.members.admins()
     else:
@@ -58,17 +69,17 @@ def notify_members(notification, team, setting, video=None,
 
     if exclude:
         qs = qs.exclude(user__in=exclude)
+    if with_languages:
+        user_query = (
+            User.objects.all()
+            .annotate(speaks_language=Exists(User.objects.filter(
+                pk=OuterRef('pk'),
+                userlanguage__language__in=with_languages)))
+            .filter(speaks_language=True))
+        qs = qs.filter(user__in=user_query)
+
     user_ids = list(qs.values_list('user_id', flat=True))
-    if setting == TeamNotify.MANAGERS:
-        # add project/language managers
-        if video:
-            team_video = video.get_team_video()
-            if team_video:
-                qs = team.members.project_managers(team_video.project)
-                user_ids.extend(qs.values_list('user_id', flat=True))
-        if language_code:
-            qs = team.members.language_managers(language_code)
-            user_ids.extend(qs.values_list('user_id', flat=True))
+
     notify_users(notification, user_ids, rate_limit_by_type=rate_limit_by_type)
 
 class MemberRoleChangedNotification(Notification):

@@ -1686,8 +1686,21 @@ class TeamMemberManager(models.Manager):
         tm.save()
         return tm
 
-    def managers(self):
-        return self.filter(role__in=(ROLE_MANAGER, ROLE_OWNER, ROLE_ADMIN))
+    def managers(self, project=None, language_code=None):
+        """
+        Get admins and managers for a team
+
+        Args:
+            project: Project to use to look up project managers
+            language_code: Language code to use to look up language managers
+        """
+        q = Q(role__in=(ROLE_MANAGER, ROLE_OWNER, ROLE_ADMIN))
+        if project:
+            q |= Q(role=ROLE_CONTRIBUTOR, projects_managed=project)
+        if language_code:
+            q |= Q(role=ROLE_CONTRIBUTOR,
+                   languages_managed__code=language_code)
+        return self.filter(q)
 
     def admins(self):
         return self.filter(role__in=(ROLE_OWNER, ROLE_ADMIN))
