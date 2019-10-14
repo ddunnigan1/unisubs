@@ -13,7 +13,7 @@ botocore==1.8.21
 django-storages==1.7.1
 easy-thumbnails==2.5
 lxml==2.3
-requests[security]==2.9.0
+requests[security]==2.20.0
 PyJWT==0.4.3
 -e git+https://github.com/jsocol/bleach.git@105b4cfc2f00cc1954bcab3b39b16fbfaf8863e0#egg=bleach
 oauth2==1.5.211
