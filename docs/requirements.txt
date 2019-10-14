@@ -1,4 +1,4 @@
-Django==1.11.15
+Django==1.11.23
 sphinxcontrib-httpdomain
 sphinxcontrib-napoleon==0.3.2
 sphinx_rtd_theme
